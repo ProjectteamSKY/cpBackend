@@ -29,6 +29,9 @@ jobs:
             git checkout dev
             git reset --hard origin/dev
 
+            echo "Moving into project folder"
+            cd citizen
+
             echo "Activating virtual environment"
             source citizen/venv/bin/activate
 
