@@ -38,3 +38,14 @@ async def login(data: LoginSchema, session: AsyncSession = Depends(get_session))
         raise HTTPException(401, "Invalid credentials")
 
     return result
+
+
+@router.post("/login12364566756756356")
+async def login(data: LoginSchema, session: AsyncSession = Depends(get_session)):
+
+    result = await login_user(data, session)
+
+    if not result:
+        raise HTTPException(401, "Invalid credentials")
+
+    return result
