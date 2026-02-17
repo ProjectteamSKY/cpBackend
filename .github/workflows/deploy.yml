@@ -30,7 +30,7 @@ jobs:
             git reset --hard origin/dev
 
             echo "Activating virtual environment"
-            source venv/bin/activate
+            source citizen/venv/bin/activate
 
             echo "Installing dependencies"
             pip install -r requirements.txt
