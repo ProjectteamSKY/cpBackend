@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import SheetTemplate as SheetTemplateORM
+from app.db.models.product_models import SheetTemplate as SheetTemplateORM
 from app.domain.sheet_template_domain import SheetTemplate as SheetTemplateDomain
 
 async def create_sheet_template_repo(template: SheetTemplateDomain, session: AsyncSession):

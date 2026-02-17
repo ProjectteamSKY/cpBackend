@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import CutType as CutTypeORM
+from app.db.models.product_models import CutType as CutTypeORM
 from app.domain.cut_type_domain import CutType as CutTypeDomain
 
 async def create_cut_type_repo(cut_type: CutTypeDomain, session: AsyncSession):

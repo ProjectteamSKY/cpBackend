@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import ProductType as ProductTypeORM
+from app.db.models.product_models import ProductType as ProductTypeORM
 from app.domain.product_type_domain import ProductType as ProductTypeDomain
 
 async def create_product_type_repo(pt: ProductTypeDomain, session: AsyncSession):

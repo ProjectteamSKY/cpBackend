@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import SubCategory as SubCategoryORM
+from app.db.models.product_models import SubCategory as SubCategoryORM
 from app.domain.subcategory_domain import SubCategory as SubCategoryDomain
 
 async def create_subcategory_repo(subcategory: SubCategoryDomain, session: AsyncSession):

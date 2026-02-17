@@ -4,7 +4,7 @@ from app.core.database import get_session
 from app.schemas.category_schema import CategoryCreateSchema, CategoryResponseSchema
 from app.services.category_service import create_category, get_category
 
-router = APIRouter(prefix="/categories", tags=["Categories"])
+router = APIRouter()
 
 @router.post("/", response_model=CategoryResponseSchema)
 async def create_category_route(data: CategoryCreateSchema, session: AsyncSession = Depends(get_session)):

@@ -4,7 +4,7 @@ from app.core.database import get_session
 from app.schemas.cut_type_schema import CutTypeCreateSchema, CutTypeResponseSchema
 from app.services.cut_type_service import create_cut_type, get_cut_type
 
-router = APIRouter(prefix="/cut-types", tags=["CutTypes"])
+router = APIRouter()
 
 @router.post("/", response_model=CutTypeResponseSchema)
 async def create_cut_type_route(data: CutTypeCreateSchema, session: AsyncSession = Depends(get_session)):

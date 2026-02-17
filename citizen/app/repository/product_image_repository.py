@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import ProductImage as ProductImageORM
+from app.db.models.product_models import ProductImage as ProductImageORM
 from app.domain.product_image_domain import ProductImage as ProductImageDomain
 
 async def create_product_image_repo(image: ProductImageDomain, session: AsyncSession):
