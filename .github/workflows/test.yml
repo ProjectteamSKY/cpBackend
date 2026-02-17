@@ -1,0 +1,19 @@
+name: Secret Test
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print check
+        run: |
+          if [ -z "${{ secrets.EC2_HOST }}" ]; then
+            echo "EC2_HOST missing ❌"
+          else
+            echo "EC2_HOST exists ✅"
+          fi
