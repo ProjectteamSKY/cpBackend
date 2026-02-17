@@ -29,7 +29,7 @@ async def login(data: LoginSchema, session: AsyncSession = Depends(get_session))
 
     return result
 
-@router.post("/login123")
+@router.post("/login1236456356")
 async def login(data: LoginSchema, session: AsyncSession = Depends(get_session)):
 
     result = await login_user(data, session)
