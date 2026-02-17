@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import Product as ProductORM, ProductVariant as VariantORM, ProductImage as ImageORM
+from app.db.models.product_models import Product as ProductORM, ProductVariant as VariantORM, ProductImage as ImageORM
 from app.domain.product_domain import Product as ProductDomain
 from app.domain.product_variant_domain import ProductVariant as VariantDomain
 from app.domain.product_image_domain import ProductImage as ImageDomain

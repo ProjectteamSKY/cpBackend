@@ -4,7 +4,7 @@ from app.core.database import get_session
 from app.schemas.product_image_schema import ProductImageCreateSchema, ProductImageResponseSchema
 from app.services.product_image_service import create_product_image, get_product_image
 
-router = APIRouter(prefix="/product-images", tags=["ProductImages"])
+router = APIRouter()
 
 @router.post("/", response_model=ProductImageResponseSchema)
 async def create_product_image_route(data: ProductImageCreateSchema, session: AsyncSession = Depends(get_session)):

@@ -4,7 +4,7 @@ from app.core.database import get_session
 from app.schemas.product_schema import ProductCreateSchema, ProductResponseSchema
 from app.services.product_service import create_product, get_product
 
-router = APIRouter(prefix="/products", tags=["Products"])
+router = APIRouter()
 
 @router.post("/", response_model=ProductResponseSchema)
 async def create_product_route(data: ProductCreateSchema, session: AsyncSession = Depends(get_session)):

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import PaperType as PaperTypeORM
+from app.db.models.product_models import PaperType as PaperTypeORM
 from app.domain.paper_type_domain import PaperType as PaperTypeDomain
 
 async def create_paper_type_repo(pt: PaperTypeDomain, session: AsyncSession):

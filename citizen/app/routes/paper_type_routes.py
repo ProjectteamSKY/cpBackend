@@ -4,7 +4,7 @@ from app.core.database import get_session
 from app.schemas.paper_type_schema import PaperTypeCreateSchema, PaperTypeResponseSchema
 from app.services.paper_type_service import create_paper_type, get_paper_type
 
-router = APIRouter(prefix="/paper-types", tags=["PaperTypes"])
+router = APIRouter()
 
 @router.post("/", response_model=PaperTypeResponseSchema)
 async def create_paper_type_route(data: PaperTypeCreateSchema, session: AsyncSession = Depends(get_session)):

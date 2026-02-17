@@ -4,7 +4,7 @@ from app.core.database import get_session
 from app.schemas.subcategory_schema import SubCategoryCreateSchema, SubCategoryResponseSchema
 from app.services.subcategory_service import create_subcategory, get_subcategory
 
-router = APIRouter(prefix="/subcategories", tags=["SubCategories"])
+router = APIRouter()
 
 @router.post("/", response_model=SubCategoryResponseSchema)
 async def create_subcategory_route(data: SubCategoryCreateSchema, session: AsyncSession = Depends(get_session)):

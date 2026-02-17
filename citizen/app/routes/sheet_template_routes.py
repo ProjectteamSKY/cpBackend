@@ -4,7 +4,7 @@ from app.core.database import get_session
 from app.schemas.sheet_template_schema import SheetTemplateCreateSchema, SheetTemplateResponseSchema
 from app.services.sheet_template_service import create_sheet_template, get_sheet_template
 
-router = APIRouter(prefix="/sheet-templates", tags=["SheetTemplates"])
+router = APIRouter()
 
 @router.post("/", response_model=SheetTemplateResponseSchema)
 async def create_sheet_template_route(data: SheetTemplateCreateSchema, session: AsyncSession = Depends(get_session)):
