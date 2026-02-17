@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import ProductVariant as ProductVariantORM
+from app.db.models.product_models import ProductVariant as ProductVariantORM
 from app.domain.product_variant_domain import ProductVariant as ProductVariantDomain
 
 async def create_product_variant_repo(variant: ProductVariantDomain, session: AsyncSession):

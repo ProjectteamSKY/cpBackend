@@ -4,7 +4,7 @@ from app.core.database import get_session
 from app.schemas.finish_schema import FinishCreateSchema, FinishResponseSchema
 from app.services.finish_service import create_finish, get_finish
 
-router = APIRouter(prefix="/finishes", tags=["Finishes"])
+router = APIRouter()
 
 @router.post("/", response_model=FinishResponseSchema)
 async def create_finish_route(data: FinishCreateSchema, session: AsyncSession = Depends(get_session)):

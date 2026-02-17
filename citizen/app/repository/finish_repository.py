@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import Finish as FinishORM
+from app.db.models.product_models import Finish as FinishORM
 from app.domain.finish_domain import Finish as FinishDomain
 
 async def create_finish_repo(finish: FinishDomain, session: AsyncSession):

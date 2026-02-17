@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repository.paper_type_repository import create_paper_type_repo, get_paper_type_by_id_repo
-from app.domain.paper_type import PaperType as PaperTypeDomain
+from app.domain.paper_type_domain import PaperType as PaperTypeDomain
 
 async def create_paper_type(data, session: AsyncSession):
     pt = PaperTypeDomain(name=data.name, description=data.description)

@@ -4,7 +4,7 @@ from app.core.database import get_session
 from app.schemas.product_variant_schema import ProductVariantCreateSchema, ProductVariantResponseSchema
 from app.services.product_variant_service import create_product_variant, get_product_variant
 
-router = APIRouter(prefix="/product-variants", tags=["ProductVariants"])
+router = APIRouter()
 
 @router.post("/", response_model=ProductVariantResponseSchema)
 async def create_product_variant_route(data: ProductVariantCreateSchema, session: AsyncSession = Depends(get_session)):

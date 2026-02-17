@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import Category as CategoryORM
+from app.db.models.product_models import Category as CategoryORM
 from app.domain.category_domain import Category as CategoryDomain
 
 async def create_category_repo(category: CategoryDomain, session: AsyncSession):
