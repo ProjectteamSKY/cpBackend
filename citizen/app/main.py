@@ -6,6 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, APIRouter
 
 from app.routes import user_routes
+from app.routes import category_routes
+from app.routes import subcategory_routes
+from app.routes import cut_type_routes
+from app.routes import finish_routes
+from app.routes import paper_type_routes
+from app.routes import product_image_routes
+from app.routes import product_routes
+from app.routes import product_variant_routes
+from app.routes import sheet_template_routes
+from app.routes import product_type_routes
+# from app.core.init_db import init_db  # import the function, not the module
+
 
 
 app = FastAPI(
@@ -14,6 +26,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
+# @app.on_event("startup")
+# async def on_startup():
+#     await init_db()
+#     print("🟢 Database initialized on startup - main.py:33")
 # -------------------------
 # CORS middleware
 # -------------------------
@@ -32,6 +49,18 @@ api_router = APIRouter(prefix="/api")
 # Include Routers
 # -------------------------
 api_router.include_router(user_routes.router, prefix="/auth", tags=["Auth"])
+api_router.include_router(category_routes.router, prefix="/category", tags=["category"])
+api_router.include_router(subcategory_routes.router, prefix="/subcategory", tags=["subcategory"])
+api_router.include_router(product_routes.router, prefix="/product", tags=["product"])
+api_router.include_router(product_type_routes.router, prefix="/product_type", tags=["product_type"])
+api_router.include_router(product_variant_routes.router, prefix="/product_variant", tags=["product_variant"])
+api_router.include_router(paper_type_routes.router, prefix="/paper_type", tags=["paper_type"])
+api_router.include_router(product_image_routes.router, prefix="/product_image", tags=["product_image"])
+api_router.include_router(finish_routes.router, prefix="/finish", tags=["finish"])
+api_router.include_router(cut_type_routes.router, prefix="/cut_type", tags=["cut_type"])
+api_router.include_router(sheet_template_routes.router, prefix="/sheet_template", tags=["sheet_template"])
+
+
 
 app.include_router(api_router)
 
