@@ -12,8 +12,8 @@ jobs:
     steps:
       - name: Print check
         run: |
-          if [ -z "${{ secrets.EC2_HOST }}" ]; then
-            echo "EC2_HOST missing ❌"
+          if [ -z "${{ secrets.DEV_HOST }}" ]; then
+            echo "DEV_HOST missing ❌"
           else
-            echo "EC2_HOST exists ✅"
+            echo "DEV_HOST exists ✅"
           fi
