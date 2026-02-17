@@ -1,4 +1,4 @@
-name: Dev Deployment
+name: Dev Deploy
 
 on:
   push:
@@ -6,35 +6,14 @@ on:
       - dev
 
 jobs:
-  deploy-dev:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to Dev Server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.DEV_USER }}
-          key: ${{ secrets.DEV_SSH_KEY }}
-          script: |
-            set -e
-
-            echo "Starting DEV deployment..."
-
-            cd /home/ubuntu/cpBackend
-
-            echo "Fetching latest code..."
-            git fetch origin
-            git checkout dev
-            git pull origin dev
-
-            echo "Activating virtual environment..."
-            source venv/bin/activate
-
-            echo "Installing dependencies..."
-            pip install -r requirements.txt
-
-            echo "Restarting FastAPI service..."
-            sudo systemctl restart fastapi
-
-            echo "DEV deployment completed successfully ✅"
+      - name: Print check
+        run: |
+          if [ -z "${{ secrets.DEV_HOST }}" ]; then
+            echo "DEV_HOST missing ❌"
+          else
+            echo "DEV_HOST exists ✅"
+          fi
