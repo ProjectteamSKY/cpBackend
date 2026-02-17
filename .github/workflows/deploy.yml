@@ -33,7 +33,7 @@ jobs:
             cd citizen
 
             echo "Activating virtual environment"
-            source citizen/venv/bin/activate
+            source venv/bin/activate
 
             echo "Installing dependencies"
             pip install -r requirements.txt
