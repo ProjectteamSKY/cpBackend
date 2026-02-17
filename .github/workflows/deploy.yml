@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Dev Deploy
 
 on:
   push:
@@ -6,32 +6,14 @@ on:
       - dev
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.DEV_USER }}
-          key: ${{ secrets.DEV_SSH_KEY }}
-          script: |
-            cd /home/ubuntu/cpBackend/citizen
-
-            echo "Pulling latest code..."
-            git pull origin main
-
-            echo "Activating venv..."
-            source venv/bin/activate
-
-            echo "Installing dependencies..."
-            pip install -r requirements.txt
-
-            echo "Restarting FastAPI..."
-            sudo systemctl restart fastapi
-
-            echo "Deployment completed ✅"
+      - name: Print check
+        run: |
+          if [ -z "${{ secrets.EC2_HOST }}" ]; then
+            echo "EC2_HOST missing ❌"
+          else
+            echo "EC2_HOST exists ✅"
+          fi
