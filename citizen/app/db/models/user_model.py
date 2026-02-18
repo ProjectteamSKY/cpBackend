@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
@@ -20,14 +19,6 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
-    tokens = relationship("UserToken", back_populates="user", cascade="all, delete-orphan")
-    profile = relationship("UserProfile", uselist=False, back_populates="user", cascade="all, delete-orphan")
-    orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
-    wishlist_items = relationship("Wishlist", back_populates="user", cascade="all, delete-orphan")
-    payments = relationship("Payment", back_populates="user", cascade="all, delete-orphan")
 
 
 class UserProfile(Base):
@@ -45,9 +36,6 @@ class UserProfile(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User", back_populates="profile")
-
-
 
 class UserToken(Base):
     __tablename__ = "user_tokens"
@@ -57,8 +45,6 @@ class UserToken(Base):
     token = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime)
-
-    user = relationship("User", back_populates="tokens")
 
 
 class Role(Base):
@@ -70,9 +56,6 @@ class Role(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
-    users = relationship("UserRole", back_populates="role", cascade="all, delete-orphan")
-    permissions = relationship("RolePermission", back_populates="role", cascade="all, delete-orphan")
-
 
 class Resource(Base):
     __tablename__ = "resources"
@@ -82,8 +65,6 @@ class Resource(Base):
     description = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
-
-    permissions = relationship("Permission", back_populates="resource", cascade="all, delete-orphan")
 
 
 class Permission(Base):
@@ -98,9 +79,6 @@ class Permission(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
-    resource = relationship("Resource", back_populates="permissions")
-    roles = relationship("RolePermission", back_populates="permission", cascade="all, delete-orphan")
-
 
 class UserRole(Base):
     __tablename__ = "user_roles"
@@ -111,9 +89,6 @@ class UserRole(Base):
     assigned_at = Column(DateTime, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
-    
-    user = relationship("User", back_populates="roles")
-    role = relationship("Role", back_populates="users")
 
 
 class RolePermission(Base):
@@ -121,7 +96,3 @@ class RolePermission(Base):
 
     role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True)
     permission_id = Column(UUID(as_uuid=True), ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True)
-
-    role = relationship("Role", back_populates="permissions")
-    permission = relationship("Permission", back_populates="roles")
-
