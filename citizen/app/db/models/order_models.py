@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, Float, Integer, String, Boolean, DateTime, ForeignKey, Text, JSON
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -14,9 +13,9 @@ from app.core.database import Base
 class OrderAddress(Base):
     __tablename__ = "order_addresses"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    user_id = Column(UUID(as_uuid=True),
+    user_id = Column(String(36),
                      ForeignKey("users.id", ondelete="CASCADE"),
                      nullable=False)
 
@@ -40,12 +39,12 @@ class OrderAddress(Base):
 class Order(Base):
     __tablename__ = "orders"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    user_id = Column(UUID(as_uuid=True),
+    user_id = Column(String(36),
                      ForeignKey("users.id", ondelete="CASCADE"))
 
-    address_id = Column(UUID(as_uuid=True),
+    address_id = Column(String(36),
                         ForeignKey("order_addresses.id"))
 
     status = Column(String(50), default="pending")
@@ -76,10 +75,10 @@ class OrderItem(Base):
 
     id = Column(Integer, primary_key=True)
 
-    order_id = Column(UUID(as_uuid=True),
+    order_id = Column(String(36),
                       ForeignKey("orders.id", ondelete="CASCADE"))
 
-    product_id = Column(UUID(as_uuid=True),
+    product_id = Column(String(36),
                         ForeignKey("products.id"))
 
     quantity = Column(Integer, nullable=False)
@@ -132,7 +131,7 @@ class ShipRocketOrder(Base):
 
     id = Column(Integer, primary_key=True)
 
-    order_id = Column(UUID(as_uuid=True),
+    order_id = Column(String(36),
                       ForeignKey("orders.id", ondelete="CASCADE"))
 
     pickup_location_id = Column(Integer,

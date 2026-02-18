@@ -2,7 +2,6 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, Integer, Float, Boolean, Text, DateTime, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -13,7 +12,7 @@ from app.core.database import Base
 class Category(Base):
     """Stores main product categories like Business Cards, Invitations, Flyers, etc."""
     __tablename__ = "categories"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), unique=True, nullable=False)
     description = Column(Text)
     is_active = Column(Boolean, default=True)
@@ -30,8 +29,8 @@ class Category(Base):
 class SubCategory(Base):
     """Stores subcategories under each category, e.g., Corporate, Personal, Wedding."""
     __tablename__ = "subcategories"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="CASCADE"))
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    category_id = Column(String(36), ForeignKey("categories.id", ondelete="CASCADE"))
     name = Column(String(255), nullable=False)
     description = Column(Text)
     is_active = Column(Boolean, default=True)
@@ -48,7 +47,7 @@ class SubCategory(Base):
 class ProductType(Base):
     """Defines types of products, e.g., Standard, Premium, Digital."""
     __tablename__ = "product_types"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), unique=True, nullable=False)
     description = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -63,7 +62,7 @@ class ProductType(Base):
 class PaperType(Base):
     """Stores available paper types for print products, e.g., Matte, Glossy, Cardstock."""
     __tablename__ = "paper_types"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), unique=True, nullable=False)
     description = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -78,7 +77,7 @@ class PaperType(Base):
 class Finish(Base):
     """Stores finishing options for printed products, e.g., Lamination, UV Coating, Embossing."""
     __tablename__ = "finishes"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), unique=True, nullable=False)
     description = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -93,10 +92,10 @@ class Finish(Base):
 class Product(Base):
     """Main product catalog storing basic info like name, description, dimensions, base price, GST."""
     __tablename__ = "products"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id", ondelete="SET NULL"))
-    subcategory_id = Column(UUID(as_uuid=True), ForeignKey("subcategories.id", ondelete="SET NULL"))
-    product_type_id = Column(UUID(as_uuid=True), ForeignKey("product_types.id", ondelete="SET NULL"))
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    category_id = Column(String(36), ForeignKey("categories.id", ondelete="SET NULL"))
+    subcategory_id = Column(String(36), ForeignKey("subcategories.id", ondelete="SET NULL"))
+    product_type_id = Column(String(36), ForeignKey("product_types.id", ondelete="SET NULL"))
     name = Column(String(255), nullable=False)
     description = Column(Text)
     base_price = Column(Float, nullable=False)
@@ -121,7 +120,7 @@ class Product(Base):
 class CutType(Base):
     """Stores available cut types for products, e.g., Die Cut, Straight Cut, Rounded Corner."""
     __tablename__ = "cut_types"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), unique=True, nullable=False)
     description = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -135,11 +134,11 @@ class CutType(Base):
 class ProductVariant(Base):
     """Specific variant of a product including size, paper type, finish, price, cut type, and optional attributes."""
     __tablename__ = "product_variants"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"))
-    paper_type_id = Column(UUID(as_uuid=True), ForeignKey("paper_types.id", ondelete="SET NULL"))
-    finish_id = Column(UUID(as_uuid=True), ForeignKey("finishes.id", ondelete="SET NULL"))
-    cut_type_id = Column(UUID(as_uuid=True), ForeignKey("cut_types.id", ondelete="SET NULL"))
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    product_id = Column(String(36), ForeignKey("products.id", ondelete="CASCADE"))
+    paper_type_id = Column(String(36), ForeignKey("paper_types.id", ondelete="SET NULL"))
+    finish_id = Column(String(36), ForeignKey("finishes.id", ondelete="SET NULL"))
+    cut_type_id = Column(String(36), ForeignKey("cut_types.id", ondelete="SET NULL"))
     size = Column(String(50))          # e.g., A4, A3, #10 Envelope
     sides = Column(Integer, default=1) # 1=Single sided, 2=Double sided
     orientation = Column(String(20), default="Portrait")
@@ -161,8 +160,8 @@ class ProductVariant(Base):
 class ProductImage(Base):
     """Stores images for each product; includes default image flag."""
     __tablename__ = "product_images"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"))
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    product_id = Column(String(36), ForeignKey("products.id", ondelete="CASCADE"))
     image_url = Column(String(500), nullable=False)
     is_default = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -177,7 +176,7 @@ class ProductImage(Base):
 class SheetTemplate(Base):
     """Defines sheet size and layout info to calculate how many cards fit per sheet."""
     __tablename__ = "sheet_templates"
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     sheet_type = Column(String(50))       # A4, A3, Letter
     card_width = Column(Float)            # width of a single card
     card_height = Column(Float)           # height of a single card

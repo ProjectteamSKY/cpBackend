@@ -1,14 +1,13 @@
 from pydantic import BaseModel
-from uuid import UUID
 
 class ProductImageCreateSchema(BaseModel):
-    product_id: UUID
+    product_id: str
     image_url: str
     is_default: bool = False
 
 class ProductImageResponseSchema(BaseModel):
-    id: UUID
-    product_id: UUID
+    id: str
+    product_id: str
     image_url: str
     is_default: bool
 

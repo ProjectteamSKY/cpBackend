@@ -1,12 +1,11 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from uuid import UUID
 
 class ProductCreateSchema(BaseModel):
     name: str
-    category_id: Optional[UUID] = None
-    subcategory_id: Optional[UUID] = None
-    product_type_id: Optional[UUID] = None
+    category_id: Optional[str] = None
+    subcategory_id: Optional[str] = None
+    product_type_id: Optional[str] = None
     base_price: float = 0
     gst_percent: float = 0
     weight: float = 0
@@ -18,11 +17,11 @@ class ProductCreateSchema(BaseModel):
     is_active: Optional[bool] = True
 
 class ProductResponseSchema(BaseModel):
-    id: UUID
+    id: str
     name: str
-    category_id: Optional[UUID]
-    subcategory_id: Optional[UUID]
-    product_type_id: Optional[UUID]
+    category_id: Optional[str]
+    subcategory_id: Optional[str]
+    product_type_id: Optional[str]
     base_price: float
     gst_percent: float
     weight: float

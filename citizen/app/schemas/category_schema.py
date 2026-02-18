@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel
 from typing import Optional
-from uuid import UUID
+from datetime import datetime
 
 
 class CategoryCreateSchema(BaseModel):
@@ -18,10 +18,12 @@ class CategoryUpdateSchema(BaseModel):
 
 
 class CategoryResponseSchema(BaseModel):
-    id: UUID
+    id: str
     name: str
     description: Optional[str]
     is_active: bool
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

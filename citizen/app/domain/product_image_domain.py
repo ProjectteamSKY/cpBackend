@@ -12,7 +12,7 @@ class ProductImage:
         id: str | None = None,
         created_at: datetime | None = None
     ):
-        self.id = id or str(uuid.uuid4())
+        self.id = id or str(uuid.UUID)
         self.product_id = product_id
         self.image_url = image_url
         self.is_default = is_default

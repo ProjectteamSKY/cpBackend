@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, Float, String, Boolean, DateTime, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -9,8 +8,8 @@ from app.core.database import Base
 class Discount(Base):
     __tablename__ = "discounts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), nullable=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    product_id = Column(String(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=True)
     description = Column(Text)
     discount_type = Column(String(20), default="percentage")  # "percentage" or "fixed"
     start_date = Column(DateTime, nullable=False)

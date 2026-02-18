@@ -1,5 +1,3 @@
-# app/services/category_service.py
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.category_domain import Category
 from app.repository.category_repository import (
@@ -9,6 +7,7 @@ from app.repository.category_repository import (
     update_category_repo,
     delete_category_repo
 )
+from fastapi import HTTPException
 
 
 async def create_category_service(data, session: AsyncSession):
@@ -21,7 +20,10 @@ async def create_category_service(data, session: AsyncSession):
 
 
 async def get_category_service(category_id: str, session: AsyncSession):
-    return await get_category_by_id_repo(category_id, session)
+    category = await get_category_by_id_repo(category_id, session)
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return category
 
 
 async def get_all_categories_service(session: AsyncSession):
@@ -29,11 +31,9 @@ async def get_all_categories_service(session: AsyncSession):
 
 
 async def update_category_service(category_id: str, data, session: AsyncSession):
-
     existing = await get_category_by_id_repo(category_id, session)
-
     if not existing:
-        return None
+        raise HTTPException(status_code=404, detail="Category not found")
 
     if data.name is not None:
         existing.name = data.name
@@ -48,4 +48,7 @@ async def update_category_service(category_id: str, data, session: AsyncSession)
 
 
 async def delete_category_service(category_id: str, session: AsyncSession):
-    return await delete_category_repo(category_id, session)
+    success = await delete_category_repo(category_id, session)
+    if not success:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return True

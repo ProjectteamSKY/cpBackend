@@ -4,7 +4,6 @@ from typing import Optional, List
 
 from app.domain.product_domain import Product
 
-
 class ProductType:
     """
     Represents a type or classification of products in the domain.
@@ -28,7 +27,7 @@ class ProductType:
         self.updated_at: datetime = updated_at or datetime.utcnow()
 
         # Related products (aggregate)
-        self.products: List["Product"] = []
+        self.products: List[Product] = []
 
     # ---------------------------
     # Behavior / Domain Methods
@@ -55,12 +54,12 @@ class ProductType:
         self.description = new_description
         self.touch()
 
-    def add_product(self, product: "Product"):
+    def add_product(self, product: Product):
         """Add a product under this type."""
         self.products.append(product)
         self.touch()
 
-    def remove_product(self, product: "Product"):
+    def remove_product(self, product: Product):
         """Remove a product from this type."""
         self.products = [p for p in self.products if p.id != product.id]
         self.touch()
