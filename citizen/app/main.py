@@ -31,7 +31,7 @@ app = FastAPI(
 # async def on_startup():
 #     await init_db()
 #     print("🟢 Database initialized on startup - main.py:33")
-# -------------------------
+# # -------------------------
 # CORS middleware
 # -------------------------
 # Allow frontend access (adjust origin in production)
