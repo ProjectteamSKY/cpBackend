@@ -89,6 +89,7 @@ class OrderItem(Base):
 
     order = relationship("Order", back_populates="items")
 
+
 class ShipRocketAuth(Base):
     __tablename__ = "shiprocket_auth"
 

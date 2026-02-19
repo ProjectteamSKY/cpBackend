@@ -1,14 +1,25 @@
+from datetime import datetime
 from pydantic import BaseModel
-from typing import Optional
 
-class CutTypeCreateSchema(BaseModel):
+
+class CutTypeCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str | None = None
 
-class CutTypeResponseSchema(BaseModel):
+
+class CutTypeUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    is_active: bool | None = None
+
+
+class CutTypeResponse(BaseModel):
     id: str
     name: str
-    description: Optional[str]
+    description: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

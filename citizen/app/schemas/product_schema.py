@@ -1,36 +1,43 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import List, Optional
+from datetime import datetime
 
-class ProductCreateSchema(BaseModel):
-    name: str
-    category_id: Optional[str] = None
-    subcategory_id: Optional[str] = None
-    product_type_id: Optional[str] = None
-    base_price: float = 0
-    gst_percent: float = 0
-    weight: float = 0
-    length: float = 0
-    width: float = 0
-    height: float = 0
-    min_order_qty: int = 1
-    max_order_qty: Optional[int] = None
-    is_active: Optional[bool] = True
+class ProductImageResponseSchema(BaseModel):
+    id: str
+    image_url: str
+    is_default: bool
 
 class ProductResponseSchema(BaseModel):
     id: str
     name: str
-    category_id: Optional[str]
-    subcategory_id: Optional[str]
-    product_type_id: Optional[str]
-    base_price: float
-    gst_percent: float
-    weight: float
-    length: float
-    width: float
-    height: float
+    category_id: str
+    subcategory_id: str
+    product_type_id: str
+    description: Optional[str] = None
     min_order_qty: int
     max_order_qty: Optional[int]
     is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    images: Optional[List[ProductImageResponseSchema]] = []  # NEW: include images
 
     class Config:
-        from_attributes = True
+        orm_mode = True
+
+class ProductCreateSchema(BaseModel):
+    name: str
+    category_id: str
+    subcategory_id: str
+    product_type_id: str
+    description: Optional[str] = None
+    min_order_qty: Optional[int] = 100
+    max_order_qty: Optional[int] = None
+
+class ProductUpdateSchema(BaseModel):
+    name: Optional[str]
+    category_id: Optional[str]
+    subcategory_id: Optional[str]
+    product_type_id: Optional[str]
+    description: Optional[str]
+    min_order_qty: Optional[int]
+    max_order_qty: Optional[int]

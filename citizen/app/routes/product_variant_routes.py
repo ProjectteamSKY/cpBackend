@@ -1,18 +1,27 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
-from app.schemas.product_variant_schema import ProductVariantCreateSchema, ProductVariantResponseSchema
-from app.services.product_variant_service import create_product_variant, get_product_variant
+from app.services.product_variant_service import *
+from app.schemas.product_variant_schema import *
 
-router = APIRouter()
+router = APIRouter(prefix="/product-variants", tags=["Product Variants"])
 
 @router.post("/", response_model=ProductVariantResponseSchema)
-async def create_product_variant_route(data: ProductVariantCreateSchema, session: AsyncSession = Depends(get_session)):
+async def create_route(data: ProductVariantCreateSchema, session: AsyncSession = Depends(get_session)):
     return await create_product_variant(data, session)
 
-@router.get("/{variant_id}", response_model=ProductVariantResponseSchema)
-async def get_product_variant_route(variant_id: str, session: AsyncSession = Depends(get_session)):
-    variant = await get_product_variant(variant_id, session)
-    if not variant:
-        raise HTTPException(404, "ProductVariant not found")
-    return variant
+@router.get("/", response_model=list[ProductVariantResponseSchema])
+async def get_all_route(session: AsyncSession = Depends(get_session)):
+    return await get_all_product_variants(session)
+
+@router.get("/{id}", response_model=ProductVariantResponseSchema)
+async def get_route(id: str, session: AsyncSession = Depends(get_session)):
+    return await get_product_variant(id, session)
+
+@router.put("/{id}", response_model=ProductVariantResponseSchema)
+async def update_route(id: str, data: ProductVariantUpdateSchema, session: AsyncSession = Depends(get_session)):
+    return await update_product_variant(id, data, session)
+
+@router.delete("/{id}")
+async def delete_route(id: str, session: AsyncSession = Depends(get_session)):
+    return await delete_product_variant(id, session)

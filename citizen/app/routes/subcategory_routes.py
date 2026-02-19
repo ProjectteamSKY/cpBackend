@@ -16,7 +16,7 @@ from app.services.subcategory_service import (
     get_active_subcategories
 )
 
-router = APIRouter(prefix="/subcategories", tags=["SubCategories"])
+router = APIRouter()
 
 # --- Specific routes first ---
 # Get all subcategories (active + inactive)

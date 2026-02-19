@@ -1,17 +1,30 @@
 import uuid
 from datetime import datetime
 
+
 class CutType:
-    """Stores available cut types for products, e.g., Die Cut, Straight Cut, Rounded Corner."""
-    
+
     def __init__(
         self,
         name: str,
         description: str | None = None,
-        id: uuid.UUID | None = None,
-        created_at: datetime | None = None
+        id: str | None = None,
+        is_active: bool = True,
+        created_at: datetime | None = None,
+        updated_at: datetime | None = None
     ):
-        self.id = id or uuid.uuid4()
+
+        self.id = id or str(uuid.uuid4())
+
         self.name = name
+
         self.description = description
+
+        self.is_active = is_active
+
         self.created_at = created_at or datetime.utcnow()
+
+        self.updated_at = updated_at or datetime.utcnow()
+
+    def __repr__(self):
+        return f"<CutType id={self.id} name={self.name}>"
