@@ -1,0 +1,48 @@
+[product_setup]
+
+create = """
+-- Insert product
+INSERT INTO products (
+    id, category_id, subcategory_id, name, description,
+    min_order_qty, max_order_qty, images, related_images,
+    is_active, created_at, updated_at
+) VALUES (
+    :product_id, :category_id, :subcategory_id, :name, :description,
+    :min_order_qty, :max_order_qty, :images, :related_images,
+    TRUE, NOW(), NOW()
+);
+
+-- Insert variants
+{% for variant in variants %}
+INSERT INTO product_variants (
+    id, product_id, size_id, paper_type_id, print_type_id, cut_type_id,
+    sides, two_side_cut, four_side_cut, orientation, is_active,
+    created_at, updated_at
+) VALUES (
+    '{{variant.id}}', :product_id, '{{variant.size_id}}', '{{variant.paper_type_id}}',
+    '{{variant.print_type_id}}', '{{variant.cut_type_id}}', {{variant.sides}},
+    {{variant.two_side_cut}}, {{variant.four_side_cut}}, '{{variant.orientation}}',
+    TRUE, NOW(), NOW()
+);
+
+-- Insert prices and discounts for this variant
+{% for price in variant.prices %}
+INSERT INTO product_discounts (
+    id, product_id, description, discount, start_date, end_date, is_active,
+    created_at, updated_at
+) VALUES (
+    '{{price.discount.id}}', :product_id, '{{price.discount.description}}',
+    '{{price.discount.discount}}', '{{price.discount.start_date}}', '{{price.discount.end_date}}',
+    TRUE, NOW(), NOW()
+);
+
+INSERT INTO product_variant_prices (
+    id, variant_id, discount_id, min_qty, max_qty, price, is_active, created_at, updated_at
+) VALUES (
+    '{{price.id}}', '{{variant.id}}', '{{price.discount.id}}',
+    {{price.min_qty}}, {{price.max_qty}}, {{price.price}},
+    TRUE, NOW(), NOW()
+);
+{% endfor %}
+{% endfor %}
+"""

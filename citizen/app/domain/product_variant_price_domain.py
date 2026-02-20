@@ -1,6 +1,6 @@
-# app/domain/product_variant_price_domain.py
 import uuid
 from datetime import datetime
+from typing import Optional
 
 class ProductVariantPrice:
     def __init__(
@@ -9,16 +9,46 @@ class ProductVariantPrice:
         min_qty: int,
         max_qty: int,
         price: float,
-        id: str | None = None,
-        created_at: datetime | None = None,
-        updated_at: datetime | None = None,
-        is_active: bool = True
+        discount_id: Optional[str] = None,
+        is_active: bool = True,
+        id: Optional[str] = None,
+        created_at: Optional[datetime] = None,
+        updated_at: Optional[datetime] = None,
     ):
-        self.id = id or str(uuid.uuid4())
+        self.id: str = id or str(uuid.uuid4())
         self.variant_id = variant_id
+        self.discount_id = discount_id
         self.min_qty = min_qty
         self.max_qty = max_qty
         self.price = price
         self.is_active = is_active
-        self.created_at = created_at or datetime.utcnow()
-        self.updated_at = updated_at
+        self.created_at: datetime = created_at or datetime.utcnow()
+        self.updated_at: datetime = updated_at or datetime.utcnow()
+
+    # --------------------------- Domain Methods ---------------------------
+    def activate(self):
+        self.is_active = True
+        self.touch()
+
+    def deactivate(self):
+        self.is_active = False
+        self.touch()
+
+    def update_price(self, price: float):
+        self.price = price
+        self.touch()
+
+    def update_qty_range(self, min_qty: int, max_qty: int):
+        self.min_qty = min_qty
+        self.max_qty = max_qty
+        self.touch()
+
+    def update_discount(self, discount_id: Optional[str]):
+        self.discount_id = discount_id
+        self.touch()
+
+    def touch(self):
+        self.updated_at = datetime.utcnow()
+
+    def to_dict(self):
+        return self.__dict__

@@ -1,0 +1,42 @@
+[category]
+
+create = """
+INSERT INTO categories (
+    id, name, description, is_active, created_at, updated_at
+) VALUES (
+    :id, :name, :description, :is_active, :created_at, :updated_at
+);
+"""
+
+get_all = """
+SELECT * FROM categories
+ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT * FROM categories
+WHERE id = :id;
+"""
+
+update = """
+UPDATE categories
+SET {set_clause}, updated_at = NOW()
+WHERE id = :id;
+"""
+
+delete = """
+DELETE FROM categories
+WHERE id = :id;
+"""
+
+activate = """
+UPDATE categories
+SET is_active = TRUE, updated_at = NOW()
+WHERE id = :id;
+"""
+
+deactivate = """
+UPDATE categories
+SET is_active = FALSE, updated_at = NOW()
+WHERE id = :id;
+"""

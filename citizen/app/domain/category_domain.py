@@ -4,6 +4,7 @@ from typing import Optional
 
 
 class Category:
+
     def __init__(
         self,
         name: str,
@@ -13,7 +14,7 @@ class Category:
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None
     ):
-        # Always store UUID as string
+
         self.id: str = id or str(uuid.uuid4())
         self.name: str = name
         self.description: Optional[str] = description
@@ -21,9 +22,6 @@ class Category:
         self.created_at: datetime = created_at or datetime.utcnow()
         self.updated_at: datetime = updated_at or datetime.utcnow()
 
-    # ---------------------------
-    # Domain Methods
-    # ---------------------------
     def activate(self):
         self.is_active = True
         self.touch()
@@ -38,10 +36,19 @@ class Category:
         self.name = new_name
         self.touch()
 
-    def update_description(self, new_description: Optional[str]):
-        self.description = new_description
+    def update_description(self, description: Optional[str]):
+        self.description = description
         self.touch()
 
     def touch(self):
-        """Update the last modified timestamp."""
         self.updated_at = datetime.utcnow()
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "is_active": self.is_active,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }

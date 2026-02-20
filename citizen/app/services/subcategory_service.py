@@ -1,96 +1,158 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from fastapi import HTTPException
-from app.repository.subcategory_repository import (
-    create_subcategory_repo,
-    get_subcategory_by_id_repo,
-    get_subcategories_repo,
-    update_subcategory_repo,
-    delete_subcategory_repo,
-    get_all_subcategories_repo,
-    get_active_subcategories_repo,
-)
-from app.domain.subcategory_domain import SubCategory
-from app.db.models.product_models import Category as CategoryORM
-from app.schemas.subcategory_schema import SubCategoryCreateSchema
+
+from app.domain.subcategory_domain import Subcategory
+from app.utils.query_loader import load_queries
 
 
-# -------------------------------
-# Helper: ensure category exists
-# -------------------------------
-async def ensure_category_exists(category_id: str, session: AsyncSession):
-    result = await session.execute(select(CategoryORM).where(CategoryORM.id == category_id))
-    category = result.scalar_one_or_none()
-    if not category:
-        raise HTTPException(status_code=400, detail="Category not found")
+queries = load_queries()
 
 
-# -------------------------------
-# Create SubCategory
-# -------------------------------
-async def create_subcategory(data: SubCategoryCreateSchema, session: AsyncSession) -> SubCategory:
-    await ensure_category_exists(data.category_id, session)
+# CREATE
+async def create_subcategory(subcategory: Subcategory, session: AsyncSession):
 
-    subcategory = SubCategory(
-        name=data.name,
-        description=data.description,
-        category_id=data.category_id,
-        is_active=data.is_active if data.is_active is not None else True
+    await session.execute(
+        text(queries["subcategory"]["create"]),
+        subcategory.to_dict()
     )
-    return await create_subcategory_repo(subcategory, session)
+
+    await session.commit()
+
+    result = await session.execute(
+        text(queries["subcategory"]["get_by_id"]),
+        {"id": subcategory.id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None
 
 
-# -------------------------------
-# Get single SubCategory by ID
-# -------------------------------
-async def get_subcategory(subcategory_id: str, session: AsyncSession) -> SubCategory | None:
-    subcategory = await get_subcategory_by_id_repo(subcategory_id, session)
-    if not subcategory:
-        raise HTTPException(status_code=404, detail="SubCategory not found")
-    return subcategory
+# GET ALL
+async def get_all_subcategories(session: AsyncSession):
+
+    result = await session.execute(
+        text(queries["subcategory"]["get_all"])
+    )
+
+    return [
+        dict(row._mapping)
+        for row in result.fetchall()
+    ]
 
 
-# -------------------------------
-# Get all SubCategories (optionally by category)
-# -------------------------------
-async def get_subcategories(session: AsyncSession, category_id: str | None = None) -> list[SubCategory]:
-    if category_id:
-        await ensure_category_exists(category_id, session)
-    return await get_subcategories_repo(session, category_id)
+# GET BY ID
+async def get_subcategory_by_id(id: str, session: AsyncSession):
+
+    result = await session.execute(
+        text(queries["subcategory"]["get_by_id"]),
+        {"id": id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None
 
 
-# -------------------------------
-# Update SubCategory
-# -------------------------------
-async def update_subcategory(subcategory_id: str, data: dict, session: AsyncSession) -> SubCategory:
-    if "category_id" in data:
-        await ensure_category_exists(data["category_id"], session)
+# GET BY CATEGORY
+async def get_subcategories_by_category(category_id: str, session: AsyncSession):
 
-    updated = await update_subcategory_repo(subcategory_id, data, session)
-    if not updated:
-        raise HTTPException(status_code=404, detail="SubCategory not found")
-    return updated
+    result = await session.execute(
+        text(queries["subcategory"]["get_by_category"]),
+        {"category_id": category_id}
+    )
 
-
-# -------------------------------
-# Soft Delete SubCategory
-# -------------------------------
-async def delete_subcategory(subcategory_id: str, session: AsyncSession) -> bool:
-    success = await delete_subcategory_repo(subcategory_id, session)
-    if not success:
-        raise HTTPException(status_code=404, detail="SubCategory not found")
-    return success
+    return [
+        dict(row._mapping)
+        for row in result.fetchall()
+    ]
 
 
-# -------------------------------
-# Get all SubCategories (active + inactive)
-# -------------------------------
-async def get_all_subcategories(session: AsyncSession) -> list[SubCategory]:
-    return await get_all_subcategories_repo(session)
+# UPDATE
+async def update_subcategory(id: str, updates: dict, session: AsyncSession):
+
+    set_clause = ", ".join(
+        f"{key} = :{key}"
+        for key in updates.keys()
+    )
+
+    await session.execute(
+        text(
+            queries["subcategory"]["update"].format(
+                set_clause=set_clause
+            )
+        ),
+        {"id": id, **updates}
+    )
+
+    await session.commit()
+
+    result = await session.execute(
+        text(queries["subcategory"]["get_by_id"]),
+        {"id": id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None
 
 
-# -------------------------------
-# Get only active SubCategories
-# -------------------------------
-async def get_active_subcategories(session: AsyncSession) -> list[SubCategory]:
-    return await get_active_subcategories_repo(session)
+# DELETE
+async def delete_subcategory(id: str, session: AsyncSession):
+
+    exists = await session.execute(
+        text(queries["subcategory"]["get_by_id"]),
+        {"id": id}
+    )
+
+    if not exists.fetchone():
+        return None
+
+    await session.execute(
+        text(queries["subcategory"]["delete"]),
+        {"id": id}
+    )
+
+    await session.commit()
+
+    return {"id": id}
+
+
+# ACTIVATE
+async def activate_subcategory(id: str, session: AsyncSession):
+
+    await session.execute(
+        text(queries["subcategory"]["activate"]),
+        {"id": id}
+    )
+
+    await session.commit()
+
+    result = await session.execute(
+        text(queries["subcategory"]["get_by_id"]),
+        {"id": id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None
+
+
+# DEACTIVATE
+async def deactivate_subcategory(id: str, session: AsyncSession):
+
+    await session.execute(
+        text(queries["subcategory"]["deactivate"]),
+        {"id": id}
+    )
+
+    await session.commit()
+
+    result = await session.execute(
+        text(queries["subcategory"]["get_by_id"]),
+        {"id": id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None

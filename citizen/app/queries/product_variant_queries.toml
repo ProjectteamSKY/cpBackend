@@ -1,0 +1,59 @@
+[product_variant]
+
+create = """
+INSERT INTO product_variants (
+    id, product_id, size_id, paper_type_id, print_type_id, cut_type_id,
+    sides, two_side_cut, four_side_cut, orientation, is_active,
+    created_at, updated_at
+) VALUES (
+    :id, :product_id, :size_id, :paper_type_id, :print_type_id, :cut_type_id,
+    :sides, :two_side_cut, :four_side_cut, :orientation, :is_active,
+    :created_at, :updated_at
+);
+"""
+
+get_all = """
+SELECT * FROM product_variants
+WHERE is_active = TRUE
+ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT * FROM product_variants
+WHERE id = :id;
+"""
+
+get_by_product = """
+SELECT * FROM product_variants
+WHERE product_id = :product_id AND is_active = TRUE
+ORDER BY created_at DESC;
+"""
+
+update = """
+UPDATE product_variants
+SET
+    product_id = :product_id,
+    size_id = :size_id,
+    paper_type_id = :paper_type_id,
+    print_type_id = :print_type_id,
+    cut_type_id = :cut_type_id,
+    sides = :sides,
+    two_side_cut = :two_side_cut,
+    four_side_cut = :four_side_cut,
+    orientation = :orientation,
+    updated_at = :updated_at
+WHERE id = :id;
+"""
+
+soft_delete = """
+UPDATE product_variants
+SET is_active = FALSE, updated_at = NOW()
+WHERE id = :id;
+"""
+
+activate = """
+UPDATE product_variants
+SET is_active = TRUE, updated_at = NOW()
+WHERE id = :id;
+"""
+

@@ -1,70 +1,94 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
+from app.domain.cut_type_domain import CutType
 
-from app.schemas.cut_type_schema import *
-from app.services.cut_type_service import *
-
-router = APIRouter(
+from app.services.cut_type_service import (
+    create_cut_type,
+    get_all_cut_types,
+    get_cut_type_by_id,
+    update_cut_type,
+    delete_cut_type,
+    activate_cut_type
 )
 
+router = APIRouter()
 
-@router.post("/", response_model=CutTypeResponse)
-async def create_cut_type(
-    data: CutTypeCreate,
+
+@router.post("/cut-type/create")
+async def create_cut_type_endpoint(
+    name: str = Form(...),
+    description: str = Form(None),
     session: AsyncSession = Depends(get_session)
 ):
 
-    return await create_cut_type_service(
-        session,
-        data.name,
-        data.description
+    cut_type = CutType(
+        name=name,
+        description=description
     )
 
+    return await create_cut_type(cut_type, session)
 
-@router.get("/", response_model=list[CutTypeResponse])
-async def get_cut_types(
+
+@router.get("/cut-types/list")
+async def list_cut_types(
     session: AsyncSession = Depends(get_session)
 ):
 
-    return await get_all_cut_types_service(session)
+    return {
+        "cut_types": await get_all_cut_types(session)
+    }
 
 
-@router.get("/{cut_type_id}", response_model=CutTypeResponse)
-async def get_cut_type(
-    cut_type_id: str,
+@router.get("/cut-type/{id}")
+async def get_cut_type_endpoint(
+    id: str,
     session: AsyncSession = Depends(get_session)
 ):
 
-    cut_type = await get_cut_type_service(session, cut_type_id)
+    result = await get_cut_type_by_id(id, session)
 
-    if not cut_type:
-        raise HTTPException(404, "Cut type not found")
+    if not result:
+        raise HTTPException(404, "Cut Type not found")
 
-    return cut_type
+    return result
 
 
-@router.put("/{cut_type_id}", response_model=CutTypeResponse)
-async def update_cut_type(
-    cut_type_id: str,
-    data: CutTypeUpdate,
+@router.put("/cut-type/{id}")
+async def update_cut_type_endpoint(
+    id: str,
+    name: str = Form(...),
+    description: str = Form(None),
     session: AsyncSession = Depends(get_session)
 ):
 
-    return await update_cut_type_service(
-        session,
-        cut_type_id,
-        data.dict(exclude_unset=True)
+    result = await update_cut_type(
+        id,
+        name,
+        description,
+        session
     )
 
+    if not result:
+        raise HTTPException(404, "Cut Type not found")
 
-@router.delete("/{cut_type_id}")
-async def delete_cut_type(
-    cut_type_id: str,
+    return result
+
+
+@router.delete("/cut-type/{id}")
+async def delete_cut_type_endpoint(
+    id: str,
     session: AsyncSession = Depends(get_session)
 ):
 
-    await delete_cut_type_service(session, cut_type_id)
+    return await delete_cut_type(id, session)
 
-    return {"message": "Cut type deleted successfully"}
+
+@router.put("/cut-type/{id}/activate")
+async def activate_cut_type_endpoint(
+    id: str,
+    session: AsyncSession = Depends(get_session)
+):
+
+    return await activate_cut_type(id, session)

@@ -1,54 +1,143 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.category_domain import Category
-from app.repository.category_repository import (
-    create_category_repo,
-    get_category_by_id_repo,
-    get_all_categories_repo,
-    update_category_repo,
-    delete_category_repo
-)
-from fastapi import HTTPException
+from app.utils.query_loader import load_queries
 
 
-async def create_category_service(data, session: AsyncSession):
-    category = Category(
-        name=data.name,
-        description=data.description,
-        is_active=data.is_active
+queries = load_queries()
+
+
+# CREATE
+async def create_category(category: Category, session: AsyncSession):
+
+    await session.execute(
+        text(queries["category"]["create"]),
+        category.to_dict()
     )
-    return await create_category_repo(category, session)
+
+    await session.commit()
+
+    result = await session.execute(
+        text(queries["category"]["get_by_id"]),
+        {"id": category.id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None
 
 
-async def get_category_service(category_id: str, session: AsyncSession):
-    category = await get_category_by_id_repo(category_id, session)
-    if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
-    return category
+# GET ALL
+async def get_all_categories(session: AsyncSession):
+
+    result = await session.execute(
+        text(queries["category"]["get_all"])
+    )
+
+    return [
+        dict(row._mapping)
+        for row in result.fetchall()
+    ]
 
 
-async def get_all_categories_service(session: AsyncSession):
-    return await get_all_categories_repo(session)
+# GET BY ID
+async def get_category_by_id(id: str, session: AsyncSession):
+
+    result = await session.execute(
+        text(queries["category"]["get_by_id"]),
+        {"id": id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None
 
 
-async def update_category_service(category_id: str, data, session: AsyncSession):
-    existing = await get_category_by_id_repo(category_id, session)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Category not found")
+# UPDATE
+async def update_category(id: str, updates: dict, session: AsyncSession):
 
-    if data.name is not None:
-        existing.name = data.name
+    set_clause = ", ".join(
+        f"{key} = :{key}"
+        for key in updates.keys()
+    )
 
-    if data.description is not None:
-        existing.description = data.description
+    await session.execute(
+        text(
+            queries["category"]["update"].format(
+                set_clause=set_clause
+            )
+        ),
+        {"id": id, **updates}
+    )
 
-    if data.is_active is not None:
-        existing.is_active = data.is_active
+    await session.commit()
 
-    return await update_category_repo(existing, session)
+    result = await session.execute(
+        text(queries["category"]["get_by_id"]),
+        {"id": id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None
 
 
-async def delete_category_service(category_id: str, session: AsyncSession):
-    success = await delete_category_repo(category_id, session)
-    if not success:
-        raise HTTPException(status_code=404, detail="Category not found")
-    return True
+# DELETE
+async def delete_category(id: str, session: AsyncSession):
+
+    existing = await session.execute(
+        text(queries["category"]["get_by_id"]),
+        {"id": id}
+    )
+
+    if not existing.fetchone():
+        return None
+
+    await session.execute(
+        text(queries["category"]["delete"]),
+        {"id": id}
+    )
+
+    await session.commit()
+
+    return {"id": id}
+
+
+# ACTIVATE
+async def activate_category(id: str, session: AsyncSession):
+
+    await session.execute(
+        text(queries["category"]["activate"]),
+        {"id": id}
+    )
+
+    await session.commit()
+
+    result = await session.execute(
+        text(queries["category"]["get_by_id"]),
+        {"id": id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None
+
+
+# DEACTIVATE
+async def deactivate_category(id: str, session: AsyncSession):
+
+    await session.execute(
+        text(queries["category"]["deactivate"]),
+        {"id": id}
+    )
+
+    await session.commit()
+
+    result = await session.execute(
+        text(queries["category"]["get_by_id"]),
+        {"id": id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None

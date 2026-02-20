@@ -1,46 +1,46 @@
-from fastapi import HTTPException
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.product_variant_domain import ProductVariant
-from app.repository.product_variant_repository import *
-from app.schemas.product_variant_schema import ProductVariantCreateSchema, ProductVariantUpdateSchema
+from app.utils.query_loader import load_queries
 
-# CREATE
-async def create_product_variant(data: ProductVariantCreateSchema, session: AsyncSession) -> ProductVariant:
-    variant = ProductVariant(
-        product_id=data.product_id,
-        paper_type_id=data.paper_type_id,
-        finish_id=data.finish_id,
-        cut_type_id=data.cut_type_id,
-        shape_id=data.shape_id,
-        size_id=data.size_id,
-        sides=data.sides,
-        two_side_cut=data.two_side_cut or False,
-        four_side_cut=data.four_side_cut or False,
-        orientation=data.orientation or "Portrait"
-    )
-    return await create_product_variant_repo(variant, session)
+queries = load_queries()
 
-# GET ONE
-async def get_product_variant(variant_id: str, session: AsyncSession) -> ProductVariant:
-    variant = await get_product_variant_by_id_repo(variant_id, session)
-    if not variant:
-        raise HTTPException(status_code=404, detail="ProductVariant not found")
-    return variant
 
-# GET ALL
-async def get_all_product_variants(session: AsyncSession) -> list[ProductVariant]:
-    return await get_all_product_variants_repo(session)
+async def create_product_variant(variant: ProductVariant, session: AsyncSession):
+    await session.execute(text(queries["product_variant"]["create"]), variant.to_dict())
+    await session.commit()
+    return await get_product_variant_by_id(variant.id, session)
 
-# UPDATE
-async def update_product_variant(variant_id: str, data: ProductVariantUpdateSchema, session: AsyncSession) -> ProductVariant:
-    updated = await update_product_variant_repo(variant_id, data.model_dump(exclude_unset=True), session)
-    if not updated:
-        raise HTTPException(status_code=404, detail="ProductVariant not found")
-    return updated
 
-# DELETE
-async def delete_product_variant(variant_id: str, session: AsyncSession):
-    success = await delete_product_variant_repo(variant_id, session)
-    if not success:
-        raise HTTPException(status_code=404, detail="ProductVariant not found")
-    return {"message": "ProductVariant deleted successfully"}
+async def get_all_product_variants(session: AsyncSession):
+    result = await session.execute(text(queries["product_variant"]["get_all"]))
+    return [dict(r._mapping) for r in result.fetchall()]
+
+
+async def get_product_variant_by_id(id: str, session: AsyncSession):
+    result = await session.execute(text(queries["product_variant"]["get_by_id"]), {"id": id})
+    row = result.fetchone()
+    return dict(row._mapping) if row else None
+
+
+async def get_product_variants_by_product(product_id: str, session: AsyncSession):
+    result = await session.execute(text(queries["product_variant"]["get_by_product"]), {"product_id": product_id})
+    return [dict(r._mapping) for r in result.fetchall()]
+
+
+async def update_product_variant(id: str, variant: ProductVariant, session: AsyncSession):
+    await session.execute(text(queries["product_variant"]["update"]), {**variant.to_dict(), "id": id})
+    await session.commit()
+    return await get_product_variant_by_id(id, session)
+
+
+async def delete_product_variant(id: str, session: AsyncSession):
+    await session.execute(text(queries["product_variant"]["soft_delete"]), {"id": id})
+    await session.commit()
+    return {"message": "Product Variant deleted successfully"}
+
+
+async def activate_product_variant(id: str, session: AsyncSession):
+    await session.execute(text(queries["product_variant"]["activate"]), {"id": id})
+    await session.commit()
+    return await get_product_variant_by_id(id, session)

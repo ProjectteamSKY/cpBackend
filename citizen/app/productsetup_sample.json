@@ -1,0 +1,72 @@
+{
+  "product_id": null,
+  "category_id": "84dabaa0-bf5c-4cd7-86e2-ad3e120668ba",
+  "subcategory_id": "68491bff-c875-4882-80a8-b73034d54184",
+  "name": "Luxury Business Card",
+  "description": "Premium double-sided glossy cards",
+  "min_order_qty": 100,
+  "max_order_qty": 1000,
+  "images": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+  "related_images": ["https://example.com/related1.jpg"],
+  "variants": [
+    {
+      "id": null,
+      "size_id": "c4593e6c-532d-4c63-b07e-e808124e140b",
+      "paper_type_id": "fe7de8b9-0e8a-4eda-80d3-881d57f0ef1a",
+      "print_type_id": "041233f4-16a8-4833-9e61-39399c357035",
+      "cut_type_id": "2c4f5033-e19a-446e-8f21-d081e9ed4313",
+      "sides": 2,
+      "two_side_cut": true,
+      "four_side_cut": false,
+      "orientation": "Portrait",
+      "prices": [
+        {
+          "id": null,
+          "min_qty": 100,
+          "max_qty": 500,
+          "price": 50.0,
+          "discount": {
+            "id": null,
+            "description": "New Year Discount",
+            "discount": "10%",
+            "start_date": "2026-01-01T00:00:00",
+            "end_date": "2026-01-31T23:59:59"
+          }
+        },
+        {
+          "id": null,
+          "min_qty": 501,
+          "max_qty": 1000,
+          "price": 45.0,
+          "discount": {
+            "id": null,
+            "description": "Bulk Order Discount",
+            "discount": "15%",
+            "start_date": "2026-01-01T00:00:00",
+            "end_date": "2026-01-31T23:59:59"
+          }
+        }
+      ]
+    },
+    {
+      "id": null,
+      "size_id": "c4593e6c-532d-4c63-b07e-e808124e140b",
+      "paper_type_id": "fe7de8b9-0e8a-4eda-80d3-881d57f0ef1a",
+      "print_type_id": "041233f4-16a8-4833-9e61-39399c357035",
+      "cut_type_id": "2c4f5033-e19a-446e-8f21-d081e9ed4313",
+      "sides": 1,
+      "two_side_cut": false,
+      "four_side_cut": false,
+      "orientation": "Landscape",
+      "prices": [
+        {
+          "id": null,
+          "min_qty": 100,
+          "max_qty": 500,
+          "price": 60.0,
+          "discount": null
+        }
+      ]
+    }
+  ]
+}

@@ -8,3 +8,4 @@ python-jose==3.3.0
 pydantic==2.3.0
 python-dotenv==1.0.0             # For .env support
 alembic==1.12.0                  # Optional, for migrations
+toml

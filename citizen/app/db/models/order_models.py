@@ -10,8 +10,8 @@ from app.core.database import Base
 # ORDER ADDRESS
 # =========================================================
 
-class OrderAddress(Base):
-    __tablename__ = "order_addresses"
+class UserAddress(Base):
+    __tablename__ = "user_addresses"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
@@ -45,8 +45,8 @@ class Order(Base):
                      ForeignKey("users.id", ondelete="CASCADE"))
 
     address_id = Column(String(36),
-                        ForeignKey("order_addresses.id"))
-
+                        ForeignKey("user_addresses.id"))
+    
     status = Column(String(50), default="pending")
     # pending, paid, shipped, delivered, cancelled
 
@@ -55,7 +55,7 @@ class Order(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User")
-    address = relationship("OrderAddress", back_populates="orders")
+    address = relationship("UserAddress", back_populates="orders")
 
     items = relationship("OrderItem",
                          back_populates="order",
@@ -177,6 +177,7 @@ class ShipRocketCourierRate(Base):
 
     created_at = Column(DateTime, server_default=func.now())
 
+
 class ShipRocketServiceability(Base):
     __tablename__ = "shiprocket_serviceability"
 
@@ -222,6 +223,7 @@ class ShipRocketShipment(Base):
                                     back_populates="shipment")
 
     courier = relationship("ShipRocketCourier")
+
 
 class ShipRocketInvoice(Base):
     __tablename__ = "shiprocket_invoices"
