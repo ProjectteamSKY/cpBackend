@@ -1,0 +1,64 @@
+[cut_type]
+
+create = """
+INSERT INTO cut_types (
+    id,
+    name,
+    description,
+    is_active,
+    created_at,
+    updated_at
+) VALUES (
+    :id,
+    :name,
+    :description,
+    :is_active,
+    :created_at,
+    :updated_at
+);
+"""
+
+get_all = """
+SELECT *
+FROM cut_types
+ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT *
+FROM cut_types
+WHERE id = :id;
+"""
+
+update = """
+UPDATE cut_types
+SET
+    name = :name,
+    description = :description,
+    updated_at = :updated_at
+WHERE id = :id;
+"""
+
+soft_delete = """
+UPDATE cut_types
+SET
+    is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+activate = """
+UPDATE cut_types
+SET
+    is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+deactivate = """
+UPDATE cut_types
+SET
+    is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id;
+"""

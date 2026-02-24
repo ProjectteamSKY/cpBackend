@@ -1,10 +1,95 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repository.cut_type_repository import create_cut_type_repo, get_cut_type_by_id_repo
-from app.domain.cut_type_domain import CutType as CutTypeDomain
 
-async def create_cut_type(data, session: AsyncSession):
-    cut_type = CutTypeDomain(name=data.name, description=data.description)
-    return await create_cut_type_repo(cut_type, session)
+from app.domain.cut_type_domain import CutType
+from app.utils.query_loader import load_queries
 
-async def get_cut_type(cut_type_id: str, session: AsyncSession):
-    return await get_cut_type_by_id_repo(cut_type_id, session)
+queries = load_queries()
+
+
+async def create_cut_type(cut_type: CutType, session: AsyncSession):
+
+    await session.execute(
+        text(queries["cut_type"]["create"]),
+        cut_type.to_dict()
+    )
+
+    await session.commit()
+
+    return await get_cut_type_by_id(cut_type.id, session)
+
+
+async def get_all_cut_types(session: AsyncSession):
+
+    result = await session.execute(
+        text(queries["cut_type"]["get_all"])
+    )
+
+    return [dict(row._mapping) for row in result.fetchall()]
+
+
+async def get_cut_type_by_id(id: str, session: AsyncSession):
+
+    result = await session.execute(
+        text(queries["cut_type"]["get_by_id"]),
+        {"id": id}
+    )
+
+    row = result.fetchone()
+
+    return dict(row._mapping) if row else None
+
+
+async def update_cut_type(id: str, name: str, description: str, session: AsyncSession):
+
+    await session.execute(
+        text(queries["cut_type"]["update"]),
+        {
+            "id": id,
+            "name": name,
+            "description": description,
+            "updated_at": CutType(name=name).updated_at
+        }
+    )
+
+    await session.commit()
+
+    return await get_cut_type_by_id(id, session)
+
+
+async def delete_cut_type(id: str, session: AsyncSession):
+
+    await session.execute(
+        text(queries["cut_type"]["soft_delete"]),
+        {"id": id}
+    )
+
+    await session.commit()
+
+    return {"message": "Cut Type deleted successfully"}
+
+
+async def activate_cut_type(id: str, session: AsyncSession):
+
+    await session.execute(
+        text(queries["cut_type"]["activate"]),
+        {"id": id}
+    )
+
+    await session.commit()
+
+    return await get_cut_type_by_id(id, session)
+
+
+
+async def deactivate_cut_type(id: str, session: AsyncSession):
+    cut_type = await get_cut_type_by_id(id, session)
+    if not cut_type or not cut_type.get("is_active", True):
+        return None
+
+    await session.execute(
+        text(queries["cut_type"]["deactivate"]),
+        {"id": id}
+    )
+    await session.commit()
+    return await get_cut_type_by_id(id, session)

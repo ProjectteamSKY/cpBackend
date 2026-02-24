@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, Float, Integer, String, Boolean, DateTime, ForeignKey, Text, JSON
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -11,12 +10,12 @@ from app.core.database import Base
 # ORDER ADDRESS
 # =========================================================
 
-class OrderAddress(Base):
-    __tablename__ = "order_addresses"
+class UserAddress(Base):
+    __tablename__ = "user_addresses"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    user_id = Column(UUID(as_uuid=True),
+    user_id = Column(String(36),
                      ForeignKey("users.id", ondelete="CASCADE"),
                      nullable=False)
 
@@ -40,14 +39,14 @@ class OrderAddress(Base):
 class Order(Base):
     __tablename__ = "orders"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    user_id = Column(UUID(as_uuid=True),
+    user_id = Column(String(36),
                      ForeignKey("users.id", ondelete="CASCADE"))
 
-    address_id = Column(UUID(as_uuid=True),
-                        ForeignKey("order_addresses.id"))
-
+    address_id = Column(String(36),
+                        ForeignKey("user_addresses.id"))
+    
     status = Column(String(50), default="pending")
     # pending, paid, shipped, delivered, cancelled
 
@@ -56,7 +55,7 @@ class Order(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User")
-    address = relationship("OrderAddress", back_populates="orders")
+    address = relationship("UserAddress", back_populates="orders")
 
     items = relationship("OrderItem",
                          back_populates="order",
@@ -76,10 +75,10 @@ class OrderItem(Base):
 
     id = Column(Integer, primary_key=True)
 
-    order_id = Column(UUID(as_uuid=True),
+    order_id = Column(String(36),
                       ForeignKey("orders.id", ondelete="CASCADE"))
 
-    product_id = Column(UUID(as_uuid=True),
+    product_id = Column(String(36),
                         ForeignKey("products.id"))
 
     quantity = Column(Integer, nullable=False)
@@ -89,6 +88,7 @@ class OrderItem(Base):
     total = Column(Float, nullable=False)
 
     order = relationship("Order", back_populates="items")
+
 
 class ShipRocketAuth(Base):
     __tablename__ = "shiprocket_auth"
@@ -132,7 +132,7 @@ class ShipRocketOrder(Base):
 
     id = Column(Integer, primary_key=True)
 
-    order_id = Column(UUID(as_uuid=True),
+    order_id = Column(String(36),
                       ForeignKey("orders.id", ondelete="CASCADE"))
 
     pickup_location_id = Column(Integer,
@@ -176,6 +176,7 @@ class ShipRocketCourierRate(Base):
     estimated_days = Column(Integer)
 
     created_at = Column(DateTime, server_default=func.now())
+
 
 class ShipRocketServiceability(Base):
     __tablename__ = "shiprocket_serviceability"
@@ -222,6 +223,7 @@ class ShipRocketShipment(Base):
                                     back_populates="shipment")
 
     courier = relationship("ShipRocketCourier")
+
 
 class ShipRocketInvoice(Base):
     __tablename__ = "shiprocket_invoices"

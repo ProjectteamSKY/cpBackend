@@ -1,0 +1,56 @@
+[product_variant_price]
+
+create = """
+INSERT INTO product_variant_prices (
+    id, variant_id, discount_id, min_qty, max_qty, price, is_active, created_at, updated_at
+) VALUES (
+    :id, :variant_id, :discount_id, :min_qty, :max_qty, :price, :is_active, :created_at, :updated_at
+);
+"""
+
+get_all = """
+SELECT 
+    pvp.*, 
+    pd.description AS discount_name,
+    p.name AS product_name
+FROM product_variant_prices pvp
+LEFT JOIN product_discounts pd ON pvp.discount_id = pd.id
+LEFT JOIN products p ON pd.product_id = p.id
+ORDER BY pvp.created_at DESC;
+"""
+
+get_by_id = """
+SELECT * FROM product_variant_prices
+WHERE id = :id;
+"""
+
+get_by_variant = """
+SELECT * FROM product_variant_prices
+WHERE variant_id = :variant_id
+ORDER BY min_qty ASC;
+"""
+
+update = """
+UPDATE product_variant_prices
+SET
+    variant_id = :variant_id,
+    discount_id = :discount_id,
+    min_qty = :min_qty,
+    max_qty = :max_qty,
+    price = :price,
+    updated_at = :updated_at
+WHERE id = :id;
+"""
+
+soft_delete = """
+UPDATE product_variant_prices
+SET is_active = FALSE, updated_at = NOW()
+WHERE id = :id;
+"""
+
+activate = """
+UPDATE product_variant_prices
+SET is_active = TRUE, updated_at = NOW()
+WHERE id = :id;
+"""
+

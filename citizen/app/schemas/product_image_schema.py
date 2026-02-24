@@ -1,16 +1,19 @@
+# app/schemas/product_image_schema.py
 from pydantic import BaseModel
-from uuid import UUID
+from typing import Optional
+from datetime import datetime
 
 class ProductImageCreateSchema(BaseModel):
-    product_id: UUID
-    image_url: str
-    is_default: bool = False
+    product_id: str
+    is_default: Optional[bool] = False
 
 class ProductImageResponseSchema(BaseModel):
-    id: UUID
-    product_id: UUID
+    id: str
+    product_id: str
     image_url: str
     is_default: bool
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
