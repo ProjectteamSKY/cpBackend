@@ -10,7 +10,7 @@ class User:
         password_hash: str,
         full_name: str,
         phone: str | None = None,
-        id: uuid.UUID | None = None,
+        id: uuid.String | None = None,
         is_active: bool = True,
         is_verified: bool = False,
         created_at: datetime | None = None,

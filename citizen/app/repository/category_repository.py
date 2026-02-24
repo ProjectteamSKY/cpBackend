@@ -1,10 +1,9 @@
-# app/repositories/category_repository.py
-
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.models.product_models import Category as CategoryORM
 from app.domain.category_domain import Category as CategoryDomain
+from fastapi import HTTPException
 
 
 # CREATE
@@ -31,7 +30,7 @@ async def create_category_repo(category: CategoryDomain, session: AsyncSession):
 # GET ONE
 async def get_category_by_id_repo(category_id: str, session: AsyncSession):
     result = await session.execute(
-        select(CategoryORM).where(CategoryORM.id == uuid.UUID(category_id))
+        select(CategoryORM).where(CategoryORM.id == category_id)  # compare string to string
     )
     orm = result.scalar_one_or_none()
 
@@ -42,9 +41,10 @@ async def get_category_by_id_repo(category_id: str, session: AsyncSession):
         id=orm.id,
         name=orm.name,
         description=orm.description,
-        is_active=orm.is_active
+        is_active=orm.is_active,
+        created_at=orm.created_at,
+        updated_at=orm.updated_at
     )
-
 
 # GET ALL
 async def get_all_categories_repo(session: AsyncSession):
@@ -88,16 +88,19 @@ async def update_category_repo(category: CategoryDomain, session: AsyncSession):
 
 
 # DELETE
+# Soft delete
 async def delete_category_repo(category_id: str, session: AsyncSession):
     result = await session.execute(
-        select(CategoryORM).where(CategoryORM.id == uuid.UUID(category_id))
+        select(CategoryORM).where(CategoryORM.id == category_id)
     )
     orm = result.scalar_one_or_none()
 
     if not orm:
         return False
 
-    await session.delete(orm)
+    # Mark as inactive instead of deleting
+    orm.is_active = False
     await session.commit()
-
+    await session.refresh(orm)
+    
     return True

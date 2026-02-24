@@ -1,0 +1,177 @@
+[product_variant]
+
+create = """
+INSERT INTO product_variants (
+    id,
+    product_id,
+    size_id,
+    paper_type_id,
+    print_type_id,
+    cut_type_id,
+    sides,
+    two_side_cut,
+    four_side_cut,
+    orientation,
+    is_active,
+    created_at,
+    updated_at
+) VALUES (
+    :id,
+    :product_id,
+    :size_id,
+    :paper_type_id,
+    :print_type_id,
+    :cut_type_id,
+    :sides,
+    :two_side_cut,
+    :four_side_cut,
+    :orientation,
+    :is_active,
+    :created_at,
+    :updated_at
+);
+"""
+
+get_all = """
+SELECT 
+    pv.id,
+    
+    pv.product_id,
+    p.name AS product_name,
+    
+    pv.size_id,
+    s.name AS size_name,
+    
+    pv.paper_type_id,
+    pt.name AS paper_type_name,
+    
+    pv.print_type_id,
+    prt.name AS print_type_name,
+    
+    pv.cut_type_id,
+    ct.name AS cut_type_name,
+    
+    pv.sides,
+    pv.two_side_cut,
+    pv.four_side_cut,
+    pv.orientation,
+    pv.is_active,
+    pv.created_at,
+    pv.updated_at
+
+FROM product_variants pv
+
+LEFT JOIN products p 
+    ON pv.product_id = p.id
+
+LEFT JOIN sizes s 
+    ON pv.size_id = s.id
+
+LEFT JOIN paper_types pt 
+    ON pv.paper_type_id = pt.id
+
+LEFT JOIN print_types prt 
+    ON pv.print_type_id = prt.id
+
+LEFT JOIN cut_types ct 
+    ON pv.cut_type_id = ct.id
+
+WHERE pv.is_active = TRUE
+
+ORDER BY pv.created_at DESC;
+"""
+
+get_by_id = """
+SELECT 
+    pv.id,
+    pv.product_id,
+    p.name AS product_name,
+    pv.size_id,
+    s.name AS size_name,
+    pv.paper_type_id,
+    pt.name AS paper_type_name,
+    pv.print_type_id,
+    prt.name AS print_type_name,
+    pv.cut_type_id,
+    ct.name AS cut_type_name,
+    pv.sides,
+    pv.two_side_cut,
+    pv.four_side_cut,
+    pv.orientation,
+    pv.is_active,
+    pv.created_at,
+    pv.updated_at
+
+FROM product_variants pv
+
+LEFT JOIN products p ON pv.product_id = p.id
+LEFT JOIN sizes s ON pv.size_id = s.id
+LEFT JOIN paper_types pt ON pv.paper_type_id = pt.id
+LEFT JOIN print_types prt ON pv.print_type_id = prt.id
+LEFT JOIN cut_types ct ON pv.cut_type_id = ct.id
+
+WHERE pv.id = :id;
+"""
+
+get_by_product = """
+SELECT 
+    pv.id,
+    pv.product_id,
+    p.name AS product_name,
+    pv.size_id,
+    s.name AS size_name,
+    pv.paper_type_id,
+    pt.name AS paper_type_name,
+    pv.print_type_id,
+    prt.name AS print_type_name,
+    pv.cut_type_id,
+    ct.name AS cut_type_name,
+    pv.sides,
+    pv.two_side_cut,
+    pv.four_side_cut,
+    pv.orientation,
+    pv.is_active,
+    pv.created_at,
+    pv.updated_at
+
+FROM product_variants pv
+
+LEFT JOIN products p ON pv.product_id = p.id
+LEFT JOIN sizes s ON pv.size_id = s.id
+LEFT JOIN paper_types pt ON pv.paper_type_id = pt.id
+LEFT JOIN print_types prt ON pv.print_type_id = prt.id
+LEFT JOIN cut_types ct ON pv.cut_type_id = ct.id
+
+WHERE pv.product_id = :product_id
+AND pv.is_active = TRUE
+
+ORDER BY pv.created_at DESC;
+"""
+
+update = """
+UPDATE product_variants
+SET
+    product_id = :product_id,
+    size_id = :size_id,
+    paper_type_id = :paper_type_id,
+    print_type_id = :print_type_id,
+    cut_type_id = :cut_type_id,
+    sides = :sides,
+    two_side_cut = :two_side_cut,
+    four_side_cut = :four_side_cut,
+    orientation = :orientation,
+    updated_at = :updated_at
+WHERE id = :id;
+"""
+
+soft_delete = """
+UPDATE product_variants
+SET is_active = FALSE, updated_at = NOW()
+WHERE id = :id;
+"""
+
+activate = """
+UPDATE product_variants
+SET is_active = TRUE, updated_at = NOW()
+WHERE id = :id;
+"""

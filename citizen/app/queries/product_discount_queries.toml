@@ -1,0 +1,67 @@
+[product_discount]
+
+create = """
+INSERT INTO product_discounts (
+    id, product_id, description, discount,
+    start_date, end_date, is_active, created_at, updated_at
+) VALUES (
+    :id, :product_id, :description, :discount,
+    :start_date, :end_date, :is_active, :created_at, :updated_at
+);
+"""
+
+get_all = """
+SELECT pd.*, p.name AS product_name
+FROM product_discounts pd
+LEFT JOIN products p ON pd.product_id = p.id
+ORDER BY pd.created_at DESC;
+"""
+
+
+get_by_id = """
+SELECT * FROM product_discounts
+WHERE id = :id;
+"""
+get_by_product = """
+SELECT pd.*, p.name AS product_name
+FROM product_discounts pd
+LEFT JOIN products p ON pd.product_id = p.id
+WHERE pd.product_id = :product_id
+ORDER BY pd.created_at DESC;
+"""
+
+update = """
+UPDATE product_discounts
+SET
+    product_id = :product_id,
+    description = :description,
+    discount = :discount,
+    start_date = :start_date,
+    end_date = :end_date,
+    updated_at = :updated_at
+WHERE id = :id;
+"""
+
+soft_delete = """
+UPDATE product_discounts
+SET is_active = FALSE, updated_at = NOW()
+WHERE id = :id;
+"""
+
+activate = """
+UPDATE product_discounts
+SET is_active = TRUE, updated_at = NOW()
+WHERE id = :id;
+"""
+
+get_by_date_range = """
+SELECT pd.*, p.name AS product_name
+FROM product_discounts pd
+LEFT JOIN products p ON pd.product_id = p.id
+WHERE pd.is_active = TRUE
+AND pd.start_date >= :start_date
+AND pd.end_date <= :end_date
+ORDER BY pd.start_date DESC;
+"""
+
+

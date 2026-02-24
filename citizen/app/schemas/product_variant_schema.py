@@ -1,29 +1,45 @@
 from pydantic import BaseModel
 from typing import Optional
-from uuid import UUID
+from datetime import datetime
 
 class ProductVariantCreateSchema(BaseModel):
-    product_id: UUID
-    paper_type_id: Optional[UUID] = None
-    finish_id: Optional[UUID] = None
-    cut_type_id: Optional[UUID] = None
-    size: Optional[str] = None
-    sides: int = 1
-    orientation: str = "Portrait"
-    price: float
-    is_active: Optional[bool] = True
+    product_id: str
+    paper_type_id: Optional[str]
+    finish_id: Optional[str]
+    cut_type_id: Optional[str]
+    shape_id: Optional[str]
+    size_id: Optional[str]
+    sides: Optional[int]
+    two_side_cut: Optional[bool] = False
+    four_side_cut: Optional[bool] = False
+    orientation: Optional[str] = "Portrait"
+
+class ProductVariantUpdateSchema(BaseModel):
+    paper_type_id: Optional[str]
+    finish_id: Optional[str]
+    cut_type_id: Optional[str]
+    shape_id: Optional[str]
+    size_id: Optional[str]
+    sides: Optional[int]
+    two_side_cut: Optional[bool]
+    four_side_cut: Optional[bool]
+    orientation: Optional[str]
 
 class ProductVariantResponseSchema(BaseModel):
-    id: UUID
-    product_id: UUID
-    paper_type_id: Optional[UUID]
-    finish_id: Optional[UUID]
-    cut_type_id: Optional[UUID]
-    size: Optional[str]
-    sides: int
+    id: str
+    product_id: str
+    paper_type_id: Optional[str]
+    finish_id: Optional[str]
+    cut_type_id: Optional[str]
+    shape_id: Optional[str]
+    size_id: Optional[str]
+    sides: Optional[int]
+    two_side_cut: bool
+    four_side_cut: bool
     orientation: str
-    price: float
     is_active: bool
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

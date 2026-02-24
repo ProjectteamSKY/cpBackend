@@ -1,0 +1,69 @@
+[product]
+
+create = """
+INSERT INTO products (
+    id, category_id, subcategory_id, name, description,
+    min_order_qty, max_order_qty, images, related_images,
+    is_active, created_at, updated_at
+) VALUES (
+    :id, :category_id, :subcategory_id, :name, :description,
+    :min_order_qty, :max_order_qty, :images, :related_images,
+    :is_active, :created_at, :updated_at
+);
+"""
+
+get_all = """
+SELECT 
+    p.id,
+    p.name,
+    p.description,
+    p.min_order_qty,
+    p.max_order_qty,
+    c.name AS category_name,
+    s.name AS subcategory_name,
+    p.created_at
+FROM products p
+LEFT JOIN categories c ON p.category_id = c.id
+LEFT JOIN subcategories s ON p.subcategory_id = s.id
+WHERE p.is_active = TRUE
+ORDER BY p.created_at DESC;
+"""
+
+get_by_id = """
+SELECT * FROM products
+WHERE id = :id;
+"""
+
+get_by_category = """
+SELECT * FROM products
+WHERE category_id = :category_id AND is_active = TRUE
+ORDER BY created_at DESC;
+"""
+
+update = """
+UPDATE products
+SET
+    category_id = :category_id,
+    subcategory_id = :subcategory_id,
+    name = :name,
+    description = :description,
+    min_order_qty = :min_order_qty,
+    max_order_qty = :max_order_qty,
+    images = :images,
+    related_images = :related_images,
+    updated_at = :updated_at
+WHERE id = :id;
+"""
+
+soft_delete = """
+UPDATE products
+SET is_active = FALSE, updated_at = NOW()
+WHERE id = :id;
+"""
+
+activate = """
+UPDATE products
+SET is_active = TRUE, updated_at = NOW()
+WHERE id = :id;
+"""
+

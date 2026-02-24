@@ -1,0 +1,72 @@
+[subcategory]
+
+create = """
+INSERT INTO subcategories (
+    id,
+    category_id,
+    name,
+    description,
+    is_active,
+    created_at,
+    updated_at
+) VALUES (
+    :id,
+    :category_id,
+    :name,
+    :description,
+    :is_active,
+    :created_at,
+    :updated_at
+);
+"""
+
+
+get_all = """
+SELECT sc.*, c.name AS category_name
+FROM subcategories sc
+JOIN categories c ON c.id = sc.category_id
+ORDER BY sc.created_at DESC;
+"""
+
+
+get_by_id = """
+SELECT sc.*, c.name AS category_name
+FROM subcategories sc
+JOIN categories c ON c.id = sc.category_id
+WHERE sc.id = :id;
+"""
+
+
+get_by_category = """
+SELECT *
+FROM subcategories
+WHERE category_id = :category_id
+ORDER BY created_at DESC;
+"""
+
+
+update = """
+UPDATE subcategories
+SET {set_clause}, updated_at = NOW()
+WHERE id = :id;
+"""
+
+
+delete = """
+DELETE FROM subcategories
+WHERE id = :id;
+"""
+
+
+activate = """
+UPDATE subcategories
+SET is_active = TRUE, updated_at = NOW()
+WHERE id = :id;
+"""
+
+
+deactivate = """
+UPDATE subcategories
+SET is_active = FALSE, updated_at = NOW()
+WHERE id = :id;
+"""

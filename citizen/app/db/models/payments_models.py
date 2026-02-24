@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, Float, String, Boolean, DateTime, ForeignKey, func
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -12,9 +11,9 @@ from app.core.database import Base
 class Payment(Base):
     __tablename__ = "payments"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    order_id = Column(UUID(as_uuid=True), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
+    order_id = Column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
 
     payment_number = Column(String(100), unique=True, nullable=False)
     transaction_id = Column(String(255), index=True)
@@ -41,9 +40,9 @@ class Payment(Base):
 class Refund(Base):
     __tablename__ = "refunds"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    payment_id = Column(UUID(as_uuid=True), ForeignKey("payments.id", ondelete="CASCADE"))
+    payment_id = Column(String(36), ForeignKey("payments.id", ondelete="CASCADE"))
 
     refund_amount = Column(Float, nullable=False)
     refund_status = Column(String(50), default="pending")
@@ -60,9 +59,9 @@ class Refund(Base):
 class PaymentMethod(Base):
     __tablename__ = "payment_methods"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
 
     method_type = Column(String(50))  # card, upi, bank
 
@@ -84,9 +83,9 @@ class PaymentMethod(Base):
 class BankAccount(Base):
     __tablename__ = "bank_accounts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
 
     account_holder_name = Column(String(200))
     account_number = Column(String(255))
@@ -106,9 +105,9 @@ class BankAccount(Base):
 class Payout(Base):
     __tablename__ = "payouts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
 
     payout_number = Column(String(100), unique=True, nullable=False)
 

@@ -1,0 +1,66 @@
+[size]
+
+create = """
+INSERT INTO sizes (
+    id,
+    name,
+    width,
+    height,
+    unit,
+    description,
+    is_active,
+    created_at,
+    updated_at
+) VALUES (
+    :id,
+    :name,
+    :width,
+    :height,
+    :unit,
+    :description,
+    :is_active,
+    :created_at,
+    :updated_at
+);
+"""
+
+get_all = """
+SELECT *
+FROM sizes
+WHERE is_active = TRUE
+ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT *
+FROM sizes
+WHERE id = :id;
+"""
+
+update = """
+UPDATE sizes
+SET
+    name = :name,
+    width = :width,
+    height = :height,
+    unit = :unit,
+    description = :description,
+    updated_at = :updated_at
+WHERE id = :id;
+"""
+
+soft_delete = """
+UPDATE sizes
+SET
+    is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+activate = """
+UPDATE sizes
+SET
+    is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
