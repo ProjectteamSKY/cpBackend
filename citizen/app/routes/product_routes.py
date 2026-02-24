@@ -29,7 +29,7 @@ def save_upload(file: UploadFile) -> str:
     return path.replace("\\", "/")
 
 
-@router.post("/product/create")
+@router.post("/create")
 async def create_product_endpoint(
     name: str = Form(...),
     category_id: Optional[str] = Form(None),
@@ -60,12 +60,12 @@ async def create_product_endpoint(
     return await create_product(product, session)
 
 
-@router.get("/products/list")
+@router.get("/list")
 async def list_products(session: AsyncSession = Depends(get_session)):
     return {"products": await get_all_products(session)}
 
 
-@router.get("/product/{id}")
+@router.get("/{id}")
 async def get_product_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     product = await get_product_by_id(id, session)
     if not product:
@@ -73,12 +73,12 @@ async def get_product_endpoint(id: str, session: AsyncSession = Depends(get_sess
     return product
 
 
-@router.get("/products/category/{category_id}")
+@router.get("/category/{category_id}")
 async def list_products_by_category(category_id: str, session: AsyncSession = Depends(get_session)):
     return {"products": await get_products_by_category(category_id, session)}
 
 
-@router.put("/product/{id}")
+@router.put("/{id}")
 async def update_product_endpoint(
     id: str,
     name: str = Form(...),
@@ -113,11 +113,11 @@ async def update_product_endpoint(
     return updated
 
 
-@router.delete("/product/{id}")
+@router.delete("/{id}")
 async def delete_product_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     return await delete_product(id, session)
 
 
-@router.put("/product/{id}/activate")
+@router.put("/{id}/activate")
 async def activate_product_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     return await activate_product(id, session)

@@ -20,7 +20,7 @@ router = APIRouter()
 
 
 # CREATE
-@router.post("/print-type/create")
+@router.post("/create")
 async def create_print_type_endpoint(
     name: str = Form(...),
     description: str = Form(None),
@@ -38,7 +38,7 @@ async def create_print_type_endpoint(
 
 
 # LIST
-@router.get("/print-types/list")
+@router.get("/list")
 async def list_print_types(
     session: AsyncSession = Depends(get_session)
 ):
@@ -49,7 +49,7 @@ async def list_print_types(
 
 
 # GET BY ID
-@router.get("/print-type/{id}")
+@router.get("/{id}")
 async def get_print_type_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)
@@ -64,7 +64,7 @@ async def get_print_type_endpoint(
 
 
 # UPDATE
-@router.put("/print-type/{id}")
+@router.put("/{id}")
 async def update_print_type_endpoint(
     id: str,
     name: str = Form(None),
@@ -99,7 +99,7 @@ async def update_print_type_endpoint(
 
 
 # DELETE (SOFT)
-@router.delete("/print-type/{id}")
+@router.delete("/{id}")
 async def delete_print_type_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)
@@ -117,7 +117,7 @@ async def delete_print_type_endpoint(
 
 
 # ACTIVATE
-@router.put("/print-type/{id}/activate")
+@router.put("/{id}/activate")
 async def activate_print_type_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)

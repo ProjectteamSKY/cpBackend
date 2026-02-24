@@ -33,8 +33,8 @@ async def create_productsetup(data: ProductSetup, session: AsyncSession):
         "description": data.description,
         "min_order_qty": data.min_order_qty,
         "max_order_qty": data.max_order_qty,
-        "images": json.dumps(data.images or []),
-        "related_images": json.dumps(data.related_images or []),
+        "images": json.dumps([img.model_dump() for img in data.images]),
+        "related_images": json.dumps([img.model_dump() for img in data.related_images]),
         "is_active": True,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
@@ -166,3 +166,70 @@ async def get_product_by_id(product_id: str, session: AsyncSession):
 
     product_dict["variants"] = variant_list
     return product_dict
+
+
+async def get_all_products_with_details(session: AsyncSession):
+    """
+    Fetch all products with variants, prices, and discounts
+    """
+
+    # 1️⃣ Fetch all products
+    product_query = text(queries["product"]["get_all"])
+    product_result = await session.execute(product_query)
+    products = product_result.mappings().all()
+
+    product_list = []
+
+    for product in products:
+        product_dict = dict(product)
+        product_id = product_dict["id"]
+
+        # 2️⃣ Fetch variants for product
+        variant_query = text(queries["product_variant"]["get_by_product"])
+        variant_result = await session.execute(
+            variant_query,
+            {"product_id": product_id}
+        )
+        variants = variant_result.mappings().all()
+
+        variant_list = []
+
+        for v in variants:
+            v_dict = dict(v)
+            variant_id = v_dict["id"]
+
+            # 3️⃣ Fetch prices
+            price_query = text(queries["product_variant_price"]["get_by_variant"])
+            price_result = await session.execute(
+                price_query,
+                {"variant_id": variant_id}
+            )
+            prices = price_result.mappings().all()
+
+            price_list = []
+
+            for p in prices:
+                p_dict = dict(p)
+
+                # 4️⃣ Fetch discount
+                discount_id = p_dict.get("discount_id")
+                if discount_id:
+                    discount_query = text(queries["product_discount"]["get_by_id"])
+                    discount_result = await session.execute(
+                        discount_query,
+                        {"id": discount_id}
+                    )
+                    discount = discount_result.mappings().first()
+                    p_dict["discount"] = dict(discount) if discount else None
+                else:
+                    p_dict["discount"] = None
+
+                price_list.append(p_dict)
+
+            v_dict["prices"] = price_list
+            variant_list.append(v_dict)
+
+        product_dict["variants"] = variant_list
+        product_list.append(product_dict)
+
+    return product_list

@@ -9,8 +9,14 @@ INSERT INTO product_variant_prices (
 """
 
 get_all = """
-SELECT * FROM product_variant_prices
-ORDER BY created_at DESC;
+SELECT 
+    pvp.*, 
+    pd.description AS discount_name,
+    p.name AS product_name
+FROM product_variant_prices pvp
+LEFT JOIN product_discounts pd ON pvp.discount_id = pd.id
+LEFT JOIN products p ON pd.product_id = p.id
+ORDER BY pvp.created_at DESC;
 """
 
 get_by_id = """

@@ -79,3 +79,17 @@ async def activate_cut_type(id: str, session: AsyncSession):
     await session.commit()
 
     return await get_cut_type_by_id(id, session)
+
+
+
+async def deactivate_cut_type(id: str, session: AsyncSession):
+    cut_type = await get_cut_type_by_id(id, session)
+    if not cut_type or not cut_type.get("is_active", True):
+        return None
+
+    await session.execute(
+        text(queries["cut_type"]["deactivate"]),
+        {"id": id}
+    )
+    await session.commit()
+    return await get_cut_type_by_id(id, session)

@@ -16,7 +16,7 @@ from app.services.size_service import (
 router = APIRouter()
 
 
-@router.post("/size/create")
+@router.post("/create")
 async def create_size_endpoint(
     name: str = Form(...),
     width: float = Form(...),
@@ -37,7 +37,7 @@ async def create_size_endpoint(
     return await create_size(size, session)
 
 
-@router.get("/sizes/list")
+@router.get("/list")
 async def list_sizes(
     session: AsyncSession = Depends(get_session)
 ):
@@ -47,7 +47,7 @@ async def list_sizes(
     }
 
 
-@router.get("/size/{id}")
+@router.get("/{id}")
 async def get_size_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)
@@ -61,7 +61,7 @@ async def get_size_endpoint(
     return result
 
 
-@router.put("/size/{id}")
+@router.put("/{id}")
 async def update_size_endpoint(
     id: str,
     name: str = Form(...),
@@ -88,7 +88,7 @@ async def update_size_endpoint(
     return result
 
 
-@router.delete("/size/{id}")
+@router.delete("/{id}")
 async def delete_size_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)
@@ -97,7 +97,7 @@ async def delete_size_endpoint(
     return await delete_size(id, session)
 
 
-@router.put("/size/{id}/activate")
+@router.put("/{id}/activate")
 async def activate_size_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)

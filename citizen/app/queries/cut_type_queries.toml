@@ -21,7 +21,6 @@ INSERT INTO cut_types (
 get_all = """
 SELECT *
 FROM cut_types
-WHERE is_active = TRUE
 ORDER BY created_at DESC;
 """
 
@@ -52,6 +51,14 @@ activate = """
 UPDATE cut_types
 SET
     is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+deactivate = """
+UPDATE cut_types
+SET
+    is_active = FALSE,
     updated_at = NOW()
 WHERE id = :id;
 """

@@ -21,7 +21,7 @@ router = APIRouter()
 
 
 # CREATE
-@router.post("/subcategory/create")
+@router.post("/create")
 async def create_subcategory_endpoint(
     category_id: str = Form(...),
     name: str = Form(...),
@@ -41,7 +41,7 @@ async def create_subcategory_endpoint(
 
 
 # LIST ALL
-@router.get("/subcategories/list")
+@router.get("/list")
 async def list_subcategories(
     category_id: str = None,
     session: AsyncSession = Depends(get_session)
@@ -56,7 +56,7 @@ async def list_subcategories(
 
 
 # GET BY ID
-@router.get("/subcategory/{id}")
+@router.get("/{id}")
 async def get_subcategory_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)
@@ -71,7 +71,7 @@ async def get_subcategory_endpoint(
 
 
 # UPDATE
-@router.put("/subcategory/{id}")
+@router.put("/update/{id}")
 async def update_subcategory_endpoint(
     id: str,
     name: str = Form(None),
@@ -124,7 +124,7 @@ async def delete_subcategory_endpoint(
 
 
 # ACTIVATE
-@router.put("/subcategory/{id}/activate")
+@router.put("/{id}/activate")
 async def activate_subcategory_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)
@@ -139,7 +139,7 @@ async def activate_subcategory_endpoint(
 
 
 # DEACTIVATE
-@router.put("/subcategory/{id}/deactivate")
+@router.put("/{id}/deactivate")
 async def deactivate_subcategory_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)

@@ -13,9 +13,20 @@ INSERT INTO products (
 """
 
 get_all = """
-SELECT * FROM products
-WHERE is_active = TRUE
-ORDER BY created_at DESC;
+SELECT 
+    p.id,
+    p.name,
+    p.description,
+    p.min_order_qty,
+    p.max_order_qty,
+    c.name AS category_name,
+    s.name AS subcategory_name,
+    p.created_at
+FROM products p
+LEFT JOIN categories c ON p.category_id = c.id
+LEFT JOIN subcategories s ON p.subcategory_id = s.id
+WHERE p.is_active = TRUE
+ORDER BY p.created_at DESC;
 """
 
 get_by_id = """

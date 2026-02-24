@@ -16,7 +16,7 @@ from app.services.product_variant_price_service import (
 router = APIRouter()
 
 # ---------------- CREATE ----------------
-@router.post("/product_variant_price/create")
+@router.post("/create")
 async def create_pvp_endpoint(
     variant_id: str = Form(...),
     min_qty: int = Form(...),
@@ -37,12 +37,13 @@ async def create_pvp_endpoint(
     return await create_product_variant_price(pvp, session)
 
 # ---------------- GET ALL ----------------
-@router.get("/product_variant_prices/list")
+@router.get("/list")
 async def list_pvp(session: AsyncSession = Depends(get_session)):
-    return {"prices": await get_all_product_variant_prices(session)}
+    prices = await get_all_product_variant_prices(session)
+    return {"prices": prices}
 
 # ---------------- GET BY ID ----------------
-@router.get("/product_variant_price/{id}")
+@router.get("/{id}")
 async def get_pvp(id: str, session: AsyncSession = Depends(get_session)):
     pvp = await get_product_variant_price_by_id(id, session)
     if not pvp:
@@ -50,12 +51,12 @@ async def get_pvp(id: str, session: AsyncSession = Depends(get_session)):
     return pvp
 
 # ---------------- GET BY VARIANT ----------------
-@router.get("/product_variant_prices/variant/{variant_id}")
+@router.get("/variant/{variant_id}")
 async def list_pvp_by_variant(variant_id: str, session: AsyncSession = Depends(get_session)):
     return {"prices": await get_product_variant_prices_by_variant(variant_id, session)}
 
 # ---------------- UPDATE ----------------
-@router.put("/product_variant_price/{id}")
+@router.put("/{id}")
 async def update_pvp_endpoint(
     id: str,
     min_qty: Optional[int] = Form(None),
@@ -78,11 +79,11 @@ async def update_pvp_endpoint(
     return await update_product_variant_price(id, updates, session)
 
 # ---------------- SOFT DELETE ----------------
-@router.delete("/product_variant_price/{id}")
+@router.delete("/{id}")
 async def soft_delete_pvp_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     return await soft_delete_product_variant_price(id, session)
 
 # ---------------- ACTIVATE ----------------
-@router.put("/product_variant_price/{id}/activate")
+@router.put("/{id}/activate")
 async def activate_pvp_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     return await activate_product_variant_price(id, session)

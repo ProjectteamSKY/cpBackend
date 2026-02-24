@@ -16,7 +16,7 @@ from app.services.product_variant_service import (
 router = APIRouter()
 
 
-@router.post("/product_variant/create")
+@router.post("/create")
 async def create_product_variant_endpoint(
     product_id: str = Form(...),
     size_id: str = Form(...),
@@ -43,12 +43,12 @@ async def create_product_variant_endpoint(
     return await create_product_variant(variant, session)
 
 
-@router.get("/product_variants/list")
+@router.get("/list")
 async def list_product_variants(session: AsyncSession = Depends(get_session)):
     return {"variants": await get_all_product_variants(session)}
 
 
-@router.get("/product_variant/{id}")
+@router.get("/{id}")
 async def get_product_variant_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     variant = await get_product_variant_by_id(id, session)
     if not variant:
@@ -56,12 +56,12 @@ async def get_product_variant_endpoint(id: str, session: AsyncSession = Depends(
     return variant
 
 
-@router.get("/product_variants/product/{product_id}")
+@router.get("/product/{product_id}")
 async def list_product_variants_by_product(product_id: str, session: AsyncSession = Depends(get_session)):
     return {"variants": await get_product_variants_by_product(product_id, session)}
 
 
-@router.put("/product_variant/{id}")
+@router.put("/{id}")
 async def update_product_variant_endpoint(
     id: str,
     product_id: str = Form(...),
@@ -92,11 +92,11 @@ async def update_product_variant_endpoint(
     return updated
 
 
-@router.delete("/product_variant/{id}")
+@router.delete("/{id}")
 async def delete_product_variant_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     return await delete_product_variant(id, session)
 
 
-@router.put("/product_variant/{id}/activate")
+@router.put("/{id}/activate")
 async def activate_product_variant_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     return await activate_product_variant(id, session)

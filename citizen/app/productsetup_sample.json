@@ -1,6 +1,6 @@
 {
   "product_id": null,
-  "category_id": "84dabaa0-bf5c-4cd7-86e2-ad3e120668ba",
+  "category_id": "84dabaa0-bf5c-4cd7-86e2-ad3e120668ba", 
   "subcategory_id": "68491bff-c875-4882-80a8-b73034d54184",
   "name": "Luxury Business Card",
   "description": "Premium double-sided glossy cards",
@@ -70,3 +70,8 @@
     }
   ]
 }
+
+
+
+
+

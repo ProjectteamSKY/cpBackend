@@ -11,19 +11,23 @@ INSERT INTO product_discounts (
 """
 
 get_all = """
-SELECT * FROM product_discounts
-ORDER BY created_at DESC;
+SELECT pd.*, p.name AS product_name
+FROM product_discounts pd
+LEFT JOIN products p ON pd.product_id = p.id
+ORDER BY pd.created_at DESC;
 """
+
 
 get_by_id = """
 SELECT * FROM product_discounts
 WHERE id = :id;
 """
-
 get_by_product = """
-SELECT * FROM product_discounts
-WHERE product_id = :product_id
-ORDER BY created_at DESC;
+SELECT pd.*, p.name AS product_name
+FROM product_discounts pd
+LEFT JOIN products p ON pd.product_id = p.id
+WHERE pd.product_id = :product_id
+ORDER BY pd.created_at DESC;
 """
 
 update = """
@@ -51,11 +55,13 @@ WHERE id = :id;
 """
 
 get_by_date_range = """
-SELECT * FROM product_discounts
-WHERE is_active = TRUE
-AND start_date >= :start_date
-AND end_date <= :end_date
-ORDER BY start_date DESC;
+SELECT pd.*, p.name AS product_name
+FROM product_discounts pd
+LEFT JOIN products p ON pd.product_id = p.id
+WHERE pd.is_active = TRUE
+AND pd.start_date >= :start_date
+AND pd.end_date <= :end_date
+ORDER BY pd.start_date DESC;
 """
 
 

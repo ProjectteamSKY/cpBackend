@@ -24,7 +24,7 @@ class ProductDiscountCreate(BaseModel):
     start_date: datetime
     end_date: datetime
 # ---------------- CREATE ----------------
-@router.post("/product_discount/create")
+@router.post("/create")
 async def create_product_discount_endpoint(
     payload: ProductDiscountCreate,
     session: AsyncSession = Depends(get_session)
@@ -39,12 +39,12 @@ async def create_product_discount_endpoint(
     return await create_product_discount(pd, session)
 
 # ---------------- GET ALL ----------------
-@router.get("/product_discounts/list")
+@router.get("/list")
 async def list_product_discounts(session: AsyncSession = Depends(get_session)):
     return {"discounts": await get_all_product_discounts(session)}
 
 # ---------------- GET BY ID ----------------
-@router.get("/product_discount/{id}")
+@router.get("/{id}")
 async def get_product_discount_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     discount = await get_product_discount_by_id(id, session)
     if not discount:
@@ -52,12 +52,12 @@ async def get_product_discount_endpoint(id: str, session: AsyncSession = Depends
     return discount
 
 # ---------------- GET BY PRODUCT ----------------
-@router.get("/product_discounts/product/{product_id}")
+@router.get("/product/{product_id}")
 async def list_product_discounts_by_product(product_id: str, session: AsyncSession = Depends(get_session)):
     return {"discounts": await get_product_discounts_by_product(product_id, session)}
 
 # ---------------- UPDATE ----------------
-@router.put("/product_discount/{id}")
+@router.put("/{id}")
 async def update_product_discount_endpoint(
     id: str,
     product_id: Optional[str] = Form(None),
@@ -80,17 +80,17 @@ async def update_product_discount_endpoint(
     return updated
 
 # ---------------- SOFT DELETE ----------------
-@router.delete("/product_discount/{id}")
+@router.delete("/{id}")
 async def delete_product_discount_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     return await delete_product_discount(id, session)
 
 # ---------------- ACTIVATE ----------------
-@router.put("/product_discount/{id}/activate")
+@router.put("/{id}/activate")
 async def activate_product_discount_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     return await activate_product_discount(id, session)
 
 # ---------------- DATE RANGE FILTER ----------------
-@router.get("/product_discounts/by_date_range")
+@router.get("/by_date_range")
 async def list_product_discounts_by_date_range(
     start_date: datetime = Query(..., description="Start date (date picker)"),
     end_date: datetime = Query(..., description="End date (date picker)"),

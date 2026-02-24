@@ -70,7 +70,7 @@ api_router.include_router(product_variant_routes.router, prefix="/product_varian
 api_router.include_router(product_discount_routes.router, prefix="/product_discount", tags=["product_discount_routes"])
 
 
-api_router.include_router(product_variant_price_routes.router, prefix="/product-variant-prices", tags=["Product Variant Prices"])
+api_router.include_router(product_variant_price_routes.router, prefix="/product_variant_price", tags=["Product Variant Prices"])
 
 api_router.include_router(productsetup_routes.router, prefix="/productsetup", tags=["product setup"])
 

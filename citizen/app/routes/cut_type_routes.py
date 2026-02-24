@@ -10,13 +10,14 @@ from app.services.cut_type_service import (
     get_cut_type_by_id,
     update_cut_type,
     delete_cut_type,
-    activate_cut_type
+    activate_cut_type,
+    deactivate_cut_type
 )
 
 router = APIRouter()
 
 
-@router.post("/cut-type/create")
+@router.post("/create")
 async def create_cut_type_endpoint(
     name: str = Form(...),
     description: str = Form(None),
@@ -31,7 +32,7 @@ async def create_cut_type_endpoint(
     return await create_cut_type(cut_type, session)
 
 
-@router.get("/cut-types/list")
+@router.get("/list")
 async def list_cut_types(
     session: AsyncSession = Depends(get_session)
 ):
@@ -41,7 +42,7 @@ async def list_cut_types(
     }
 
 
-@router.get("/cut-type/{id}")
+@router.get("/{id}")
 async def get_cut_type_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)
@@ -55,7 +56,7 @@ async def get_cut_type_endpoint(
     return result
 
 
-@router.put("/cut-type/{id}")
+@router.put("/{id}")
 async def update_cut_type_endpoint(
     id: str,
     name: str = Form(...),
@@ -76,7 +77,7 @@ async def update_cut_type_endpoint(
     return result
 
 
-@router.delete("/cut-type/{id}")
+@router.delete("/{id}")
 async def delete_cut_type_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)
@@ -85,10 +86,18 @@ async def delete_cut_type_endpoint(
     return await delete_cut_type(id, session)
 
 
-@router.put("/cut-type/{id}/activate")
+@router.put("/{id}/activate")
 async def activate_cut_type_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)
 ):
 
     return await activate_cut_type(id, session)
+
+
+@router.put("/{id}/deactivate")
+async def deactivate_cut_type_endpoint(id: str, session: AsyncSession = Depends(get_session)):
+    result = await deactivate_cut_type(id, session)
+    if not result:
+        raise HTTPException(404, "Cut Type not found or already inactive")
+    return result
