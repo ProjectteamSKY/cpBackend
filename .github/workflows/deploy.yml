@@ -1,0 +1,44 @@
+name: DEV Auto Deploy
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to DEV Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ubuntu
+          key: ${{ secrets.DEV_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            echo "Starting DEV Deployment"
+
+            cd /home/ubuntu/cpBackend
+
+            echo "Fetching latest code"
+            git fetch origin
+            git checkout dev
+            git reset --hard origin/dev
+
+            echo "Moving into project folder"
+            cd citizen
+
+            echo "Activating virtual environment"
+            source venv/bin/activate
+
+            echo "Installing dependencies"
+            pip install -r requirements.txt
+
+            echo "Restarting FastAPI service"
+            sudo systemctl restart fastapi
+
+            echo "DEV Deployment Successful"
