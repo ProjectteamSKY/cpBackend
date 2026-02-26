@@ -8,13 +8,31 @@ CREATE TABLE users (
     contact VARCHAR(30),
     password_hash VARCHAR(255) NOT NULL,
     bearer_token TEXT,
+    is_verified BOOLEAN DEFAULT FALSE,
+    google_id VARCHAR(255) NULL,  -- added for Google login
     is_active BOOLEAN DEFAULT TRUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_users_email (email)
 );
 
+CREATE TABLE email_otps (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(200) NOT NULL,
+    otp_code VARCHAR(6) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE
+);
 
+CREATE TABLE refresh_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(36),
+    token_hash TEXT NOT NULL,
+    expires_at DATETIME NOT NULL,
+    is_revoked BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
 -- =====================================================
 -- USER PROFILES TABLE (One-to-One with users)
 -- =====================================================
@@ -103,14 +121,17 @@ CREATE TABLE permissions (
 -- USER ROLES TABLE (Many-to-Many)
 -- =====================================================
 CREATE TABLE user_roles (
-    user_id VARCHAR(36),
-    role_id VARCHAR(36),
+    id VARCHAR(36) PRIMARY KEY,
+
+    user_id VARCHAR(36) NOT NULL,
+    role_id VARCHAR(36) NOT NULL,
     assigned_by VARCHAR(36),
+
     assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    PRIMARY KEY (user_id, role_id),
+    UNIQUE KEY unique_user_role (user_id, role_id),
 
     CONSTRAINT fk_user_roles_user
     FOREIGN KEY (user_id)
@@ -132,10 +153,15 @@ CREATE TABLE user_roles (
 -- ROLE PERMISSIONS TABLE (Many-to-Many)
 -- =====================================================
 CREATE TABLE role_permissions (
-    role_id VARCHAR(36),
-    permission_id VARCHAR(36),
+    id VARCHAR(36) PRIMARY KEY,
 
-    PRIMARY KEY (role_id, permission_id),
+    role_id VARCHAR(36) NOT NULL,
+    permission_id VARCHAR(36) NOT NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY unique_role_permission (role_id, permission_id),
 
     CONSTRAINT fk_role_permissions_role
     FOREIGN KEY (role_id)

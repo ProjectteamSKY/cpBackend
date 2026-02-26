@@ -1,0 +1,29 @@
+[role]
+
+create_role = """
+INSERT INTO roles (id, name, description)
+VALUES (:id, :name, :description);
+"""
+
+get_by_name = """
+SELECT id, name, description
+FROM roles
+WHERE name = :name;
+"""
+
+get_by_id = """
+SELECT id, name, description
+FROM roles
+WHERE id = :role_id;
+"""
+
+get_all = """
+SELECT id, name, description
+FROM roles
+ORDER BY created_at DESC;
+"""
+
+delete_role = """
+DELETE FROM roles
+WHERE id = :role_id;
+"""

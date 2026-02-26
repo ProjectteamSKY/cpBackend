@@ -1,0 +1,31 @@
+[permission]
+
+create_permission = """
+INSERT INTO permissions 
+(id, resource_id, action, method, path, description)
+VALUES 
+(:id, :resource_id, :action, :method, :path, :description);
+"""
+
+get_by_id = """
+SELECT id, resource_id, action, method, path, description
+FROM permissions
+WHERE id = :permission_id;
+"""
+
+get_all = """
+SELECT id, resource_id, action, method, path, description
+FROM permissions
+ORDER BY created_at DESC;
+"""
+
+get_by_resource = """
+SELECT id, resource_id, action, method, path, description
+FROM permissions
+WHERE resource_id = :resource_id;
+"""
+
+delete_permission = """
+DELETE FROM permissions
+WHERE id = :permission_id;
+"""
