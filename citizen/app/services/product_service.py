@@ -22,7 +22,16 @@ async def create_product(product: Product, session: AsyncSession):
 
 async def get_all_products(session: AsyncSession):
     result = await session.execute(text(queries["product"]["get_all"]))
-    return [dict(r._mapping) for r in result.fetchall()]
+    products = [dict(r._mapping) for r in result.fetchall()]
+
+    # Parse the JSON string columns
+    for p in products:
+        if "images" in p and isinstance(p["images"], str):
+            p["images"] = json.loads(p["images"])
+        if "related_images" in p and isinstance(p["related_images"], str):
+            p["related_images"] = json.loads(p["related_images"])
+
+    return products
 
 
 async def get_product_by_id(id: str, session: AsyncSession):

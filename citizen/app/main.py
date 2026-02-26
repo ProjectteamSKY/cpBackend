@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Import all routers
 from fastapi import FastAPI, APIRouter
+from fastapi.openapi.utils import get_openapi 
 
 from app.routes import user_routes
 from app.routes import category_routes
@@ -28,6 +29,9 @@ from app.routes import product_type_routes
 from app.routes import custom_shape_routes
 from fastapi.staticfiles import StaticFiles
 
+from app.routes import permission_routes, resource_routes, role_permission_routes, role_routes, user_role_routes
+from app.core.auth_middleware import AuthMiddleware
+from app.core.rbac_middleware import RBACMiddleware
 # from app.core.init_db import init_db  # import the function, not the module
 
 
@@ -47,17 +51,113 @@ app = FastAPI(
 # # -------------------------
 # CORS middleware
 # -------------------------
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title="Badmiton League Management System",
+        version="1.0.0",
+        description="API for managing badminton leagues, clubs, and tournaments",
+        routes=app.routes,
+    )
+    
+
+    openapi_schema["openapi"] = "3.0.3"
+
+    # Ensure components exists
+    openapi_schema.setdefault("components", {})
+
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "Token",
+            "description": "Enter your bearer token from POST /users/login"
+        }
+    }
+    
+    # Apply security globally
+    openapi_schema["security"] = [{"BearerAuth": []}]
+    
+    # ============ PUBLIC ENDPOINTS (NO AUTH REQUIRED) ============
+    public_endpoints = [
+        # Root
+        "/",
+        
+        # User Management
+        "/api/users/login",
+        "/api/users/",                  # Create user
+        "/api/users/{user_id}",         # Get/Delete user
+        
+        # Role Management
+        "/api/roles/create",
+        "/api/roles/",                  # List roles
+        "/api/roles/delete",
+        
+        # User-Role Assignment
+        "/api/user-roles/assign",
+        "/api/user-roles/{user_id}",    # Get user roles
+        "/api/user-roles/remove",
+        "/api/user-roles/users-withroles",
+        
+        
+        # Resource Management
+        "/api/resources/",              # Create/List resources
+        "/api/resources/{resource_id}", # Get/Update/Delete resource
+        
+        # Permission Management
+        "/api/permissions/create",
+        "/api/permissions/",            # List permissions
+        "/api/permissions/delete",
+        
+        # Role-Permission Assignment
+        "/api/role-permissions/assign",
+        "/api/role-permissions/{role_id}", 
+        "/api/role-permissions/remove",
+        "/api/clubs/{club_id}/assign-player",
+        "/api/clubs/{club_id}/assign-admin",
+    ]
+    
+    # Remove security for public endpoints
+    for path, methods in openapi_schema["paths"].items():
+        if path in public_endpoints:
+            for method in methods.values():
+                if isinstance(method, dict):
+                    method["security"] = []
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+
 # Allow frontend access (adjust origin in production)
+# 1️⃣ CORS first
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # change to your frontend domain
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# 2️⃣ Then your RBAC and Auth
+app.add_middleware(RBACMiddleware)
+app.add_middleware(AuthMiddleware)
+
 api_router = APIRouter(prefix="/api")
 
+
+api_router.include_router(resource_routes.router)
+api_router.include_router(user_routes.router)
+api_router.include_router(role_routes.router)
+api_router.include_router(user_role_routes.router)
+api_router.include_router(permission_routes.router)
+api_router.include_router(role_permission_routes.router)
 # -------------------------
 # Include Routers
 # -------------------------

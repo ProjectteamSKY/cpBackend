@@ -1,0 +1,29 @@
+[resource]
+
+create_resource = """
+INSERT INTO resources (id, name, description)
+VALUES (:id, :name, :description);
+"""
+
+get_by_name = """
+SELECT id, name, description
+FROM resources
+WHERE name = :name;
+"""
+
+get_by_id = """
+SELECT id, name, description
+FROM resources
+WHERE id = :resource_id;
+"""
+
+get_all = """
+SELECT id, name, description
+FROM resources
+ORDER BY created_at DESC;
+"""
+
+delete_resource = """
+DELETE FROM resources
+WHERE id = :resource_id;
+"""

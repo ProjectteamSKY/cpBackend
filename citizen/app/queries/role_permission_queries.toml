@@ -1,0 +1,28 @@
+[role_permission]
+
+assign_permission = """
+INSERT INTO role_permissions
+(id, role_id, permission_id)
+VALUES
+(:id, :role_id, :permission_id);
+"""
+
+get_permissions_by_role = """
+SELECT p.id, p.action, p.method, p.path, p.description
+FROM role_permissions rp
+JOIN permissions p ON rp.permission_id = p.id
+WHERE rp.role_id = :role_id;
+"""
+
+get_roles_by_permission = """
+SELECT r.id, r.name, r.description
+FROM role_permissions rp
+JOIN roles r ON rp.role_id = r.id
+WHERE rp.permission_id = :permission_id;
+"""
+
+remove_permission = """
+DELETE FROM role_permissions
+WHERE role_id = :role_id
+AND permission_id = :permission_id;
+"""

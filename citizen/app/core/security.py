@@ -1,51 +1,28 @@
-# app/core/security.py
-
-from passlib.context import CryptContext
-from jose import jwt
+import bcrypt
+import jwt
+import hashlib
 from datetime import datetime, timedelta
+from app.core.config import *
 
-# ------------------ CONFIG ------------------
-SECRET_KEY = "SUPER_SECRET_KEY_CHANGE_THIS"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+def hash_password(password: str):
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-# Passlib context for bcrypt
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto"
-)
+def verify_password(password: str, hashed: str):
+    return bcrypt.checkpw(password.encode(), hashed.encode())
 
+def hash_token(token: str):
+    return hashlib.sha256(token.encode()).hexdigest()
 
-# ------------------ PASSWORD ------------------
-def hash_password(password: str) -> str:
-    """
-    Hash the password using bcrypt.
-    Truncate to 72 bytes manually to avoid bcrypt limitations.
-    """
-    # Ensure password is UTF-8 bytes and max 72 bytes
-    truncated = password.encode("utf-8")[:72]
-    # Decode back to string for Passlib
-    return pwd_context.hash(truncated.decode("utf-8"))
-
-
-def verify_password(password: str, hashed: str) -> bool:
-    """
-    Verify password against hashed value.
-    Truncate to 72 bytes to match hashing rules.
-    """
-    truncated = password.encode("utf-8")[:72]
-    return pwd_context.verify(truncated.decode("utf-8"), hashed)
-
-
-# ------------------ JWT TOKEN ------------------
-def create_access_token(user_id: int, expires_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES) -> str:
-    """
-    Create a JWT access token for a user.
-    """
-    expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
+def create_access_token(user_id: str):
     payload = {
-        "sub": str(user_id),
-        "exp": expire
+        "sub": user_id,
+        "exp": datetime.utcnow() + timedelta(minutes=ACCESS_EXPIRE_MINUTES)
     }
-    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-    return token
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+def create_refresh_token(user_id: str):
+    payload = {
+        "sub": user_id,
+        "exp": datetime.utcnow() + timedelta(days=REFRESH_EXPIRE_DAYS)
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
