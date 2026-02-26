@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 # DATABASE_URL = "postgresql+asyncpg://postgres:12345@localhost:5432/citizenprints"
 # DATABASE_URL = "mysql+asyncmy://root:Password%40123@localhost:3306/citizenprints" // local env
 # Live env
-DATABASE_URL = "mysql+asyncmy://citizen_user:citizen@123@localhost:3306/citizenprints" 
+DATABASE_URL = "mysql+asyncmy://citizen_user:citizen%40123@localhost:3306/citizenprints" 
 
 
 # 1. Async engine
