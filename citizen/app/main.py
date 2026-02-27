@@ -26,6 +26,10 @@ from app.routes import productsetup_routes
 
 from app.routes import cart_routes
 from app.routes import cart_item_routes
+from app.routes import user_addresses_routes
+from app.routes import orders_routes
+from app.routes import order_items_routes
+
 
 
 
@@ -48,7 +52,7 @@ app = FastAPI(
 # @app.on_event("startup")
 # async def on_startup():
 #     await init_db()
-#     print("🟢 Database initialized on startup - main.py:49")
+#     print("🟢 Database initialized on startup - main.py:51")
 
 # # -------------------------
 # CORS middleware
@@ -191,6 +195,11 @@ api_router.include_router(cut_type_routes.router, prefix="/cut_type", tags=["cut
 api_router.include_router(size_routes.router, prefix="/size", tags=["size"])
 api_router.include_router(cart_routes.router, prefix="/cart", tags=["cart"])
 api_router.include_router(cart_item_routes.router, prefix="/cartitems", tags=["cartitems"])
+
+api_router.include_router(user_addresses_routes.router, prefix="/user_addresses", tags=["user_addresses"])
+api_router.include_router(orders_routes.router, prefix="/orders_routes", tags=["orders_routes"])
+api_router.include_router(order_items_routes.router, prefix="/order_items_routes", tags=["order_items_routes"])
+
 
 
 

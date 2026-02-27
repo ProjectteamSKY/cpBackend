@@ -1,11 +1,13 @@
+import json
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+import uuid
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.domain.cart_item_domain import CartItem
 from app.services.cart_item_service import (
-    create_cart_item,
+    create_cart_item_with_files,
     get_cart_items_by_cart_id,
     update_cart_item,
     delete_cart_item,
@@ -98,3 +100,32 @@ async def get_cart_items_by_user(
     items = await get_cart_items_by_user_id(user_id, session)
 
     return {"items": items}
+
+
+@router.post("/with-files")
+async def create_cart_item_with_files_endpoint(
+    cart_id: str = Form(...),
+    product_id: str = Form(...),
+    variant_id: str = Form(...),
+    quantity: int = Form(...),
+    selected_options: str = Form("{}"),
+    front_file: UploadFile | None = File(None),
+    back_file: UploadFile | None = File(None),
+    session: AsyncSession = Depends(get_session)
+):
+
+    item = CartItem(
+        id=str(uuid.uuid4()),
+        cart_id=cart_id,
+        product_id=product_id,
+        variant_id=variant_id,
+        quantity=quantity,
+        selected_options=json.loads(selected_options)
+    )
+
+    return await create_cart_item_with_files(
+        item,
+        front_file,
+        back_file,
+        session
+    )

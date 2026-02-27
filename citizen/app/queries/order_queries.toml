@@ -1,0 +1,31 @@
+[order]
+
+create = """
+INSERT INTO orders (
+    id, user_id, cart_id, address_id, status, total_amount, created_at, updated_at
+) VALUES (
+    :id, :user_id, :cart_id, :address_id, :status, :total_amount, :created_at, :updated_at
+);
+"""
+
+get_all = """
+SELECT * FROM orders
+WHERE user_id = :user_id
+ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT * FROM orders
+WHERE id = :id;
+"""
+
+update = """
+UPDATE orders
+SET {set_clause}
+WHERE id = :id;
+"""
+
+delete = """
+DELETE FROM orders
+WHERE id = :id;
+"""
