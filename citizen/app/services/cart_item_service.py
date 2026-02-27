@@ -1,7 +1,11 @@
+from datetime import datetime
 import json
+import os
+import shutil
+import uuid
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from app.domain.cart_item_domain import CartItem
 from app.utils.query_loader import load_queries
 
@@ -9,6 +13,12 @@ queries = load_queries()
 
 # ============================================================
 # PRICE LOOKUP (Robust Slab Logic)
+# ============================================================
+UPLOAD_DIR = "media/cart_items"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# ============================================================
+# PRICE LOOKUP
 # ============================================================
 async def get_variant_price(
     variant_id: str,
@@ -24,10 +34,7 @@ async def get_variant_price(
     WHERE variant_id = :variant_id
       AND is_active = 1
       AND :quantity >= min_qty
-      AND (
-            max_qty IS NULL
-            OR :quantity <= max_qty
-          )
+      AND (max_qty IS NULL OR :quantity <= max_qty)
     ORDER BY min_qty DESC
     LIMIT 1;
     """
@@ -52,6 +59,7 @@ async def get_variant_price(
 # RECALCULATE CART TOTAL
 # ============================================================
 async def recalculate_cart_totals(cart_id: str, session: AsyncSession):
+
     total_query = """
     SELECT COALESCE(SUM(total_price), 0) AS total_amount
     FROM cart_items
@@ -62,32 +70,36 @@ async def recalculate_cart_totals(cart_id: str, session: AsyncSession):
     total_amount = result.fetchone()._mapping["total_amount"]
 
     await session.execute(
-        text("""
-            UPDATE carts
-            SET total_amount = :total_amount,
-                updated_at = NOW()
-            WHERE id = :cart_id
-        """),
-        {"total_amount": total_amount, "cart_id": cart_id}
+        text(queries["carts"]["update"].replace("{set_clause}", "total_amount = :total_amount")),
+        {
+            "id": cart_id,
+            "total_amount": total_amount
+        }
     )
 
 
 # ============================================================
-# CREATE / ADD TO CART
+# 🚀 SINGLE CLICK: CART ITEM + FILE UPLOAD
 # ============================================================
-async def create_cart_item(item: CartItem, session: AsyncSession):
+async def create_cart_item_with_files(
+    item: CartItem,
+    front_file: UploadFile | None,
+    back_file: UploadFile | None,
+    session: AsyncSession
+):
 
     async with session.begin():
 
-        # Validate cart
+        # 1️⃣ Validate Cart
         cart_check = await session.execute(
             text("SELECT id FROM carts WHERE id = :cart_id"),
             {"cart_id": item.cart_id}
         )
+
         if not cart_check.fetchone():
             raise HTTPException(404, "Cart not found")
 
-        # Check existing item
+        # 2️⃣ Check existing
         existing_query = """
         SELECT *
         FROM cart_items
@@ -116,9 +128,6 @@ async def create_cart_item(item: CartItem, session: AsyncSession):
                 session
             )
 
-            unit_price = price["price"]
-            total_price = unit_price * new_quantity
-
             await session.execute(
                 text("""
                     UPDATE cart_items
@@ -132,8 +141,8 @@ async def create_cart_item(item: CartItem, session: AsyncSession):
                 {
                     "id": existing["id"],
                     "quantity": new_quantity,
-                    "unit_price": unit_price,
-                    "total_price": total_price,
+                    "unit_price": price["price"],
+                    "total_price": price["price"] * new_quantity,
                     "discount_id": price.get("discount_id")
                 }
             )
@@ -143,7 +152,7 @@ async def create_cart_item(item: CartItem, session: AsyncSession):
             return {"message": "Cart item merged successfully"}
 
         # ----------------------------------------------------
-        # INSERT NEW
+        # INSERT NEW ITEM
         # ----------------------------------------------------
         price = await get_variant_price(
             item.variant_id,
@@ -155,42 +164,54 @@ async def create_cart_item(item: CartItem, session: AsyncSession):
         item.discount_id = price.get("discount_id")
         item.total_price = item.unit_price * item.quantity
         item.selected_options = json.dumps(item.selected_options or {})
+        item.created_at = datetime.utcnow()
+        item.updated_at = datetime.utcnow()
 
-        insert_query = """
-        INSERT INTO cart_items (
-            id,
-            cart_id,
-            product_id,
-            variant_id,
-            quantity,
-            unit_price,
-            total_price,
-            discount_id,
-            selected_options,
-            created_at,
-            updated_at
-        ) VALUES (
-            :id,
-            :cart_id,
-            :product_id,
-            :variant_id,
-            :quantity,
-            :unit_price,
-            :total_price,
-            :discount_id,
-            :selected_options,
-            NOW(),
-            NOW()
-        );
-        """
+        await session.execute(
+            text(queries["cart_items"]["create"]),
+            item.to_dict()
+        )
 
-        await session.execute(text(insert_query), item.to_dict())
+        # ----------------------------------------------------
+        # SAVE FILES
+        # ----------------------------------------------------
+        front_url = None
+        back_url = None
+
+        if front_file:
+            filename = f"{item.id}_front_{front_file.filename}"
+            path = f"{UPLOAD_DIR}/{filename}"
+            with open(path, "wb") as buffer:
+                shutil.copyfileobj(front_file.file, buffer)
+            front_url = path
+
+        if back_file:
+            filename = f"{item.id}_back_{back_file.filename}"
+            path = f"{UPLOAD_DIR}/{filename}"
+            with open(path, "wb") as buffer:
+                shutil.copyfileobj(back_file.file, buffer)
+            back_url = path
+
+        if front_url or back_url:
+            await session.execute(
+                text(queries["cart_item_files"]["create"]),
+                {
+                    "id": str(uuid.uuid4()),
+                    "cart_item_id": item.id,
+                    "front_side_url": front_url,
+                    "back_side_url": back_url,
+                    "front_original_name": front_file.filename if front_file else None,
+                    "back_original_name": back_file.filename if back_file else None,
+                    "created_at": datetime.utcnow()
+                }
+            )
 
         await recalculate_cart_totals(item.cart_id, session)
 
-        return {"message": "Cart item added successfully"}
-
-
+        return {
+            "message": "Cart item with files added successfully",
+            "cart_item_id": item.id
+        }
 # ============================================================
 # GET CART ITEMS
 # ============================================================

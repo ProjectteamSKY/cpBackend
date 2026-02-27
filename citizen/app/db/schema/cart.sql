@@ -15,6 +15,7 @@ CREATE TABLE cart_items (
     variant_id VARCHAR(36) NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
     unit_price FLOAT NOT NULL,
+
     discount_id VARCHAR(36) NULL,
     total_price FLOAT NOT NULL,
     selected_options JSON NULL,
@@ -29,3 +30,22 @@ CREATE TABLE cart_items (
 
 ALTER TABLE cart_items
 ADD CONSTRAINT uq_cart_variant UNIQUE(cart_id, variant_id);
+
+
+CREATE TABLE cart_item_files (
+    id VARCHAR(36) PRIMARY KEY,
+    cart_item_id VARCHAR(36) NOT NULL,
+
+    front_side_url VARCHAR(255) NULL,
+    back_side_url VARCHAR(255) NULL,
+
+    front_original_name VARCHAR(255),
+    back_original_name VARCHAR(255),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_cartitemfile_cartitem 
+    FOREIGN KEY (cart_item_id) 
+    REFERENCES cart_items(id) 
+    ON DELETE CASCADE
+);
