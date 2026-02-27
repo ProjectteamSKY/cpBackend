@@ -19,15 +19,19 @@ SELECT
     p.description,
     p.min_order_qty,
     p.max_order_qty,
+    p.category_id,
     c.name AS category_name,
+    p.subcategory_id,
     s.name AS subcategory_name,
+    p.images,
+    p.related_images,
     p.created_at
 FROM products p
 LEFT JOIN categories c ON p.category_id = c.id
 LEFT JOIN subcategories s ON p.subcategory_id = s.id
-WHERE p.is_active = TRUE
 ORDER BY p.created_at DESC;
 """
+
 
 get_by_id = """
 SELECT * FROM products

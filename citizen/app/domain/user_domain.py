@@ -3,30 +3,23 @@ from datetime import datetime
 
 
 class User:
-
     def __init__(
         self,
-        email: str,
-        password_hash: str,
         full_name: str,
-        phone: str | None = None,
-        id: uuid.String | None = None,
+        email: str,
+        password: str,
+        contact: str | None = None,
+        id: str | None = None,
         is_active: bool = True,
-        is_verified: bool = False,
         created_at: datetime | None = None,
     ):
-        self.id = id or uuid.uuid4()
-        self.email = email
-        self.password_hash = password_hash
+        self.id = id or str(uuid.uuid4())  # ✅ UUID GENERATED HERE
         self.full_name = full_name
-        self.phone = phone
+        self.email = email
+        self.password = password
+        self.contact = contact
         self.is_active = is_active
-        self.is_verified = is_verified
         self.created_at = created_at or datetime.utcnow()
-
-    # Business logic inside domain
-    def verify(self):
-        self.is_verified = True
 
     def deactivate(self):
         self.is_active = False

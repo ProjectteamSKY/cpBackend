@@ -1,0 +1,35 @@
+[user]
+
+create_user = """
+INSERT INTO users (id, full_name, email, contact, password_hash)
+VALUES (:id, :full_name, :email, :contact, :password_hash);
+"""
+
+get_by_email = """
+SELECT id, full_name, email, contact, is_active, password_hash
+FROM users
+WHERE email = :email;
+"""
+
+get_by_id = """
+SELECT id, full_name, email, contact, is_active
+FROM users
+WHERE id = :user_id;
+"""
+
+get_all = """
+SELECT id, full_name, email, contact, is_active
+FROM users
+ORDER BY created_at DESC;
+"""
+
+delete_user = """
+DELETE FROM users
+WHERE id = :user_id;
+"""
+
+update_token = """
+UPDATE users
+SET bearer_token = :token
+WHERE id = :id;
+"""
