@@ -24,9 +24,11 @@ from app.routes import product_discount_routes
 from app.routes import product_variant_price_routes
 from app.routes import productsetup_routes
 
-from app.routes import sheet_template_routes
-from app.routes import product_type_routes
-from app.routes import custom_shape_routes
+from app.routes import cart_routes
+from app.routes import cart_item_routes
+
+
+
 from fastapi.staticfiles import StaticFiles
 
 from app.routes import permission_routes, resource_routes, role_permission_routes, role_routes, user_role_routes
@@ -46,7 +48,7 @@ app = FastAPI(
 # @app.on_event("startup")
 # async def on_startup():
 #     await init_db()
-#     print("🟢 Database initialized on startup - main.py:42")
+#     print("🟢 Database initialized on startup - main.py:49")
 
 # # -------------------------
 # CORS middleware
@@ -187,6 +189,9 @@ api_router.include_router(print_type_routes.router, prefix="/print_type", tags=[
 api_router.include_router(cut_type_routes.router, prefix="/cut_type", tags=["cut_type"])
 api_router.include_router(cut_type_routes.router, prefix="/cut_type", tags=["cut_type"])
 api_router.include_router(size_routes.router, prefix="/size", tags=["size"])
+api_router.include_router(cart_routes.router, prefix="/cart", tags=["cart"])
+api_router.include_router(cart_item_routes.router, prefix="/cartitems", tags=["cartitems"])
+
 
 
 # api_router.include_router(sheet_template_routes.router, prefix="/sheet_template", tags=["sheet_template"])

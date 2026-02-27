@@ -1,0 +1,56 @@
+[cart_items]
+
+create = """
+INSERT INTO cart_items (
+    id,
+    cart_id,
+    product_id,
+    variant_id,
+    quantity,
+    unit_price,
+    discount_id,
+    total_price,
+    created_at,
+    updated_at
+) VALUES (
+    :id,
+    :cart_id,
+    :product_id,
+    :variant_id,
+    :quantity,
+    :unit_price,
+    :discount_id,
+    :total_price,
+    :created_at,
+    :updated_at
+);
+"""
+
+get_all = """
+SELECT * FROM cart_items ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT * FROM cart_items WHERE id = :id;
+"""
+
+get_by_cart_id = """
+SELECT * FROM cart_items WHERE cart_id = :cart_id ORDER BY created_at ASC;
+"""
+
+get_by_user_id = """
+SELECT ci.*
+FROM cart_items ci
+JOIN carts c ON ci.cart_id = c.id
+WHERE c.user_id = :user_id
+  AND c.status = 'active'
+ORDER BY ci.created_at ASC;
+"""
+
+update = """
+UPDATE cart_items SET {set_clause}, updated_at = NOW() WHERE id = :id;
+"""
+
+delete = """
+DELETE FROM cart_items WHERE id = :id;
+"""
