@@ -28,7 +28,7 @@ from app.routes import product_type_routes
 from app.routes import custom_shape_routes
 from fastapi.staticfiles import StaticFiles
 
-# from app.core.init_db import init_db  # import the function, not the module
+from app.core.init_db import init_db  # import the function, not the module
 
 
 
@@ -39,10 +39,10 @@ app = FastAPI(
 )
 
 
-# @app.on_event("startup")
-# async def on_startup():
-#     await init_db()
-#     print("🟢 Database initialized on startup - main.py:42")
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
+    print("🟢 Database initialized on startup - main.py:42")
 
 # # -------------------------
 # CORS middleware
