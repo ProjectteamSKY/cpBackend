@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from mangum import Mangum
 
 # Import all routers
 from fastapi import FastAPI, APIRouter
@@ -109,3 +109,12 @@ async def root():
 @app.get("/health", tags=["Root"])
 async def health_check():
     return {"status": "OK"}
+
+# ------------------------
+# Lambda test route
+# ------------------------
+@app.get("/")
+def root():
+    return {"message": "Hello from Lambda 🚀"}
+
+handler = Mangum(app)
