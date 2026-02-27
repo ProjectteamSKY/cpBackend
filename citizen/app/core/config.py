@@ -1,0 +1,13 @@
+import os
+
+SECRET_KEY = "2da93ba33ef883d05c8313c326e0b43488235180d44a80df28d669d033673aac"
+ALGORITHM = "HS256"
+
+ACCESS_EXPIRE_MINUTES = 15
+REFRESH_EXPIRE_DAYS = 30
+
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_USER = "psriram543@gmail.com"
+SMTP_PASS = "gwnr oskj dvpx kkrl"
+
