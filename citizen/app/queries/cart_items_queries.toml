@@ -10,6 +10,7 @@ INSERT INTO cart_items (
     unit_price,
     discount_id,
     total_price,
+    selected_options,
     created_at,
     updated_at
 ) VALUES (
@@ -21,13 +22,10 @@ INSERT INTO cart_items (
     :unit_price,
     :discount_id,
     :total_price,
+    :selected_options,
     :created_at,
     :updated_at
 );
-"""
-
-get_all = """
-SELECT * FROM cart_items ORDER BY created_at DESC;
 """
 
 get_by_id = """
@@ -35,7 +33,9 @@ SELECT * FROM cart_items WHERE id = :id;
 """
 
 get_by_cart_id = """
-SELECT * FROM cart_items WHERE cart_id = :cart_id ORDER BY created_at ASC;
+SELECT * FROM cart_items
+WHERE cart_id = :cart_id
+ORDER BY created_at DESC;
 """
 
 get_by_user_id = """
@@ -43,12 +43,8 @@ SELECT ci.*
 FROM cart_items ci
 JOIN carts c ON ci.cart_id = c.id
 WHERE c.user_id = :user_id
-  AND c.status = 'active'
-ORDER BY ci.created_at ASC;
-"""
-
-update = """
-UPDATE cart_items SET {set_clause}, updated_at = NOW() WHERE id = :id;
+AND ci.status = 'active'
+ORDER BY ci.created_at DESC;
 """
 
 delete = """

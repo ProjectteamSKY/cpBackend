@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
+
 from app.core.database import get_session
 from app.domain.product_variant_price_domain import ProductVariantPrice
 from app.services.product_variant_price_service import (
@@ -20,7 +21,6 @@ router = APIRouter()
 async def create_pvp_endpoint(
     variant_id: str = Form(...),
     min_qty: int = Form(...),
-    max_qty: int = Form(...),
     price: float = Form(...),
     discount_id: Optional[str] = Form(None),
     is_active: bool = Form(True),
@@ -29,7 +29,6 @@ async def create_pvp_endpoint(
     pvp = ProductVariantPrice(
         variant_id=variant_id,
         min_qty=min_qty,
-        max_qty=max_qty,
         price=price,
         discount_id=discount_id,
         is_active=is_active
@@ -60,7 +59,6 @@ async def list_pvp_by_variant(variant_id: str, session: AsyncSession = Depends(g
 async def update_pvp_endpoint(
     id: str,
     min_qty: Optional[int] = Form(None),
-    max_qty: Optional[int] = Form(None),
     price: Optional[float] = Form(None),
     discount_id: Optional[str] = Form(None),
     is_active: Optional[bool] = Form(None),
@@ -68,7 +66,6 @@ async def update_pvp_endpoint(
 ):
     updates = {}
     if min_qty is not None: updates["min_qty"] = min_qty
-    if max_qty is not None: updates["max_qty"] = max_qty
     if price is not None: updates["price"] = price
     if discount_id is not None: updates["discount_id"] = discount_id
     if is_active is not None: updates["is_active"] = is_active

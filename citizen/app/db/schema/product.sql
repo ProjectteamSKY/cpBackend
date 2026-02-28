@@ -211,8 +211,7 @@ CREATE TABLE product_variant_prices (
     discount_id VARCHAR(36) NULL,  -- optional FK to product_discounts
 
     min_qty INT NOT NULL,
-    max_qty INT NOT NULL,
-
+    
     price FLOAT NOT NULL,
 
     is_active BOOLEAN DEFAULT TRUE,

@@ -44,7 +44,7 @@ class Discount(BaseModel):
 class Price(BaseModel):
     id: Optional[str] = None
     min_qty: int
-    max_qty: int
+    max_qty: Optional[int] = None  # <-- now optional
     price: float
     discount: Optional[Discount] = None
 
@@ -52,7 +52,7 @@ class Price(BaseModel):
     @classmethod
     def validate_quantity_range(cls, v, info):
         min_qty = info.data.get("min_qty")
-        if min_qty is not None and v < min_qty:
+        if v is not None and min_qty is not None and v < min_qty:
             raise ValueError("max_qty must be greater than or equal to min_qty")
         return v
 
