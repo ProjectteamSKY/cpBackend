@@ -22,7 +22,7 @@ INSERT INTO paper_types (
 get_all = """
 SELECT *
 FROM paper_types
-WHERE is_active = TRUE
+WHERE is_deleted = FALSE
 ORDER BY created_at DESC;
 """
 
@@ -43,10 +43,11 @@ WHERE id = :id;
 
 delete = """
 UPDATE paper_types
-SET is_active = FALSE, updated_at = NOW()
-WHERE id = :id;
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
 """
-
 
 activate = """
 UPDATE paper_types

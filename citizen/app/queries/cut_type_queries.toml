@@ -21,6 +21,7 @@ INSERT INTO cut_types (
 get_all = """
 SELECT *
 FROM cut_types
+WHERE is_deleted = FALSE
 ORDER BY created_at DESC;
 """
 

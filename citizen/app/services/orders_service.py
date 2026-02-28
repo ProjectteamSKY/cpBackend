@@ -35,6 +35,15 @@ async def get_all_orders(user_id: str, session: AsyncSession):
     )
     return [dict(row._mapping) for row in result.fetchall()]
 
+# ==========================================
+# GET ALL ORDERS (TRACKING / ADMIN)
+# ==========================================
+async def get_all_orders_tracking(session: AsyncSession):
+    result = await session.execute(
+        text(queries["order"]["get_all_tracking"])
+    )
+    return [dict(row._mapping) for row in result.fetchall()]
+
 # GET BY ID
 async def get_order_by_id(id: str, session: AsyncSession):
     result = await session.execute(
@@ -268,4 +277,93 @@ async def checkout(
         "status": "success",
         "order_id": order_id,
         "total_amount": order_total
+    }
+
+
+# orders_service.py
+async def get_all_orders_tracking(session: AsyncSession):
+    result = await session.execute(text(queries["order"]["get_all_tracking"]))
+    return [dict(row._mapping) for row in result.fetchall()]
+
+async def get_order_by_id(order_id: str, session: AsyncSession):
+    result = await session.execute(text(queries["order"]["get_by_id"]), {"id": order_id})
+    row = result.fetchone()
+    return dict(row._mapping) if row else None
+
+# UPDATE
+async def update_order(order_id: str, updates: dict, session: AsyncSession):
+    set_clause = ", ".join(f"{key} = :{key}" for key in updates.keys())
+    await session.execute(
+        text(queries["order"]["update"].format(set_clause=set_clause)),
+        {"id": order_id, **updates}
+    )
+    await session.commit()
+    return await get_order_by_id(order_id, session)
+
+# DELETE
+async def delete_order(order_id: str, session: AsyncSession):
+    existing = await get_order_by_id(order_id, session)
+    if not existing:
+        return None
+    await session.execute(text(queries["order"]["delete"]), {"id": order_id})
+    await session.commit()
+    return {"id": order_id}
+
+# GET ORDER ITEMS
+async def get_order_items(order_id: str, session: AsyncSession):
+    result = await session.execute(
+        text(queries["order_item"]["get_all_by_order"]),
+        {"order_id": order_id}
+    )
+    return [dict(row._mapping) for row in result.fetchall()]
+
+
+ORDER_STATUS_FLOW = {
+    "pending": ["process"],
+    "process": ["printing"],
+    "printing": ["packed"],
+    "packed": ["shipment"],
+    "shipment": ["delivery"],
+    "delivery": []
+}
+
+
+async def update_order_status(order_id: str, new_status: str, session):
+    # 1️⃣ Get current status
+    result = await session.execute(
+        text("SELECT status FROM orders WHERE id = :id"),
+        {"id": order_id}
+    )
+    row = result.fetchone()
+
+    if not row:
+        raise Exception("Order not found")
+
+    current_status = row.status
+
+    # 2️⃣ Validate transition
+    allowed = ORDER_STATUS_FLOW.get(current_status, [])
+
+    if new_status not in allowed:
+        raise Exception(
+            f"Invalid status transition: {current_status} → {new_status}"
+        )
+
+    # 3️⃣ Update status
+    await session.execute(
+        text("""
+            UPDATE orders
+            SET status = :status,
+                updated_at = NOW()
+            WHERE id = :id
+        """),
+        {"status": new_status, "id": order_id}
+    )
+
+    await session.commit()
+
+    return {
+        "order_id": order_id,
+        "old_status": current_status,
+        "new_status": new_status
     }

@@ -129,3 +129,17 @@ async def activate_print_type_endpoint(
         raise HTTPException(404, "Print type not found")
 
     return result
+
+
+@router.put("/{id}/deactivate")
+async def activate_print_type_endpoint(
+    id: str,
+    session: AsyncSession = Depends(get_session)
+):
+
+    result = await deactivate_print_type(id, session)
+
+    if not result:
+        raise HTTPException(404, "Print type not found")
+
+    return result
