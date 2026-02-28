@@ -7,7 +7,6 @@ class ProductVariantPrice:
         self,
         variant_id: str,
         min_qty: int,
-        max_qty: int,
         price: float,
         discount_id: Optional[str] = None,
         is_active: bool = True,
@@ -19,7 +18,6 @@ class ProductVariantPrice:
         self.variant_id = variant_id
         self.discount_id = discount_id
         self.min_qty = min_qty
-        self.max_qty = max_qty
         self.price = price
         self.is_active = is_active
         self.created_at: datetime = created_at or datetime.utcnow()
@@ -38,9 +36,8 @@ class ProductVariantPrice:
         self.price = price
         self.touch()
 
-    def update_qty_range(self, min_qty: int, max_qty: int):
+    def update_min_qty(self, min_qty: int):
         self.min_qty = min_qty
-        self.max_qty = max_qty
         self.touch()
 
     def update_discount(self, discount_id: Optional[str]):

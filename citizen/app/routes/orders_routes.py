@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.domain.order_domain import Order
 from app.services.orders_service import (
+    checkout,
     create_order,
     get_all_orders,
     get_order_by_id,
@@ -65,3 +66,27 @@ async def delete_order_endpoint(id: str, session: AsyncSession = Depends(get_ses
     if not result:
         raise HTTPException(404, "Order not found")
     return {"status": "success", "deleted_id": id}
+
+
+class CheckoutRequest(BaseModel):
+    user_id: str
+    cart_id: str
+    cart_item_ids: List[str]
+    address_id: str
+
+
+@router.post("/checkout")
+async def checkout_endpoint(
+    payload: CheckoutRequest,
+    session: AsyncSession = Depends(get_session)
+):
+    try:
+        return await checkout(
+            payload.user_id,
+            payload.cart_id,
+            payload.cart_item_ids,
+            payload.address_id,
+            session
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

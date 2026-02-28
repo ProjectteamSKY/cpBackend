@@ -14,6 +14,7 @@ class CartItem:
         total_price: float = 0,
         discount_id: Optional[str] = None,
         selected_options: Optional[Dict] = None,
+        status: str = "active",  # active, ordered, cancelled
         id: Optional[str] = None,
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None
@@ -27,6 +28,7 @@ class CartItem:
         self.total_price: float = total_price
         self.discount_id: Optional[str] = discount_id
         self.selected_options: Optional[Dict] = selected_options
+        self.status: str = status
         self.created_at: datetime = created_at or datetime.utcnow()
         self.updated_at: datetime = updated_at or datetime.utcnow()
 

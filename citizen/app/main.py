@@ -63,9 +63,9 @@ def custom_openapi():
         return app.openapi_schema
     
     openapi_schema = get_openapi(
-        title="Badmiton League Management System",
+        title="E-Commerce API",
         version="1.0.0",
-        description="API for managing badminton leagues, clubs, and tournaments",
+        description="FastAPI backend for e-commerce with async SQLAlchemy ORM",
         routes=app.routes,
     )
     

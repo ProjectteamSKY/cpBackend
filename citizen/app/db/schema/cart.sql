@@ -16,9 +16,11 @@ CREATE TABLE cart_items (
     quantity INT NOT NULL DEFAULT 1,
     unit_price FLOAT NOT NULL,
 
-    discount_id VARCHAR(36) NULL,
+    discount_id VARCHAR(36) NULL,   
     total_price FLOAT NOT NULL,
     selected_options JSON NULL,
+    status VARCHAR(20) DEFAULT 'active', -- active, ordered, cancelled
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     -- Foreign keys
@@ -48,4 +50,4 @@ CREATE TABLE cart_item_files (
     FOREIGN KEY (cart_item_id) 
     REFERENCES cart_items(id) 
     ON DELETE CASCADE
-);
+);  
