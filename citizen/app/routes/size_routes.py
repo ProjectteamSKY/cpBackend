@@ -10,7 +10,8 @@ from app.services.size_service import (
     get_size_by_id,
     update_size,
     delete_size,
-    activate_size
+    activate_size,
+    deactivate_size
 )
 
 router = APIRouter()
@@ -104,3 +105,11 @@ async def activate_size_endpoint(
 ):
 
     return await activate_size(id, session)
+
+@router.put("/{id}/deactivate")
+async def activate_size_endpoint(
+    id: str,
+    session: AsyncSession = Depends(get_session)
+):
+
+    return await deactivate_size(id, session)

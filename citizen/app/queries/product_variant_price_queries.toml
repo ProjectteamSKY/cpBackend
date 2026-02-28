@@ -14,8 +14,21 @@ SELECT
     pd.description AS discount_name,
     p.name AS product_name
 FROM product_variant_prices pvp
-LEFT JOIN product_discounts pd ON pvp.discount_id = pd.id
-LEFT JOIN products p ON pd.product_id = p.id
+
+LEFT JOIN product_variants pv
+    ON pvp.variant_id = pv.id
+    AND pv.is_deleted = FALSE
+
+LEFT JOIN products p
+    ON pv.product_id = p.id
+    AND p.is_deleted = FALSE
+
+LEFT JOIN product_discounts pd 
+    ON pvp.discount_id = pd.id
+    AND pd.is_deleted = FALSE
+
+WHERE pvp.is_active = TRUE
+AND pvp.is_deleted = FALSE
 ORDER BY pvp.created_at DESC;
 """
 
@@ -43,7 +56,7 @@ WHERE id = :id;
 
 soft_delete = """
 UPDATE product_variant_prices
-SET is_active = FALSE, updated_at = NOW()
+SET is_deleted = FALSE, updated_at = NOW()
 WHERE id = :id;
 """
 

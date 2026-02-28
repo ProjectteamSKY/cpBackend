@@ -95,3 +95,14 @@ async def activate_size(id: str, session: AsyncSession):
     await session.commit()
 
     return await get_size_by_id(id, session)
+
+async def deactivate_size(id: str, session: AsyncSession):
+
+    await session.execute(
+        text(queries["size"]["deactivate"]),
+        {"id": id}
+    )
+
+    await session.commit()
+
+    return await get_size_by_id(id, session)
