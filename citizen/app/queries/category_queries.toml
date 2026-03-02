@@ -2,41 +2,81 @@
 
 create = """
 INSERT INTO categories (
-    id, name, description, is_active, created_at, updated_at
+    id,
+    name,
+    description,
+    is_active,
+    is_deleted,
+    created_at,
+    updated_at
 ) VALUES (
-    :id, :name, :description, :is_active, :created_at, :updated_at
+    :id,
+    :name,
+    :description,
+    :is_active,
+    :is_deleted,
+    :created_at,
+    :updated_at
 );
 """
 
 get_all = """
-SELECT * FROM categories
+SELECT *
+FROM categories
+WHERE is_deleted = FALSE
 ORDER BY created_at DESC;
 """
 
 get_by_id = """
-SELECT * FROM categories
-WHERE id = :id;
+SELECT *
+FROM categories
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
 update = """
 UPDATE categories
-SET {set_clause}, updated_at = NOW()
-WHERE id = :id;
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
+# ✅ SOFT DELETE
 delete = """
-DELETE FROM categories
-WHERE id = :id;
+UPDATE categories
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
 activate = """
 UPDATE categories
-SET is_active = TRUE, updated_at = NOW()
-WHERE id = :id;
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
 deactivate = """
 UPDATE categories
-SET is_active = FALSE, updated_at = NOW()
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+restore = """
+UPDATE categories
+SET is_deleted = FALSE,
+    updated_at = NOW()
 WHERE id = :id;
+"""
+
+# ✅ Admin use only
+get_all_with_deleted = """
+SELECT *
+FROM categories
+ORDER BY created_at DESC;
 """

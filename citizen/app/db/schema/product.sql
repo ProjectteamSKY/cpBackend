@@ -6,6 +6,7 @@ CREATE TABLE categories (
     name VARCHAR(255) UNIQUE NOT NULL,
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -20,6 +21,7 @@ CREATE TABLE subcategories (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -38,6 +40,7 @@ CREATE TABLE paper_types (
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -51,6 +54,7 @@ CREATE TABLE print_types (
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -64,6 +68,7 @@ CREATE TABLE cut_types (
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -83,6 +88,7 @@ CREATE TABLE sizes (
     unit VARCHAR(10) DEFAULT 'mm',
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -109,6 +115,7 @@ CREATE TABLE products (
     related_images JSON,
 
     is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -145,6 +152,7 @@ CREATE TABLE product_variants (
     orientation VARCHAR(20) DEFAULT 'Portrait',
 
     is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -189,6 +197,7 @@ CREATE TABLE product_discounts (
     end_date DATETIME NOT NULL,
 
     is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
@@ -211,11 +220,11 @@ CREATE TABLE product_variant_prices (
     discount_id VARCHAR(36) NULL,  -- optional FK to product_discounts
 
     min_qty INT NOT NULL,
-    max_qty INT NOT NULL,
-
+    
     price FLOAT NOT NULL,
 
     is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -233,5 +242,5 @@ CREATE TABLE product_variant_prices (
         ON DELETE SET NULL,
 
     -- Unique constraint for quantity ranges per variant
-    CONSTRAINT uq_variant_qty UNIQUE (variant_id, min_qty, max_qty)
+    CONSTRAINT uq_variant_qty UNIQUE (variant_id, min_qty)
 );

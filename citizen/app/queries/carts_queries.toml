@@ -1,0 +1,48 @@
+[carts]
+
+create = """
+INSERT INTO carts (
+    id,
+    user_id,
+    status,
+    total_amount,
+    total_discount,
+    created_at,
+    updated_at
+) VALUES (
+    :id,
+    :user_id,
+    :status,
+    :total_amount,
+    :total_discount,
+    NOW(),
+    NOW()
+);
+"""
+
+get_all = """
+SELECT * FROM carts ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT * FROM carts WHERE id = :id;
+"""
+
+get_active_by_user_id = """
+SELECT *
+FROM carts
+WHERE user_id = :user_id
+AND status = 'active'
+LIMIT 1;
+"""
+
+update = """
+UPDATE carts
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+delete = """
+DELETE FROM carts WHERE id = :id;
+"""

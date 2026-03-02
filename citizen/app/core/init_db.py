@@ -95,16 +95,17 @@ SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "db", "schema")
 
 # ✅ Explicit execution order to respect foreign key dependencies
 SQL_FILES_ORDER = [
-    "user.sql",
-    "product.sql",
+    # "user.sql",
+    # "product.sql",
     "order.sql",
-    "user_order_file.sql",
-    "wish_list.sql",
+    # "user_order_file.sql",
+    # "wish_list.sql",
+    # "cart.sql",
 ]
 
 
 async def init_db():
-    print("🚀 Initializing database... - init_db.py:107")
+    print("🚀 Initializing database... - init_db.py:108")
 
     async with engine.begin() as conn:  # ✅ Correct way
         for file in SQL_FILES_ORDER:
@@ -112,10 +113,10 @@ async def init_db():
             path = os.path.join(SCHEMA_PATH, file)
 
             if not os.path.exists(path):
-                print(f"⚠️ File not found: {file} - init_db.py:115")
+                print(f"⚠️ File not found: {file} - init_db.py:116")
                 continue
 
-            print(f"📄 Applying schema: {file} - init_db.py:118")
+            print(f"📄 Applying schema: {file} - init_db.py:119")
 
             with open(path, "r", encoding="utf-8") as f:
                 sql = f.read()
@@ -126,7 +127,7 @@ async def init_db():
             for stmt in statements:
                 await conn.execute(text(stmt))
 
-    print("✅ All tables created successfully. - init_db.py:129")
+    print("✅ All tables created successfully. - init_db.py:130")
 
 
 if __name__ == "__main__":

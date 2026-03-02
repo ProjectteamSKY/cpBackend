@@ -1,0 +1,31 @@
+[user_address]
+
+create = """
+INSERT INTO user_addresses (
+    id, user_id, address, city, state, country, postal_code, phone, created_at
+) VALUES (
+    :id, :user_id, :address, :city, :state, :country, :postal_code, :phone, :created_at
+);
+"""
+
+get_all = """
+SELECT * FROM user_addresses
+WHERE user_id = :user_id
+ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT * FROM user_addresses
+WHERE id = :id;
+"""
+
+update = """
+UPDATE user_addresses
+SET {set_clause}
+WHERE id = :id;
+"""
+
+delete = """
+DELETE FROM user_addresses
+WHERE id = :id;
+"""

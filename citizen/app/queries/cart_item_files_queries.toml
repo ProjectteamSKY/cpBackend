@@ -1,0 +1,32 @@
+[cart_item_files]
+
+create = """
+INSERT INTO cart_item_files (
+    id,
+    cart_item_id,
+    front_side_url,
+    back_side_url,
+    front_original_name,
+    back_original_name,
+    created_at
+) VALUES (
+    :id,
+    :cart_item_id,
+    :front_side_url,
+    :back_side_url,
+    :front_original_name,
+    :back_original_name,
+    :created_at
+);
+"""
+
+get_by_cart_item_id = """
+SELECT *
+FROM cart_item_files
+WHERE cart_item_id = :cart_item_id;
+"""
+
+delete_by_cart_item_id = """
+DELETE FROM cart_item_files
+WHERE cart_item_id = :cart_item_id;
+"""

@@ -22,7 +22,6 @@ INSERT INTO print_types (
 get_all = """
 SELECT *
 FROM print_types
-WHERE is_active = TRUE
 ORDER BY created_at DESC;
 """
 

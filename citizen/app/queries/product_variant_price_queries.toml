@@ -2,9 +2,9 @@
 
 create = """
 INSERT INTO product_variant_prices (
-    id, variant_id, discount_id, min_qty, max_qty, price, is_active, created_at, updated_at
+    id, variant_id, discount_id, min_qty, price, is_active, created_at, updated_at
 ) VALUES (
-    :id, :variant_id, :discount_id, :min_qty, :max_qty, :price, :is_active, :created_at, :updated_at
+    :id, :variant_id, :discount_id, :min_qty, :price, :is_active, :created_at, :updated_at
 );
 """
 
@@ -14,8 +14,21 @@ SELECT
     pd.description AS discount_name,
     p.name AS product_name
 FROM product_variant_prices pvp
-LEFT JOIN product_discounts pd ON pvp.discount_id = pd.id
-LEFT JOIN products p ON pd.product_id = p.id
+
+LEFT JOIN product_variants pv
+    ON pvp.variant_id = pv.id
+    AND pv.is_deleted = FALSE
+
+LEFT JOIN products p
+    ON pv.product_id = p.id
+    AND p.is_deleted = FALSE
+
+LEFT JOIN product_discounts pd 
+    ON pvp.discount_id = pd.id
+    AND pd.is_deleted = FALSE
+
+WHERE pvp.is_active = TRUE
+AND pvp.is_deleted = FALSE
 ORDER BY pvp.created_at DESC;
 """
 
@@ -36,7 +49,6 @@ SET
     variant_id = :variant_id,
     discount_id = :discount_id,
     min_qty = :min_qty,
-    max_qty = :max_qty,
     price = :price,
     updated_at = :updated_at
 WHERE id = :id;
@@ -44,7 +56,7 @@ WHERE id = :id;
 
 soft_delete = """
 UPDATE product_variant_prices
-SET is_active = FALSE, updated_at = NOW()
+SET is_deleted = FALSE, updated_at = NOW()
 WHERE id = :id;
 """
 
