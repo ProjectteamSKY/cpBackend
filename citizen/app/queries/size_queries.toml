@@ -27,7 +27,6 @@ INSERT INTO sizes (
 get_all = """
 SELECT *
 FROM sizes
-WHERE is_active = TRUE
 ORDER BY created_at DESC;
 """
 
@@ -61,6 +60,14 @@ activate = """
 UPDATE sizes
 SET
     is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+deactivate = """
+UPDATE sizes
+SET
+    is_active = FALSE,
     updated_at = NOW()
 WHERE id = :id;
 """

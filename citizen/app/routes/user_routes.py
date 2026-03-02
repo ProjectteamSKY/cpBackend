@@ -179,6 +179,7 @@ async def login(
 # Return tokens in JSON (for local dev)
     return {
         "message": "Login successful",
+        "user_id": user["id"],
         "access_token": access_token,
         "refresh_token": refresh_token
     }
@@ -244,7 +245,9 @@ async def refresh(
     response.set_cookie("access_token", new_access, httponly=True, max_age=900)
     response.set_cookie("refresh_token", new_refresh, httponly=True, max_age=60*60*24*30)
 
-    return {"message": "Session continued"}
+    return {"message": "Session continued",
+            "user_id": user_id
+    }
 
 
 
@@ -338,6 +341,7 @@ async def google_login(
 # Return tokens in JSON (for local dev)
     return {
         "message": "Login successful",
+        "user_id": user_id,
         "access_token": access_token,
         "refresh_token": refresh_token
     }
