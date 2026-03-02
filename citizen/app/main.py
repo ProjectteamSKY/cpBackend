@@ -38,7 +38,7 @@ from fastapi.staticfiles import StaticFiles
 from app.routes import permission_routes, resource_routes, role_permission_routes, role_routes, user_role_routes
 from app.core.auth_middleware import AuthMiddleware
 from app.core.rbac_middleware import RBACMiddleware
-# from app.core.init_db import init_db  # import the function, not the module
+from app.core.init_db import init_db  # import the function, not the module
 
 
 
@@ -49,10 +49,10 @@ app = FastAPI(
 )
 
 
-# @app.on_event("startup")
-# async def on_startup():
-#     await init_db()
-#     print("🟢 Database initialized on startup - main.py:51")
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
+    print("🟢 Database initialized on startup - main.py:51")
 
 # # -------------------------
 # CORS middleware
