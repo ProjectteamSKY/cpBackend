@@ -95,12 +95,12 @@ SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "db", "schema")
 
 # ✅ Explicit execution order to respect foreign key dependencies
 SQL_FILES_ORDER = [
-    # "user.sql",
-    # "product.sql",
+    "user.sql",
+    "product.sql",
     "order.sql",
-    # "user_order_file.sql",
-    # "wish_list.sql",
-    # "cart.sql",
+    "user_order_file.sql",
+    "wish_list.sql",
+    "cart.sql",
 ]
 
 
