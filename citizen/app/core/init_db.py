@@ -97,10 +97,8 @@ SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "db", "schema")
 SQL_FILES_ORDER = [
     "user.sql",
     "product.sql",
-    "order.sql",
-    "user_order_file.sql",
-    "wish_list.sql",
     "cart.sql",
+    "order.sql"
 ]
 
 
