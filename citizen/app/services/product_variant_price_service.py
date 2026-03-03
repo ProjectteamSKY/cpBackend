@@ -34,11 +34,32 @@ async def get_product_variant_prices_by_variant(variant_id: str, session: AsyncS
 
 # ---------------- UPDATE ----------------
 async def update_product_variant_price(id: str, updates: dict, session: AsyncSession):
-    updates["updated_at"] = datetime.utcnow()
+
+    # 1️⃣ Get existing record first
+    existing = await get_product_variant_price_by_id(id, session)
+
+    if not existing:
+        return None
+
+    # 2️⃣ Merge existing values with updates
+    final_data = {
+        "id": id,
+        "variant_id": updates.get("variant_id", existing["variant_id"]),
+        "discount_id": updates.get("discount_id", existing["discount_id"]),
+        "min_qty": updates.get("min_qty", existing["min_qty"]),
+        "price": updates.get("price", existing["price"]),
+        "updated_at": datetime.utcnow(),
+    }
+
+    # Optional: if you want to update is_active too
+    if "is_active" in updates:
+        final_data["is_active"] = updates["is_active"]
+
     sql = text(queries["product_variant_price"]["update"])
-    params = {"id": id, **updates}
-    await session.execute(sql, params)
+
+    await session.execute(sql, final_data)
     await session.commit()
+
     return await get_product_variant_price_by_id(id, session)
 
 # ---------------- SOFT DELETE ----------------
@@ -54,3 +75,9 @@ async def activate_product_variant_price(id: str, session: AsyncSession):
     await session.execute(sql, {"id": id})
     await session.commit()
     return {"status": "success", "activated_id": id}
+
+async def deactivate_product_variant_price(id: str, session: AsyncSession):
+    sql = text(queries["product_variant_price"]["deactivate"])
+    await session.execute(sql, {"id": id})
+    await session.commit()
+    return {"status": "success", "deactivated_id": id}

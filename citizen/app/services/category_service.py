@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.category_domain import Category
@@ -9,21 +10,30 @@ queries = load_queries()
 
 # CREATE
 async def create_category(category: Category, session: AsyncSession):
-
+    # First, check if category exists and is active
+    result = await session.execute(
+        text("SELECT * FROM categories WHERE name = :name AND is_deleted = FALSE"),
+        {"name": category.name}
+    )
+    existing = result.fetchone()
+    
+    if existing:
+        # Category exists and active → return error
+        raise HTTPException(status_code=400, detail="Card name already exists")
+    
+    # Insert or reactivate (if soft-deleted) using ON DUPLICATE KEY UPDATE
     await session.execute(
         text(queries["category"]["create"]),
         category.to_dict()
     )
-
     await session.commit()
-
+    
+    # Fetch the category after insert/reactivation
     result = await session.execute(
         text(queries["category"]["get_by_id"]),
         {"id": category.id}
     )
-
     row = result.fetchone()
-
     return dict(row._mapping) if row else None
 
 

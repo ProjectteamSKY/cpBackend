@@ -15,6 +15,11 @@ async def get_all_product_discounts(session: AsyncSession):
     result = await session.execute(text(queries["product_discount"]["get_all"]))
     return [dict(r._mapping) for r in result.fetchall()]
 
+async def get_all_product_discounts_active(session: AsyncSession):
+    result = await session.execute(text(queries["product_discount"]["get_all_active"]))
+    return [dict(r._mapping) for r in result.fetchall()]
+
+
 async def get_product_discount_by_id(id: str, session: AsyncSession):
     result = await session.execute(text(queries["product_discount"]["get_by_id"]), {"id": id})
     row = result.fetchone()
@@ -38,6 +43,12 @@ async def activate_product_discount(id: str, session: AsyncSession):
     await session.execute(text(queries["product_discount"]["activate"]), {"id": id})
     await session.commit()
     return await get_product_discount_by_id(id, session)
+
+async def deactivate_product_discount(id: str, session: AsyncSession):
+    await session.execute(text(queries["product_discount"]["deactivate"]), {"id": id})
+    await session.commit()
+    return await get_product_discount_by_id(id, session)
+
 
 async def get_product_discounts_by_date_range(start_date: datetime, end_date: datetime, session: AsyncSession):
     result = await session.execute(

@@ -40,6 +40,17 @@ async def get_all_paper_types(session: AsyncSession):
         for row in result.fetchall()
     ]
 
+async def get_all_paper_types_active(session: AsyncSession):
+
+    result = await session.execute(
+        text(queries["paper_type"]["get_all_active"])
+    )
+
+    return [
+        dict(row._mapping)
+        for row in result.fetchall()
+    ]
+
 
 # GET BY ID
 async def get_paper_type_by_id(id: str, session: AsyncSession):
@@ -127,13 +138,18 @@ async def activate_paper_type(id: str, session: AsyncSession):
 # DEACTIVATE
 async def deactivate_paper_type(id: str, session: AsyncSession):
 
-    await session.execute(
+    result = await session.execute(
         text(queries["paper_type"]["deactivate"]),
         {"id": id}
     )
 
+    # 🚀 Check if any row was updated
+    if result.rowcount == 0:
+        return None
+
     await session.commit()
 
+    # Fetch updated record
     result = await session.execute(
         text(queries["paper_type"]["get_by_id"]),
         {"id": id}

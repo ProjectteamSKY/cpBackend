@@ -174,7 +174,7 @@ async def get_all_products_with_details(session: AsyncSession):
     """
 
     # 1️⃣ Fetch all products
-    product_query = text(queries["product"]["get_all"])
+    product_query = text(queries["product"]["get_all_active"])
     product_result = await session.execute(product_query)
     products = product_result.mappings().all()
 

@@ -1,11 +1,17 @@
 # app/core/database.py
+import os
+
+from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy import MetaData
+load_dotenv()
 
 # Make sure DATABASE_URL is correct (remove extra quote)
 # DATABASE_URL = "postgresql+asyncpg://postgres:12345@localhost:5432/citizenprints"
-DATABASE_URL = "mysql+asyncmy://root:Password%40123@localhost:3306/citizenprints"
+
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 # 1. Async engine

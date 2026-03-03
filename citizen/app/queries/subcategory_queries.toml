@@ -25,6 +25,7 @@ get_all = """
 SELECT sc.*, c.name AS category_name
 FROM subcategories sc
 JOIN categories c ON c.id = sc.category_id
+WHERE sc.is_deleted = FALSE
 ORDER BY sc.created_at DESC;
 """
 
@@ -39,9 +40,10 @@ WHERE sc.id = :id;
 
 get_by_category = """
 SELECT *
-FROM subcategories
-WHERE category_id = :category_id
-ORDER BY created_at DESC;
+FROM subcategories sc
+WHERE sc.category_id = :category_id
+  AND sc.is_deleted = FALSE
+ORDER BY sc.created_at DESC;
 """
 
 
@@ -52,11 +54,14 @@ WHERE id = :id;
 """
 
 
-delete = """
-DELETE FROM subcategories
-WHERE id = :id;
-"""
 
+delete = """
+UPDATE subcategories
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
 
 activate = """
 UPDATE subcategories

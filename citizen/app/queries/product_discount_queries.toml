@@ -14,9 +14,18 @@ get_all = """
 SELECT pd.*, p.name AS product_name
 FROM product_discounts pd
 LEFT JOIN products p ON pd.product_id = p.id
+WHERE pd.is_deleted = FALSE
 ORDER BY pd.created_at DESC;
 """
 
+get_all_active = """
+SELECT pd.*, p.name AS product_name
+FROM product_discounts pd
+LEFT JOIN products p ON pd.product_id = p.id
+WHERE pd.is_deleted = FALSE
+AND pd.is_active = TRUE
+ORDER BY pd.created_at DESC;
+"""
 
 get_by_id = """
 SELECT * FROM product_discounts
@@ -44,14 +53,26 @@ WHERE id = :id;
 
 soft_delete = """
 UPDATE product_discounts
-SET is_active = FALSE, updated_at = NOW()
-WHERE id = :id;
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
 activate = """
 UPDATE product_discounts
-SET is_active = TRUE, updated_at = NOW()
-WHERE id = :id;
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+deactivate = """
+UPDATE product_discounts
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
 get_by_date_range = """

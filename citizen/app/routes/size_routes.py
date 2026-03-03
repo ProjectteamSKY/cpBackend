@@ -11,7 +11,8 @@ from app.services.size_service import (
     update_size,
     delete_size,
     activate_size,
-    deactivate_size
+    deactivate_size,
+    get_all_sizes_active
 )
 
 router = APIRouter()
@@ -47,6 +48,14 @@ async def list_sizes(
         "sizes": await get_all_sizes(session)
     }
 
+@router.get("/list/active")
+async def list_sizes(
+    session: AsyncSession = Depends(get_session)
+):
+
+    return {
+        "sizes": await get_all_sizes_active(session)
+    }
 
 @router.get("/{id}")
 async def get_size_endpoint(

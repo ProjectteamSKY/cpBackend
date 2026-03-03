@@ -12,7 +12,8 @@ from app.services.print_type_service import (
     update_print_type,
     delete_print_type,
     activate_print_type,
-    deactivate_print_type
+    deactivate_print_type,
+    get_all_print_types_active
 )
 
 
@@ -44,6 +45,16 @@ async def list_print_types(
 ):
 
     data = await get_all_print_types(session)
+
+    return {"print_types": data}
+
+
+@router.get("/list/active")
+async def list_print_types(
+    session: AsyncSession = Depends(get_session)
+):
+
+    data = await get_all_print_types_active(session)
 
     return {"print_types": data}
 

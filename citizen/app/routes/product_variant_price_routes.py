@@ -11,7 +11,8 @@ from app.services.product_variant_price_service import (
     get_product_variant_prices_by_variant,
     update_product_variant_price,
     soft_delete_product_variant_price,
-    activate_product_variant_price
+    activate_product_variant_price,
+    deactivate_product_variant_price
 )
 
 router = APIRouter()
@@ -82,5 +83,16 @@ async def soft_delete_pvp_endpoint(id: str, session: AsyncSession = Depends(get_
 
 # ---------------- ACTIVATE ----------------
 @router.put("/{id}/activate")
-async def activate_pvp_endpoint(id: str, session: AsyncSession = Depends(get_session)):
+async def activate_pvp_endpoint(
+    id: str,
+    session: AsyncSession = Depends(get_session)
+):
     return await activate_product_variant_price(id, session)
+
+
+@router.put("/{id}/deactivate")
+async def deactivate_pvp_endpoint(
+    id: str,
+    session: AsyncSession = Depends(get_session)
+):
+    return await deactivate_product_variant_price(id, session)
