@@ -12,7 +12,9 @@ from app.services.product_service import (
     get_products_by_category,
     update_product,
     delete_product,
-    activate_product
+    activate_product,
+    deactivate_product,
+    get_all_products_active
 )
 
 router = APIRouter()
@@ -64,6 +66,9 @@ async def create_product_endpoint(
 async def list_products(session: AsyncSession = Depends(get_session)):
     return {"products": await get_all_products(session)}
 
+@router.get("/active/list") 
+async def list_products(session: AsyncSession = Depends(get_session)):
+    return {"products": await get_all_products_active(session)}
 
 @router.get("/{id}")
 async def get_product_endpoint(id: str, session: AsyncSession = Depends(get_session)):
@@ -78,6 +83,7 @@ async def list_products_by_category(category_id: str, session: AsyncSession = De
     return {"products": await get_products_by_category(category_id, session)}
 
 
+
 @router.put("/{id}")
 async def update_product_endpoint(
     id: str,
@@ -87,15 +93,64 @@ async def update_product_endpoint(
     description: Optional[str] = Form(None),
     min_order_qty: int = Form(100),
     max_order_qty: Optional[int] = Form(None),
-    images: Optional[List[UploadFile]] = File(None),
-    related_images: Optional[List[UploadFile]] = File(None),
+
+    # ✅ FIXED TYPES
+    images: List[UploadFile] = File(default=[]),
+    related_images: List[UploadFile] = File(default=[]),
+    existing_image_ids: List[str] = Form(default=[]),
+    existing_related_image_ids: List[str] = Form(default=[]),
+
     session: AsyncSession = Depends(get_session)
 ):
-    images_list = [{"id": str(uuid.uuid4()), "url": save_upload(f), "is_default": i==0} 
-                   for i, f in enumerate(images or [])]
-    related_list = [{"id": str(uuid.uuid4()), "url": save_upload(f)} 
-                    for f in related_images or []]
 
+    print("images:@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ - product_routes.py:106", images)
+    print("related_images:@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ - product_routes.py:107", related_images)
+    print("existing_image_ids:@@@@@@@@@@@@@@@@@@@@@@@@@@@@ - product_routes.py:108", existing_image_ids)
+    print("existing_related_image_ids: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@ - product_routes.py:109", existing_related_image_ids)
+
+    # Fetch existing product
+    existing_product = await get_product_by_id(id, session)
+    if not existing_product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Parse stored JSON
+    existing_images_all = json.loads(existing_product.get("images", "[]"))
+    existing_related_all = json.loads(existing_product.get("related_images", "[]"))
+  
+    # Keep only selected existing images
+    existing_images_to_keep = [
+        img for img in existing_images_all
+        if img["id"] in existing_image_ids
+    ]
+
+    existing_related_to_keep = [
+        img for img in existing_related_all
+        if img["id"] in existing_related_image_ids
+    ]
+
+    # Process new uploads
+    new_images = [
+        {
+            "id": str(uuid.uuid4()),
+            "url": save_upload(file),
+            "is_default": False
+        }
+        for file in images
+    ]
+
+    new_related = [
+        {
+            "id": str(uuid.uuid4()),
+            "url": save_upload(file)
+        }
+        for file in related_images
+    ]
+
+    # Merge
+    images_list = existing_images_to_keep + new_images
+    related_list = existing_related_to_keep + new_related
+
+    # Build product model
     product = Product(
         name=name,
         category_id=category_id,
@@ -108,10 +163,11 @@ async def update_product_endpoint(
     )
 
     updated = await update_product(id, product, session)
-    if not updated:
-        raise HTTPException(404, "Product not found")
-    return updated
 
+    if not updated:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    return updated
 
 @router.delete("/{id}")
 async def delete_product_endpoint(id: str, session: AsyncSession = Depends(get_session)):
@@ -121,3 +177,7 @@ async def delete_product_endpoint(id: str, session: AsyncSession = Depends(get_s
 @router.put("/{id}/activate")
 async def activate_product_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     return await activate_product(id, session)
+
+@router.put("/{id}/deactivate")
+async def activate_product_endpoint(id: str, session: AsyncSession = Depends(get_session)):
+    return await deactivate_product(id, session)

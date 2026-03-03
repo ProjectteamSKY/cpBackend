@@ -27,8 +27,7 @@ LEFT JOIN product_discounts pd
     ON pvp.discount_id = pd.id
     AND pd.is_deleted = FALSE
 
-WHERE pvp.is_active = TRUE
-AND pvp.is_deleted = FALSE
+WHERE pvp.is_deleted = FALSE
 ORDER BY pvp.created_at DESC;
 """
 
@@ -50,19 +49,29 @@ SET
     discount_id = :discount_id,
     min_qty = :min_qty,
     price = :price,
+    is_active = COALESCE(:is_active, is_active),
     updated_at = :updated_at
 WHERE id = :id;
 """
 
 soft_delete = """
 UPDATE product_variant_prices
-SET is_deleted = FALSE, updated_at = NOW()
+SET is_deleted = TRUE, updated_at = NOW()
 WHERE id = :id;
 """
 
 activate = """
 UPDATE product_variant_prices
-SET is_active = TRUE, updated_at = NOW()
-WHERE id = :id;
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
+deactivate = """
+UPDATE product_variant_prices
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""

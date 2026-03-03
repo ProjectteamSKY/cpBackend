@@ -12,7 +12,8 @@ from app.services.paper_type_service import (
     update_paper_type,
     delete_paper_type,
     activate_paper_type,
-    deactivate_paper_type
+    deactivate_paper_type,
+    get_all_paper_types_active
 )
 
 
@@ -44,6 +45,15 @@ async def list_paper_types(
 ):
 
     data = await get_all_paper_types(session)
+
+    return {"paper_types": data}
+
+@router.get("/list/active")
+async def list_paper_types(
+    session: AsyncSession = Depends(get_session)
+):
+
+    data = await get_all_paper_types_active(session)
 
     return {"paper_types": data}
 
@@ -124,6 +134,19 @@ async def activate_paper_type_endpoint(
 ):
 
     result = await activate_paper_type(id, session)
+
+    if not result:
+        raise HTTPException(404, "Paper type not found")
+
+    return result
+
+@router.put("/{id}/deactivate")
+async def deactivate_paper_type_endpoint(
+    id: str,
+    session: AsyncSession = Depends(get_session)
+):
+    result = await deactivate_paper_type(id, session)
+    print("api triggerd paper type deactivate - paper_type_routes.py:149",result)
 
     if not result:
         raise HTTPException(404, "Paper type not found")

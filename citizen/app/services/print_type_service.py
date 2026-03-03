@@ -40,6 +40,17 @@ async def get_all_print_types(session: AsyncSession):
         for row in result.fetchall()
     ]
 
+async def get_all_print_types_active(session: AsyncSession):
+
+    result = await session.execute(
+        text(queries["print_type"]["get_all_active"])
+    )
+
+    return [
+        dict(row._mapping)
+        for row in result.fetchall()
+    ]
+
 
 # GET BY ID
 async def get_print_type_by_id(id: str, session: AsyncSession):

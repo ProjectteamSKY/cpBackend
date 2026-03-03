@@ -30,6 +30,13 @@ FROM sizes
 ORDER BY created_at DESC;
 """
 
+get_all_active = """
+SELECT *
+FROM sizes
+WHERE sizes.is_active = TRUE
+ORDER BY created_at DESC;
+"""
+
 get_by_id = """
 SELECT *
 FROM sizes

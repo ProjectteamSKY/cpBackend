@@ -13,7 +13,9 @@ from app.services.product_discount_service import (
     update_product_discount,
     delete_product_discount,
     activate_product_discount,
-    get_product_discounts_by_date_range
+    get_product_discounts_by_date_range,
+    deactivate_product_discount,
+    get_all_product_discounts_active
 )
 
 router = APIRouter()
@@ -43,6 +45,10 @@ async def create_product_discount_endpoint(
 async def list_product_discounts(session: AsyncSession = Depends(get_session)):
     return {"discounts": await get_all_product_discounts(session)}
 
+
+@router.get("/list/active")
+async def list_product_discounts_active(session: AsyncSession = Depends(get_session)):
+    return {"discounts": await get_all_product_discounts_active(session)}
 # ---------------- GET BY ID ----------------
 @router.get("/{id}")
 async def get_product_discount_endpoint(id: str, session: AsyncSession = Depends(get_session)):
@@ -89,6 +95,11 @@ async def delete_product_discount_endpoint(id: str, session: AsyncSession = Depe
 async def activate_product_discount_endpoint(id: str, session: AsyncSession = Depends(get_session)):
     return await activate_product_discount(id, session)
 
+
+# ---------------- DEACTIVATE ----------------
+@router.put("/{id}/deactivate")
+async def activate_product_discount_endpoint(id: str, session: AsyncSession = Depends(get_session)):
+    return await deactivate_product_discount(id, session)
 # ---------------- DATE RANGE FILTER ----------------
 @router.get("/by_date_range")
 async def list_product_discounts_by_date_range(

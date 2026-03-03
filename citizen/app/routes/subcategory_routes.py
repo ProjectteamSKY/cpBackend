@@ -106,7 +106,7 @@ async def update_subcategory_endpoint(
 
 
 # DELETE
-@router.delete("/subcategory/{id}")
+@router.delete("/delete/subcategory/{id}")
 async def delete_subcategory_endpoint(
     id: str,
     session: AsyncSession = Depends(get_session)

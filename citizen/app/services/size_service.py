@@ -27,6 +27,14 @@ async def get_all_sizes(session: AsyncSession):
 
     return [dict(row._mapping) for row in result.fetchall()]
 
+async def get_all_sizes_active(session: AsyncSession):
+
+    result = await session.execute(
+        text(queries["size"]["get_all_active"])
+    )
+
+    return [dict(row._mapping) for row in result.fetchall()]
+
 
 async def get_size_by_id(id: str, session: AsyncSession):
 

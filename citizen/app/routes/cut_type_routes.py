@@ -11,7 +11,8 @@ from app.services.cut_type_service import (
     update_cut_type,
     delete_cut_type,
     activate_cut_type,
-    deactivate_cut_type
+    deactivate_cut_type,
+    get_all_cut_types_active
 )
 
 router = APIRouter()
@@ -41,6 +42,14 @@ async def list_cut_types(
         "cut_types": await get_all_cut_types(session)
     }
 
+@router.get("/list/active")
+async def list_cut_types_active(
+    session: AsyncSession = Depends(get_session)
+):
+
+    return {
+        "cut_types": await get_all_cut_types_active(session)
+    }
 
 @router.get("/{id}")
 async def get_cut_type_endpoint(
