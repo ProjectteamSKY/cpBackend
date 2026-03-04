@@ -1,12 +1,9 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import get_session
 
 from app.domain.category_domain import Category
-
 from app.services.category_service import (
     create_category,
     get_all_categories,
@@ -19,127 +16,98 @@ from app.services.category_service import (
 
 router = APIRouter()
 
+# --------------------------
+# Pydantic Models
+# --------------------------
 class CategoryCreate(BaseModel):
     name: str
     description: Optional[str] = None
     is_active: bool = True
-# CREATE
-@router.post("/create")
-async def create_category_endpoint(
-    payload: CategoryCreate,
-    session: AsyncSession = Depends(get_session)
-):
-
-    category = Category(
-        name=payload.name,
-        description=payload.description,
-        is_active=payload.is_active
-    )
-
-    return await create_category(category, session)
-
-
-# LIST
-@router.get("/list")
-async def list_categories(
-    session: AsyncSession = Depends(get_session)
-):
-
-    categories = await get_all_categories(session)
-
-    return {"categories": categories}
-
-
-# GET BY ID
-@router.get("/{id}")
-async def get_category_endpoint(
-    id: str,
-    session: AsyncSession = Depends(get_session)
-):
-
-    category = await get_category_by_id(id, session)
-
-    if not category:
-        raise HTTPException(404, "Category not found")
-
-    return category
-
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
 
-# UPDATE
-@router.put("/{id}")
-async def update_category_endpoint(
-    id: str,
-    payload: CategoryUpdate,
-    session: AsyncSession = Depends(get_session)
-):
-    # Pydantic v2 replacement for .dict()
-    update_data = payload.model_dump(exclude_unset=True)
 
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No fields to update")
-
-    category = await update_category(
-        id,
-        update_data,
-        session
+# --------------------------
+# CREATE
+# --------------------------
+@router.post("/create")
+async def create_category_endpoint(payload: CategoryCreate):
+    category = Category(
+        name=payload.name,
+        description=payload.description,
+        is_active=payload.is_active
     )
+    created = await create_category(category)
+    return {"status": "success", "data": created}
 
+
+# --------------------------
+# LIST ALL
+# --------------------------
+@router.get("/list")
+async def list_categories():
+    categories = await get_all_categories()
+    return {"status": "success", "categories": categories}
+
+
+# --------------------------
+# GET BY ID
+# --------------------------
+@router.get("/{id}")
+async def get_category_endpoint(id: str):
+    category = await get_category_by_id(id)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
+    return {"status": "success", "data": category}
 
-    return {
-        "status": "success",
-        "data": category
-    }
 
+# --------------------------
+# UPDATE
+# --------------------------
+@router.put("/{id}")
+async def update_category_endpoint(id: str, payload: CategoryUpdate):
+    update_data = payload.model_dump(exclude_unset=True)  # Pydantic v2
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    category = await update_category(id, update_data)
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    return {"status": "success", "data": category}
+
+
+# --------------------------
 # DELETE
-@router.delete("/category/{id}")
-async def delete_category_endpoint(
-    id: str,
-    session: AsyncSession = Depends(get_session)
-):
-
-    result = await delete_category(id, session)
-
+# --------------------------
+@router.delete("/{id}")
+async def delete_category_endpoint(id: str):
+    result = await delete_category(id)
     if not result:
-        raise HTTPException(404, "Category not found")
-
-    return {
-        "status": "success",
-        "deleted_id": id
-    }
+        raise HTTPException(status_code=404, detail="Category not found")
+    return {"status": "success", "deleted_id": id}
 
 
+# --------------------------
 # ACTIVATE
+# --------------------------
 @router.put("/{id}/activate")
-async def activate_category_endpoint(
-    id: str,
-    session: AsyncSession = Depends(get_session)
-):
-
-    result = await activate_category(id, session)
-
+async def activate_category_endpoint(id: str):
+    result = await activate_category(id)
     if not result:
-        raise HTTPException(404, "Category not found")
+        raise HTTPException(status_code=404, detail="Category not found")
+    return {"status": "success", "data": result}
 
-    return result
 
-
+# --------------------------
 # DEACTIVATE
+# --------------------------
 @router.put("/{id}/deactivate")
-async def deactivate_category_endpoint(
-    id: str,
-    session: AsyncSession = Depends(get_session)
-):
-
-    result = await deactivate_category(id, session)
-
+async def deactivate_category_endpoint(id: str):
+    result = await deactivate_category(id)
     if not result:
-        raise HTTPException(404, "Category not found")
-
-    return result
+        raise HTTPException(status_code=404, detail="Category not found")
+    return {"status": "success", "data": result}

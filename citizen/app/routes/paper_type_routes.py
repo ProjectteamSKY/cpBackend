@@ -1,10 +1,8 @@
-from fastapi import APIRouter, Depends, Form, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.database import get_session
+from typing import Optional
+from fastapi import APIRouter, Form, HTTPException
+from pydantic import BaseModel
 
 from app.domain.paper_type_domain import PaperType
-
 from app.services.paper_type_service import (
     create_paper_type,
     get_all_paper_types,
@@ -16,109 +14,134 @@ from app.services.paper_type_service import (
     get_all_paper_types_active
 )
 
-
 router = APIRouter()
 
 
+# --------------------------
+# Pydantic Models
+# --------------------------
+
+class PaperTypeCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    is_active: bool = True
+
+
+class PaperTypeUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+# --------------------------
 # CREATE
+# --------------------------
+
 @router.post("/create")
-async def create_paper_type_endpoint(
-    name: str = Form(...),
-    description: str = Form(None),
-    is_active: bool = Form(True),
-    session: AsyncSession = Depends(get_session)
-):
+async def create_paper_type_endpoint(payload: PaperTypeCreate):
 
     paper_type = PaperType(
-        name=name,
-        description=description,
-        is_active=is_active
+        name=payload.name,
+        description=payload.description,
+        is_active=payload.is_active
     )
 
-    return await create_paper_type(paper_type, session)
+    created = await create_paper_type(paper_type)
+
+    return {
+        "status": "success",
+        "data": created
+    }
 
 
-# LIST
+# --------------------------
+# LIST ALL
+# --------------------------
+
 @router.get("/list")
-async def list_paper_types(
-    session: AsyncSession = Depends(get_session)
-):
+async def list_paper_types():
 
-    data = await get_all_paper_types(session)
+    data = await get_all_paper_types()
 
-    return {"paper_types": data}
+    return {
+        "status": "success",
+        "paper_types": data
+    }
 
 @router.get("/list/active")
-async def list_paper_types(
-    session: AsyncSession = Depends(get_session)
-):
+async def list_paper_types():
 
-    data = await get_all_paper_types_active(session)
+    data = await get_all_paper_types_active()
 
-    return {"paper_types": data}
+    return {
+        "status": "success",
+        "paper_types": data
+    }
 
 
+
+# --------------------------
 # GET BY ID
-@router.get("/{id}")
-async def get_paper_type_endpoint(
-    id: str,
-    session: AsyncSession = Depends(get_session)
-):
+# --------------------------
 
-    data = await get_paper_type_by_id(id, session)
+@router.get("/{id}")
+async def get_paper_type_endpoint(id: str):
+
+    data = await get_paper_type_by_id(id)
 
     if not data:
-        raise HTTPException(404, "Paper type not found")
+        raise HTTPException(status_code=404, detail="Paper type not found")
 
-    return data
+    return {
+        "status": "success",
+        "data": data
+    }
 
 
+# --------------------------
 # UPDATE
+# --------------------------
+
 @router.put("/{id}")
 async def update_paper_type_endpoint(
     id: str,
-    name: str = Form(None),
-    description: str = Form(None),
-    is_active: bool = Form(None),
-    session: AsyncSession = Depends(get_session)
+    name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    is_active: Optional[bool] = Form(None),
 ):
-
-    payload = {}
+    update_data = {}
 
     if name is not None:
-        payload["name"] = name
-
+        update_data["name"] = name
     if description is not None:
-        payload["description"] = description
-
+        update_data["description"] = description
     if is_active is not None:
-        payload["is_active"] = is_active
+        update_data["is_active"] = is_active
 
-    if not payload:
-        raise HTTPException(400, "No fields to update")
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
 
-    result = await update_paper_type(id, payload, session)
+    result = await update_paper_type(id, update_data)
 
     if not result:
-        raise HTTPException(404, "Paper type not found")
+        raise HTTPException(status_code=404, detail="Paper type not found")
 
     return {
         "status": "success",
         "data": result
     }
 
-
+# --------------------------
 # DELETE (SOFT)
-@router.delete("/{id}")
-async def delete_paper_type_endpoint(
-    id: str,
-    session: AsyncSession = Depends(get_session)
-):
+# --------------------------
 
-    result = await delete_paper_type(id, session)
+@router.delete("/{id}")
+async def delete_paper_type_endpoint(id: str):
+
+    result = await delete_paper_type(id)
 
     if not result:
-        raise HTTPException(404, "Paper type not found")
+        raise HTTPException(status_code=404, detail="Paper type not found")
 
     return {
         "status": "success",
@@ -126,29 +149,37 @@ async def delete_paper_type_endpoint(
     }
 
 
+# --------------------------
 # ACTIVATE
-@router.put("/{id}/activate")
-async def activate_paper_type_endpoint(
-    id: str,
-    session: AsyncSession = Depends(get_session)
-):
+# --------------------------
 
-    result = await activate_paper_type(id, session)
+@router.put("/{id}/activate")
+async def activate_paper_type_endpoint(id: str):
+
+    result = await activate_paper_type(id)
 
     if not result:
-        raise HTTPException(404, "Paper type not found")
+        raise HTTPException(status_code=404, detail="Paper type not found")
 
-    return result
+    return {
+        "status": "success",
+        "data": result
+    }
+
+
+# --------------------------
+# DEACTIVATE
+# --------------------------
 
 @router.put("/{id}/deactivate")
-async def deactivate_paper_type_endpoint(
-    id: str,
-    session: AsyncSession = Depends(get_session)
-):
-    result = await deactivate_paper_type(id, session)
-    print("api triggerd paper type deactivate - paper_type_routes.py:149",result)
+async def deactivate_paper_type_endpoint(id: str):
+
+    result = await deactivate_paper_type(id)
 
     if not result:
-        raise HTTPException(404, "Paper type not found")
+        raise HTTPException(status_code=404, detail="Paper type not found")
 
-    return result
+    return {
+        "status": "success",
+        "data": result
+    }

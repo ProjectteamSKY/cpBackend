@@ -1,155 +1,153 @@
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+# app/services/print_type_service.py
 
+from fastapi import HTTPException
 from app.domain.print_type_domain import PrintType
 from app.utils.query_loader import load_queries
-
+from app.core.database import execute, query, query_all
 
 queries = load_queries()
 
 
+# -------------------------
 # CREATE
-async def create_print_type(print_type: PrintType, session: AsyncSession):
+# -------------------------
+async def create_print_type(print_type: PrintType):
+    """
+    Create a new print type.
+    If name already exists and not deleted → raise error.
+    """
 
-    await session.execute(
-        text(queries["print_type"]["create"]),
-        print_type.to_dict()
+    existing = await query(
+        "SELECT * FROM print_types WHERE name = :name AND is_deleted = FALSE",
+        {"name": print_type.name}
     )
 
-    await session.commit()
+    if existing:
+        raise HTTPException(status_code=400, detail="Print type already exists")
 
-    result = await session.execute(
-        text(queries["print_type"]["get_by_id"]),
+    await execute(queries["print_type"]["create"], print_type.to_dict())
+
+    created = await query(
+        queries["print_type"]["get_by_id"],
         {"id": print_type.id}
     )
 
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+    return created
 
 
+# -------------------------
 # GET ALL
-async def get_all_print_types(session: AsyncSession):
-
-    result = await session.execute(
-        text(queries["print_type"]["get_all"])
-    )
-
-    return [
-        dict(row._mapping)
-        for row in result.fetchall()
-    ]
-
-async def get_all_print_types_active(session: AsyncSession):
-
-    result = await session.execute(
-        text(queries["print_type"]["get_all_active"])
-    )
-
-    return [
-        dict(row._mapping)
-        for row in result.fetchall()
-    ]
+# -------------------------
+async def get_all_print_types():
+    """
+    Fetch all print types
+    """
+    return await query_all(queries["print_type"]["get_all"])
 
 
+# -------------------------
+# GET ALL ACTIVE
+# -------------------------
+async def get_all_print_types_active():
+    """
+    Fetch all active print types
+    """
+    return await query_all(queries["print_type"]["get_all_active"])
+
+
+# -------------------------
 # GET BY ID
-async def get_print_type_by_id(id: str, session: AsyncSession):
-
-    result = await session.execute(
-        text(queries["print_type"]["get_by_id"]),
+# -------------------------
+async def get_print_type_by_id(id: str):
+    """
+    Fetch single print type by ID
+    """
+    return await query(
+        queries["print_type"]["get_by_id"],
         {"id": id}
     )
 
-    row = result.fetchone()
 
-    return dict(row._mapping) if row else None
-
-
+# -------------------------
 # UPDATE
-async def update_print_type(id: str, updates: dict, session: AsyncSession):
+# -------------------------
+async def update_print_type(id: str, updates: dict):
+    """
+    Update print type fields dynamically
+    """
+
+    if not updates:
+        return await get_print_type_by_id(id)
+
+    # Optional: Add updated_at if your table supports it
+    updates["updated_at"] = PrintType(
+        name=updates.get("name")
+    ).updated_at
 
     set_clause = ", ".join(
-        f"{key} = :{key}"
-        for key in updates.keys()
+        f"{key} = :{key}" for key in updates.keys()
     )
 
-    await session.execute(
-        text(
-            queries["print_type"]["update"].format(
-                set_clause=set_clause
-            )
-        ),
-        {"id": id, **updates}
+    sql = queries["print_type"]["update"].format(
+        set_clause=set_clause
     )
 
-    await session.commit()
+    await execute(sql, {"id": id, **updates})
 
-    result = await session.execute(
-        text(queries["print_type"]["get_by_id"]),
-        {"id": id}
-    )
-
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+    return await get_print_type_by_id(id)
 
 
+# -------------------------
 # SOFT DELETE
-async def delete_print_type(id: str, session: AsyncSession):
+# -------------------------
+async def delete_print_type(id: str):
+    """
+    Soft delete print type
+    """
 
-    exists = await session.execute(
-        text(queries["print_type"]["get_by_id"]),
+    existing = await query(
+        queries["print_type"]["get_by_id"],
         {"id": id}
     )
 
-    if not exists.fetchone():
+    if not existing:
         return None
 
-    await session.execute(
-        text(queries["print_type"]["delete"]),
+    await execute(
+        queries["print_type"]["delete"],
         {"id": id}
     )
-
-    await session.commit()
 
     return {"id": id, "deleted": True}
 
 
+# -------------------------
 # ACTIVATE
-async def activate_print_type(id: str, session: AsyncSession):
+# -------------------------
+async def activate_print_type(id: str):
+    """
+    Activate print type
+    """
 
-    await session.execute(
-        text(queries["print_type"]["activate"]),
+    await execute(
+        queries["print_type"]["activate"],
         {"id": id}
     )
 
-    await session.commit()
-
-    result = await session.execute(
-        text(queries["print_type"]["get_by_id"]),
-        {"id": id}
-    )
-
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+    return await get_print_type_by_id(id)
 
 
+# -------------------------
 # DEACTIVATE
-async def deactivate_print_type(id: str, session: AsyncSession):
+# -------------------------
+async def deactivate_print_type(id: str):
+    """
+    Deactivate print type
+    """
 
-    await session.execute(
-        text(queries["print_type"]["deactivate"]),
+    await execute(
+        queries["print_type"]["deactivate"],
         {"id": id}
     )
 
-    await session.commit()
-
-    result = await session.execute(
-        text(queries["print_type"]["get_by_id"]),
-        {"id": id}
-    )
-
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+    return await get_print_type_by_id(id)

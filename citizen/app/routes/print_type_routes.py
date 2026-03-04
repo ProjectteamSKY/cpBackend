@@ -26,7 +26,6 @@ async def create_print_type_endpoint(
     name: str = Form(...),
     description: str = Form(None),
     is_active: bool = Form(True),
-    session: AsyncSession = Depends(get_session)
 ):
 
     print_type = PrintType(
@@ -35,26 +34,24 @@ async def create_print_type_endpoint(
         is_active=is_active
     )
 
-    return await create_print_type(print_type, session)
+    return await create_print_type(print_type)
 
 
 # LIST
 @router.get("/list")
 async def list_print_types(
-    session: AsyncSession = Depends(get_session)
 ):
 
-    data = await get_all_print_types(session)
+    data = await get_all_print_types()
 
     return {"print_types": data}
 
 
 @router.get("/list/active")
 async def list_print_types(
-    session: AsyncSession = Depends(get_session)
 ):
 
-    data = await get_all_print_types_active(session)
+    data = await get_all_print_types_active()
 
     return {"print_types": data}
 
@@ -63,10 +60,9 @@ async def list_print_types(
 @router.get("/{id}")
 async def get_print_type_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    data = await get_print_type_by_id(id, session)
+    data = await get_print_type_by_id(id)
 
     if not data:
         raise HTTPException(404, "Print type not found")
@@ -81,7 +77,6 @@ async def update_print_type_endpoint(
     name: str = Form(None),
     description: str = Form(None),
     is_active: bool = Form(None),
-    session: AsyncSession = Depends(get_session)
 ):
 
     payload = {}
@@ -98,7 +93,7 @@ async def update_print_type_endpoint(
     if not payload:
         raise HTTPException(400, "No fields to update")
 
-    result = await update_print_type(id, payload, session)
+    result = await update_print_type(id, payload)
 
     if not result:
         raise HTTPException(404, "Print type not found")
@@ -113,10 +108,9 @@ async def update_print_type_endpoint(
 @router.delete("/{id}")
 async def delete_print_type_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    result = await delete_print_type(id, session)
+    result = await delete_print_type(id)
 
     if not result:
         raise HTTPException(404, "Print type not found")
@@ -131,10 +125,9 @@ async def delete_print_type_endpoint(
 @router.put("/{id}/activate")
 async def activate_print_type_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    result = await activate_print_type(id, session)
+    result = await activate_print_type(id)
 
     if not result:
         raise HTTPException(404, "Print type not found")
@@ -145,10 +138,9 @@ async def activate_print_type_endpoint(
 @router.put("/{id}/deactivate")
 async def activate_print_type_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    result = await deactivate_print_type(id, session)
+    result = await deactivate_print_type(id)
 
     if not result:
         raise HTTPException(404, "Print type not found")
