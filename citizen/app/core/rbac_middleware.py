@@ -4,17 +4,16 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text, bindparam
-from app.core.database import SessionLocal
+from app.core.database import AsyncSessionLocal  # <-- updated
 from app.core.rbac import RBACPolicy
 
 
 class RBACMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
-
         roles = getattr(request.state, "roles", [])
 
-        async with SessionLocal() as session:
+        async with AsyncSessionLocal() as session:
 
             policy = RBACPolicy(session)
 
@@ -52,7 +51,6 @@ class RBACMiddleware(BaseHTTPMiddleware):
             """).bindparams(bindparam("roles", expanding=True))
 
             result = await session.execute(stmt, {"roles": roles})
-
             permissions = {row[0] for row in result.fetchall()}
 
             print(f"[RBAC] DB permissions = {permissions}")

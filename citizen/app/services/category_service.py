@@ -1,153 +1,103 @@
 from fastapi import HTTPException
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.category_domain import Category
 from app.utils.query_loader import load_queries
-
+from app.core.database import execute, query, query_all
 
 queries = load_queries()
 
 
+# -------------------------
 # CREATE
-async def create_category(category: Category, session: AsyncSession):
-    # First, check if category exists and is active
-    result = await session.execute(
-        text("SELECT * FROM categories WHERE name = :name AND is_deleted = FALSE"),
+# -------------------------
+async def create_category(category: Category):
+    """
+    Create a new category.
+    If category exists and is active → raise error.
+    If category exists but soft-deleted → reactivate it.
+    Returns the created or reactivated category as dict.
+    """
+    existing = await query(
+        "SELECT * FROM categories WHERE name = :name AND is_deleted = FALSE",
         {"name": category.name}
     )
-    existing = result.fetchone()
-    
+
     if existing:
-        # Category exists and active → return error
-        raise HTTPException(status_code=400, detail="Card name already exists")
-    
-    # Insert or reactivate (if soft-deleted) using ON DUPLICATE KEY UPDATE
-    await session.execute(
-        text(queries["category"]["create"]),
-        category.to_dict()
-    )
-    await session.commit()
-    
-    # Fetch the category after insert/reactivation
-    result = await session.execute(
-        text(queries["category"]["get_by_id"]),
-        {"id": category.id}
-    )
-    row = result.fetchone()
-    return dict(row._mapping) if row else None
+        raise HTTPException(status_code=400, detail="Category name already exists")
+
+    await execute(queries["category"]["create"], category.to_dict())
+    created = await query(queries["category"]["get_by_id"], {"id": category.id})
+    return created
 
 
+# -------------------------
 # GET ALL
-async def get_all_categories(session: AsyncSession):
-
-    result = await session.execute(
-        text(queries["category"]["get_all"])
-    )
-
-    return [
-        dict(row._mapping)
-        for row in result.fetchall()
-    ]
+# -------------------------
+async def get_all_categories():
+    """
+    Fetch all categories as a list of dicts
+    """
+    return await query_all(queries["category"]["get_all"])
 
 
+# -------------------------
 # GET BY ID
-async def get_category_by_id(id: str, session: AsyncSession):
-
-    result = await session.execute(
-        text(queries["category"]["get_by_id"]),
-        {"id": id}
-    )
-
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+# -------------------------
+async def get_category_by_id(id: str):
+    """
+    Fetch a single category by ID
+    """
+    return await query(queries["category"]["get_by_id"], {"id": id})
 
 
+# -------------------------
 # UPDATE
-async def update_category(id: str, updates: dict, session: AsyncSession):
+# -------------------------
+async def update_category(id: str, updates: dict):
+    """
+    Update category fields by ID
+    """
+    if not updates:
+        return await get_category_by_id(id)
 
-    set_clause = ", ".join(
-        f"{key} = :{key}"
-        for key in updates.keys()
-    )
+    set_clause = ", ".join(f"{key} = :{key}" for key in updates.keys())
+    sql = queries["category"]["update"].format(set_clause=set_clause)
 
-    await session.execute(
-        text(
-            queries["category"]["update"].format(
-                set_clause=set_clause
-            )
-        ),
-        {"id": id, **updates}
-    )
-
-    await session.commit()
-
-    result = await session.execute(
-        text(queries["category"]["get_by_id"]),
-        {"id": id}
-    )
-
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+    await execute(sql, {"id": id, **updates})
+    return await get_category_by_id(id)
 
 
-# DELETE
-async def delete_category(id: str, session: AsyncSession):
-
-    existing = await session.execute(
-        text(queries["category"]["get_by_id"]),
-        {"id": id}
-    )
-
-    if not existing.fetchone():
+# -------------------------
+# DELETE (soft delete)
+# -------------------------
+async def delete_category(id: str):
+    """
+    Soft-delete a category by ID
+    """
+    existing = await query(queries["category"]["get_by_id"], {"id": id})
+    if not existing:
         return None
 
-    await session.execute(
-        text(queries["category"]["delete"]),
-        {"id": id}
-    )
-
-    await session.commit()
-
+    await execute(queries["category"]["delete"], {"id": id})
     return {"id": id}
 
 
+# -------------------------
 # ACTIVATE
-async def activate_category(id: str, session: AsyncSession):
-
-    await session.execute(
-        text(queries["category"]["activate"]),
-        {"id": id}
-    )
-
-    await session.commit()
-
-    result = await session.execute(
-        text(queries["category"]["get_by_id"]),
-        {"id": id}
-    )
-
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+# -------------------------
+async def activate_category(id: str):
+    """
+    Activate a soft-deleted category
+    """
+    await execute(queries["category"]["activate"], {"id": id})
+    return await get_category_by_id(id)
 
 
+# -------------------------
 # DEACTIVATE
-async def deactivate_category(id: str, session: AsyncSession):
-
-    await session.execute(
-        text(queries["category"]["deactivate"]),
-        {"id": id}
-    )
-
-    await session.commit()
-
-    result = await session.execute(
-        text(queries["category"]["get_by_id"]),
-        {"id": id}
-    )
-
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+# -------------------------
+async def deactivate_category(id: str):
+    """
+    Deactivate a category
+    """
+    await execute(queries["category"]["deactivate"], {"id": id})
+    return await get_category_by_id(id)
