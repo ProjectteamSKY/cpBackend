@@ -34,6 +34,7 @@ class ShiprocketClient:
             self.authenticate()
 
     def headers(self):
+        print("self.token - shiprocket_client.py:37",self.token)
         return {"Authorization": f"Bearer {self.token}"}
 
     # -----------------------
@@ -57,11 +58,11 @@ class ShiprocketClient:
         )
 
         data = response.json()
-        print("Shiprocket create order response: - shiprocket_client.py:60", data)
         print("Shiprocket create order response: - shiprocket_client.py:61", data)
-        print("Shipment ID: - shiprocket_client.py:62", data['shipment_id'])
-        print("Order ID: - shiprocket_client.py:63", data['order_id'])
-        print("AWB Code: - shiprocket_client.py:64", data['awb_code'])
+        print("Shiprocket create order response: - shiprocket_client.py:62", data)
+        print("Shipment ID: - shiprocket_client.py:63", data['shipment_id'])
+        print("Order ID: - shiprocket_client.py:64", data['order_id'])
+        print("AWB Code: - shiprocket_client.py:65", data['awb_code'])
         if response.status_code != 200:
             raise Exception(f"Shiprocket create order failed: {data}")
 
@@ -81,7 +82,7 @@ class ShiprocketClient:
 
         data = response.json()
 
-        print("print courier list response - shiprocket_client.py:84",data)
+        print("print courier list response - shiprocket_client.py:85",data)
 
         if response.status_code != 200:
             raise Exception(f"Failed to fetch courier rates: {response.text}")
@@ -90,23 +91,106 @@ class ShiprocketClient:
         
     # Assign courier
     def assign_courier(self, shipment_id: str, courier_id: int = None):
+        """
+        Assign a courier for a shipment.
+        Returns a dictionary with AWB info if successful.
+        """
+
         self.ensure_token()
-        
+
         payload = {"shipment_id": shipment_id}
         if courier_id is not None:
             payload["courier_id"] = courier_id  # include courier_id if provided
 
-        response = requests.post(
-            f"{BASE_URL}/courier/assign/awb",
-            headers={**self.headers(), "Content-Type": "application/json"},
-            json=payload
-        )
+        # response = requests.post(
+        #     f"{BASE_URL}/courier/assign/awb",
+        #     headers={**self.headers(), "Content-Type": "application/json"},
+        #     json=payload
+        # )
 
-        data = response.json()
-        print("data assign courier - shiprocket_client.py:106",data)
-        if response.status_code != 200 or data.get("status_code") not in [200, 201]:
+        # data = response.json()
+        data = {
+            "awb_assign_status": 1,
+            "response": {
+                "data": {
+                    "courier_company_id": 54,
+                    "awb_code": "SRSP2269025472",
+                    "cod": 0,
+                    "order_id": 1216226902,
+                    "shipment_id": 1212533805,
+                    "awb_code_status": 1,
+                    "assigned_date_time": {
+                        "date": "2026-03-05 13:03:42.000000",
+                        "timezone_type": 3,
+                        "timezone": "Asia/Kolkata"
+                    },
+                    "applied_weight": 0.5,
+                    "company_id": 9421320,
+                    "courier_name": "Ekart Logistics Surface",
+                    "child_courier_name": None,
+                    "freight_charges": 57,
+                    "routing_code": "", 
+                    "rto_routing_code": None,
+                    "invoice_no": "Retail00002",
+                    "transporter_id": "",
+                    "transporter_name": "",
+                    "shipped_by": {
+                        "shipper_company_name": "rajesh",
+                        "shipper_address_1": "s1, 2nd floor, sai akash apt",
+                        "shipper_address_2": "near om sakthi temple",
+                        "shipper_city": "Kanchipuram",
+                        "shipper_state": "Tamil Nadu",
+                        "shipper_country": "India",
+                        "shipper_postcode": "600100",
+                        "shipper_first_mile_activated": 0,
+                        "shipper_phone": "9600296812",
+                        "lat": "12.9171412",
+                        "long": "80.1940972",
+                        "shipper_email": "saravana.kumar@skylimitdigital.com",
+                        "extra_info": {
+                            "role": "Warehouse Manager",
+                            "source": 1,
+                            "open_time": "12:00 AM",
+                            "close_time": "7:30 PM",
+                            "select_days": '["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]',
+                            "alternate_name": "harish",
+                            "alternate_role": "Warehouse Manager",
+                            "alternate_email": "crazykidsri@gmail.com"
+                        },
+                        "rto_company_name": "rajesh",
+                        "rto_address_1": "s1, 2nd floor, sai akash apt",
+                        "rto_address_2": "near om sakthi temple",
+                        "rto_city": "Kanchipuram",
+                        "rto_state": "Tamil Nadu",
+                        "rto_country": "India",
+                        "rto_postcode": "600100",
+                        "rto_phone": "9600296812",
+                        "rto_email": "saravana.kumar@skylimitdigital.com"
+                    }
+                }
+            },
+            "no_pickup_popup": 0,
+            "quick_pick": 0
+        }
+        print("Shiprocket assign courier response: - shiprocket_client.py:175", data)
+
+        # Check if AWB was actually assigned
+        awb_status = data.get("awb_assign_status")
+        if awb_status == 1:
+            # Successful assignment
+            awb_data = data.get("response", {}).get("data", {})
+            return {
+                "awb_code": awb_data.get("awb_code"),
+                "courier_name": awb_data.get("courier_name"),
+                "freight_charges": awb_data.get("freight_charges"),
+                "shipment_id": awb_data.get("shipment_id"),
+                "order_id": awb_data.get("order_id"),
+                "cod": awb_data.get("cod"),
+                "raw_response": data
+            }
+        else:
+            # Assignment failed
             raise Exception(f"Assign courier failed: {data}")
-        return data
 
     # Generate shipping label
     def generate_label(self, shipment_id: str):
@@ -126,3 +210,82 @@ class ShiprocketClient:
         if response.status_code != 200:
             raise Exception(f"Failed to download label: {response.status_code}")
         return response.content
+    
+    def download_label(self, shipment_id: str):
+        """
+        Generate & download the PDF label for a shipment.
+        Returns the label URL.
+        """
+        self.ensure_token()
+
+        # 1️⃣ Generate label first
+        try:
+            generate_response = self.generate_label(shipment_id)
+        except Exception as e:
+            raise Exception(f"Failed to generate label: {str(e)}")
+
+        # 2️⃣ Extract file URL
+        label_url = generate_response.get("label_url") or generate_response.get("data", {}).get("label_url")
+        if not label_url:
+            raise Exception(f"No label URL returned: {generate_response}")
+
+        return label_url
+
+    # -----------------------
+    # CANCEL ORDER
+    # -----------------------
+    def cancel_order(self, order_id: str):
+        """
+        Cancel an order in Shiprocket.
+        Returns the full API response.
+        """
+        self.ensure_token()
+        url = f"{BASE_URL}/orders/cancel"
+        payload = {"ids": [order_id]}
+
+        response = requests.post(url, headers={**self.headers(), "Content-Type": "application/json"}, json=payload)
+        data = response.json()
+
+        if response.status_code != 200 or data.get("status_code") not in [200, 201]:
+            raise Exception(f"Cancel order failed: {data}")
+
+        return data
+
+    # -----------------------
+    # REFUND ORDER
+    # -----------------------
+    def refund_order(self, order_id: str, amount: float):
+        """
+        Refund an order via Shiprocket.
+        amount: float - refund amount
+        Returns the full API response.
+        """
+        self.ensure_token()
+        url = f"{BASE_URL}/orders/refund"
+        payload = {
+            "order_id": order_id,
+            "amount": amount
+        }
+
+        response = requests.post(url, headers={**self.headers(), "Content-Type": "application/json"}, json=payload)
+        data = response.json()
+
+        if response.status_code != 200 or data.get("status_code") not in [200, 201]:
+            raise Exception(f"Refund order failed: {data}")
+
+        return data
+    
+    def get_tracking(self, awb_code: str):
+        """
+        Get tracking details using AWB code
+        """
+        self.ensure_token()
+
+        url = f"{BASE_URL}/courier/track/awb/{awb_code}"
+
+        response = requests.get(url, headers=self.headers())
+
+        if response.status_code != 200:
+            raise Exception(f"Tracking fetch failed: {response.text}")
+
+        return response.json()

@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import uuid
 
@@ -62,7 +63,7 @@ def build_shiprocket_payload(order: dict):
             }
         ],
 
-        "payment_method": "Prepaid",
+        "payment_method": "COD",
         "sub_total": float(order.get("total_amount", 0)),
         "length": 10,
         "breadth": 10,
@@ -90,7 +91,7 @@ async def create_order_service(order_id: str, session: AsyncSession):
         response = shiprocket.create_order(payload)
 
         # 4️⃣ Print response immediately, fully, before any DB insert
-        print("Shipment ID: - shipping_service.py:93", response["shipment_id"])
+        print("Shipment ID: - shipping_service.py:94", response["shipment_id"])
 
     except Exception as e:  
         raise HTTPException(500, f"Shiprocket API call failed: {str(e)}")
@@ -98,7 +99,7 @@ async def create_order_service(order_id: str, session: AsyncSession):
     # 5️⃣ Extract shipment_id safely
     shipment_id = response['shipment_id']
 
-    print("Shipment ID: - shipping_service.py:101", shipment_id)
+    print("Shipment ID: - shipping_service.py:102", shipment_id)
 
     if not shipment_id:
         raise HTTPException(
@@ -157,14 +158,14 @@ async def get_available_couriers_service(order_id: str, session: AsyncSession):
     # 2️⃣ Call Shiprocket API with order_id
     try:
         courier_response = shiprocket.get_courier_rates(shiprocket_order_id)
-        print("couriers - shipping_service.py:160",courier_response)
+        print("couriers - shipping_service.py:161",courier_response)
     except Exception as e:
         raise HTTPException(500, f"Failed to fetch courier rates: {str(e)}")
 
     # 3️⃣ Safely extract available courier companies
     couriers = courier_response.get("data", {}).get("available_courier_companies", [])
     
-    print("couriers - shipping_service.py:167",couriers)
+    print("couriers - shipping_service.py:168",couriers)
     # 4️⃣ Clean data for API response
     cleaned_couriers = [
         {
@@ -181,60 +182,256 @@ async def get_available_couriers_service(order_id: str, session: AsyncSession):
 
 
 async def assign_courier_service(order_id: str, courier_id: int, session: AsyncSession):
-    # Fetch shipment_id for the order
+
+    # 1️⃣ Get shipment_id
     result = await session.execute(
         text("SELECT shipment_id FROM shipments WHERE order_id = :order_id"),
         {"order_id": order_id}
     )
+
     row = result.fetchone()
-    if not row or not row._mapping["shipment_id"]:
-        raise HTTPException(404, "Shipment not found")
-    
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+
     shipment_id = row._mapping["shipment_id"]
 
-    # Call Shiprocket client
+    if not shipment_id:
+        raise HTTPException(status_code=400, detail="Shipment ID missing")
+
+    # 2️⃣ Call Shiprocket API
     response = shiprocket.assign_courier(shipment_id, courier_id)
-    
-    # Optionally, you can update your DB to save assigned courier_id
+
+    if not response:
+        raise HTTPException(status_code=500, detail="Courier assignment failed")
+
+    # 3️⃣ Extract response values
+    awb_code = response.get("awb_code")
+    courier_name = response.get("courier_name")
+    freight_charges = response.get("freight_charges")
+
+    # 4️⃣ Update DB
     await session.execute(
-        text("UPDATE shipments SET courier_id = :courier_id, updated_at = NOW() WHERE shipment_id = :shipment_id"),
-        {"courier_id": courier_id, "shipment_id": shipment_id}
+        text("""
+            UPDATE shipments
+            SET courier_id = :courier_id,
+                courier_name = :courier_name,
+                awb_code = :awb_code,
+                freight_charges = :freight_charges,
+                updated_at = NOW()
+            WHERE shipment_id = :shipment_id
+        """),
+        {
+            "courier_id": courier_id,
+            "courier_name": courier_name,
+            "awb_code": awb_code,
+            "freight_charges": freight_charges,
+            "shipment_id": shipment_id
+        }
     )
+
     await session.commit()
 
-    return {"status": "success", "assigned_courier": response}
+    return {
+        "status": "success",
+        "message": "Courier assigned successfully",
+        "data": response
+    }
 
 
 async def download_label_service(order_id: str, session: AsyncSession):
+
     result = await session.execute(
-        text("SELECT shipment_id FROM shipments WHERE order_id = :order_id"),
+        text("""
+            SELECT shipment_id, label_url
+            FROM shipments
+            WHERE order_id = :order_id
+        """),
         {"order_id": order_id}
     )
-    row = result.fetchone()
-    if not row or not row._mapping["shipment_id"]:
-        raise HTTPException(404, "Shipment not found")
-    shipment_id = row._mapping["shipment_id"]
 
-    label_pdf = shiprocket.download_label(shipment_id)
-    return {"status": "success", "label_url": label_pdf}
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(404, "Shipment not found")
+
+    shipment_id = row._mapping["shipment_id"]
+    existing_label = row._mapping["label_url"]
+
+    # ✅ If label already stored, return it
+    if existing_label:
+        return {
+            "status": "success",
+            "label_url": existing_label
+        }
+
+    # Otherwise call Shiprocket
+    label_url = shiprocket.download_label(shipment_id)
+
+    await session.execute(
+        text("""
+            UPDATE shipments
+            SET label_url = :label_url
+            WHERE shipment_id = :shipment_id
+        """),
+        {"label_url": label_url, "shipment_id": shipment_id}
+    )
+
+    await session.commit()
+
+    return {
+        "status": "success",
+        "label_url": label_url
+    }
 
 
 async def update_webhook_status_service(payload: dict, session: AsyncSession):
-    shipment_id = payload.get("shipment_id")
-    order_status = payload.get("status")
-    if not shipment_id or not order_status:
-        raise HTTPException(400, "Invalid webhook payload")
 
+    # Log payload for debugging
+    print("Shiprocket Webhook Payload:", payload)
+
+    awb_code = payload.get("awb")
+    order_status = (
+        payload.get("current_status") or
+        payload.get("shipment_status") or
+        payload.get("status")
+    )
+
+    if not awb_code or not order_status:
+        raise HTTPException(status_code=400, detail="Invalid webhook payload")
+
+    # Standardize status using mapping
+    status_map = {
+        "picked up": "shipped",
+        "in transit": "shipped",
+        "out for delivery": "shipped",
+        "delivered": "delivered",
+        "delivered to consignee": "delivered",
+        "cancelled": "cancelled",
+        "rto initiated": "rto"
+    }
+
+    order_status_clean = order_status.strip().lower()
+    final_status = status_map.get(order_status_clean, order_status_clean)
+
+    # Set delivered_at if delivered
+    delivered_at = datetime.utcnow() if final_status == "delivered" else None
+
+    # ------------------------
+    # Update shipment
+    # ------------------------
+    await session.execute(
+        text("""
+            UPDATE shipments
+            SET current_status = :status,
+                delivered_at = COALESCE(:delivered_at, delivered_at),
+                updated_at = NOW()
+            WHERE awb_code = :awb_code
+        """),
+        {
+            "status": final_status,
+            "awb_code": awb_code,
+            "delivered_at": delivered_at
+        }
+    )
+
+    # ------------------------
+    # Update order
+    # ------------------------
+    await session.execute(
+        text("""
+            UPDATE orders o
+            JOIN shipments s ON s.order_id = o.id
+            SET o.status = :status
+            WHERE s.awb_code = :awb_code
+        """),
+        {
+            "status": final_status,
+            "awb_code": awb_code
+        }
+    )
+
+    await session.commit()
+
+    return {
+        "status": "success",
+        "message": f"Webhook processed: {final_status}"
+    }
+
+async def cancel_order_service(order_id: str, session: AsyncSession):
+    """
+    Cancel a shipment on Shiprocket and update DB
+    """
+    # 1️⃣ Get shipment_id from DB
+    result = await session.execute(
+        text("SELECT shipment_id, shiprocket_order_id FROM shipments WHERE order_id = :order_id"),
+        {"order_id": order_id}
+    )
+    row = result.fetchone()
+    if not row or not row._mapping.get("shiprocket_order_id"):
+        raise HTTPException(404, "Shipment not found or Shiprocket order not created")
+
+    shipment_id = row._mapping["shipment_id"]
+    shiprocket_order_id = row._mapping["shiprocket_order_id"]
+
+    # 2️⃣ Call Shiprocket API to cancel order
+    try:
+        response = shiprocket.cancel_order(shiprocket_order_id)
+        print("Cancel response: - shipping_service.py:261", response)
+    except Exception as e:
+        raise HTTPException(500, f"Shiprocket cancel order failed: {str(e)}")
+
+    # 3️⃣ Update DB status
     await session.execute(
         text(
-            """
-            UPDATE orders
-            SET status = :status
-            WHERE id = (SELECT order_id FROM shipments WHERE shipment_id = :shipment_id)
-            """
+            "UPDATE orders SET status = 'cancelled' WHERE id = :order_id"
         ),
-        {"status": order_status, "shipment_id": shipment_id}
+        {"order_id": order_id}
     )
     await session.commit()
-    return {"status": "success", "message": "Webhook processed"}
 
+    return {"status": "success", "message": "Order cancelled", "shiprocket_response": response}
+
+
+async def refund_order_service(order_id: str, session: AsyncSession, refund_amount: float = None):
+    """
+    Refund an order via Shiprocket
+    """
+    # 1️⃣ Get shipment info from DB
+    result = await session.execute(
+        text("SELECT shipment_id, shiprocket_order_id FROM shipments WHERE order_id = :order_id"),
+        {"order_id": order_id}
+    )
+    row = result.fetchone()
+    if not row or not row._mapping.get("shiprocket_order_id"):
+        raise HTTPException(404, "Shipment not found or Shiprocket order not created")
+
+    shiprocket_order_id = row._mapping["shiprocket_order_id"]
+
+    # 2️⃣ Determine refund amount
+    if refund_amount is None:
+        # Default: full refund using order total
+        result_order = await session.execute(
+            text("SELECT total_amount FROM orders WHERE id = :order_id"),
+            {"order_id": order_id}
+        )
+        order_row = result_order.fetchone()
+        refund_amount = float(order_row._mapping["total_amount"])
+
+    # 3️⃣ Call Shiprocket API to process refund
+    try:
+        response = shiprocket.refund_order(shiprocket_order_id, refund_amount)
+        print("Refund response: - shipping_service.py:305", response)
+    except Exception as e:
+        raise HTTPException(500, f"Shiprocket refund failed: {str(e)}")
+
+    # 4️⃣ Update DB order status if refund successful
+    await session.execute(
+        text(
+            "UPDATE orders SET status = 'refunded' WHERE id = :order_id"
+        ),
+        {"order_id": order_id}
+    )
+    await session.commit()
+
+    return {"status": "success", "message": "Order refunded", "refund_amount": refund_amount, "shiprocket_response": response}

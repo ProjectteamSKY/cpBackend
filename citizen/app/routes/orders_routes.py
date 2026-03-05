@@ -244,6 +244,18 @@ class UserResponse(BaseModel):
     email: str | None
     phone: str | None
 
+
+class ShipmentResponse(BaseModel):
+    awb_code: str | None = None
+    courier_name: str | None = None
+    freight_charges: float | None = None
+    tracking_url: str | None = None
+    label_url: str | None = None
+    pickup_status: str | None = None
+    current_status: str | None = None
+    delivered_at: str | None = None
+
+
 class OrderTrackingResponse(BaseModel):
     id: str
     status: str
@@ -253,6 +265,7 @@ class OrderTrackingResponse(BaseModel):
     user: UserResponse
     address: AddressResponse | None
     items: List[OrderItemResponse] = []
+    shipment: ShipmentResponse | None = None
 
 class CheckoutRequest(BaseModel):
     user_id: str
@@ -295,20 +308,24 @@ async def checkout_endpoint(payload: CheckoutRequest):
 async def track_orders():
     orders = await get_all_orders_tracking()
     response = []
+
     for o in orders:
         items = await get_order_items(o["id"])
+
         response.append({
             "id": o["id"],
             "status": o["status"],
             "total_amount": float(o["total_amount"]),
             "created_at": str(o["created_at"]),
             "updated_at": str(o["updated_at"]),
+
             "user": {
                 "id": o["user_id"],
                 "username": o["username"],
                 "email": o.get("email"),
                 "phone": o.get("user_phone")
             },
+
             "address": {
                 "address": o.get("address_line"),
                 "city": o.get("city"),
@@ -317,6 +334,7 @@ async def track_orders():
                 "postal_code": o.get("postal_code"),
                 "phone": o.get("address_phone")
             } if o.get("address_line") else None,
+
             "items": [
                 {
                     "id": i["id"],
@@ -325,9 +343,22 @@ async def track_orders():
                     "quantity": i["quantity"],
                     "price": float(i["price"]),
                     "total": float(i["total"])
-                } for i in items
-            ]
+                }
+                for i in items
+            ],
+
+            "shipment": {
+                "awb_code": o.get("awb_code"),
+                "courier_name": o.get("courier_name"),
+                "freight_charges": float(o["freight_charges"]) if o.get("freight_charges") else None,
+                "tracking_url": o.get("tracking_url"),
+                "label_url": o.get("label_url"),
+                "current_status": o.get("current_status"),
+                "pickup_status": o.get("pickup_status"),
+                "delivered_at": str(o["delivered_at"]) if o.get("delivered_at") else None
+            } if o.get("awb_code") else None
         })
+
     return response
 
 # UPDATE STATUS
