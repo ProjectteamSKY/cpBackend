@@ -107,7 +107,7 @@ CREATE TABLE products (
 
     name VARCHAR(255) NOT NULL,
     description TEXT,
-
+    sku VARCHAR(50) UNIQUE,
     min_order_qty INT DEFAULT 100,
     max_order_qty INT,
 

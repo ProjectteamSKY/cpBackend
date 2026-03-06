@@ -1,55 +1,89 @@
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+import json
 from app.domain.product_domain import Product
 from app.utils.query_loader import load_queries
-import json
+from app.core.database import execute, query, query_all
 
 queries = load_queries()
 
 
-async def create_product(product: Product, session: AsyncSession):
-    await session.execute(
-        text(queries["product"]["create"]),
+# ===================================
+# CREATE
+# ===================================
+async def create_product(product: Product):
+    await execute(
+        queries["product"]["create"],
         {
             **product.to_dict(),
             "images": json.dumps(product.images),
             "related_images": json.dumps(product.related_images),
         }
     )
-    await session.commit()
-    return await get_product_by_id(product.id, session)
+    return await get_product_by_id(product.id)
 
 
-async def get_all_products(session: AsyncSession):
-    result = await session.execute(text(queries["product"]["get_all"]))
-    products = [dict(r._mapping) for r in result.fetchall()]
+# ===================================
+# GET ALL
+# ===================================
+async def get_all_products():
+    products = await query_all(queries["product"]["get_all"])
 
-    # Parse the JSON string columns
     for p in products:
-        if "images" in p and isinstance(p["images"], str):
+        if p.get("images"):
             p["images"] = json.loads(p["images"])
-        if "related_images" in p and isinstance(p["related_images"], str):
+        if p.get("related_images"):
             p["related_images"] = json.loads(p["related_images"])
 
     return products
 
 
-async def get_product_by_id(id: str, session: AsyncSession):
-    result = await session.execute(text(queries["product"]["get_by_id"]), {"id": id})
-    row = result.fetchone()
-    return dict(row._mapping) if row else None
+async def get_all_products_active():
+    products = await query_all(queries["product"]["get_all_active"])
+
+    for p in products:
+        if p.get("images"):
+            p["images"] = json.loads(p["images"])
+        if p.get("related_images"):
+            p["related_images"] = json.loads(p["related_images"])
+
+    return products
 
 
-async def get_products_by_category(category_id: str, session: AsyncSession):
-    result = await session.execute(
-        text(queries["product"]["get_by_category"]), {"category_id": category_id}
+# ===================================
+# GET BY ID
+# ===================================
+async def get_product_by_id(product_id: str):
+    product = await query(
+        queries["product"]["get_by_id"],
+        {"id": product_id}
     )
-    return [dict(r._mapping) for r in result.fetchall()]
+
+    if product and product.get("images"):
+        product["images"] = json.loads(product["images"])
+
+    if product and product.get("related_images"):
+        product["related_images"] = json.loads(product["related_images"])
+
+    return product
 
 
-async def update_product(product_id: str, product: Product, session: AsyncSession):
-    await session.execute(
-        text(queries["product"]["update"]),
+# ===================================
+# GET BY CATEGORY
+# ===================================
+async def get_products_by_category(category_id: str):
+    products = await query_all(
+        queries["product"]["get_by_category"],
+        {"category_id": category_id}
+    )
+
+    return products
+
+
+# ===================================
+# UPDATE
+# ===================================
+async def update_product(product_id: str, product: Product):
+    await execute(
+        queries["product"]["update"],
         {
             "id": product_id,
             "category_id": product.category_id,
@@ -63,17 +97,35 @@ async def update_product(product_id: str, product: Product, session: AsyncSessio
             "updated_at": product.updated_at,
         }
     )
-    await session.commit()
-    return await get_product_by_id(product_id, session)
+
+    return await get_product_by_id(product_id)
 
 
-async def delete_product(product_id: str, session: AsyncSession):
-    await session.execute(text(queries["product"]["soft_delete"]), {"id": product_id})
-    await session.commit()
+# ===================================
+# DELETE
+# ===================================
+async def delete_product(product_id: str):
+    await execute(
+        queries["product"]["delete"],
+        {"id": product_id}
+    )
     return {"message": "Product deleted successfully"}
 
 
-async def activate_product(product_id: str, session: AsyncSession):
-    await session.execute(text(queries["product"]["activate"]), {"id": product_id})
-    await session.commit()
-    return await get_product_by_id(product_id, session)
+# ===================================
+# ACTIVATE / DEACTIVATE
+# ===================================
+async def activate_product(product_id: str):
+    await execute(
+        queries["product"]["activate"],
+        {"id": product_id}
+    )
+    return await get_product_by_id(product_id)
+
+
+async def deactivate_product(product_id: str):
+    await execute(
+        queries["product"]["deactivate"],
+        {"id": product_id}
+    )
+    return await get_product_by_id(product_id)

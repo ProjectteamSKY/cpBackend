@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, Form, Query, HTTPException
+from fastapi import APIRouter, Form, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from typing import Optional
-from app.core.database import get_session
+
 from app.domain.product_discount_domain import ProductDiscount
 from app.services.product_discount_service import (
     create_product_discount,
@@ -13,90 +12,138 @@ from app.services.product_discount_service import (
     update_product_discount,
     delete_product_discount,
     activate_product_discount,
-    get_product_discounts_by_date_range
+    deactivate_product_discount,
+    get_product_discounts_by_date_range,
+    get_all_product_discounts_active
 )
 
 router = APIRouter()
+
+
+# ---------------- Pydantic Models ----------------
+
 class ProductDiscountCreate(BaseModel):
     product_id: Optional[str]
     description: Optional[str]
     discount: str = "0%"
     start_date: datetime
     end_date: datetime
+
+
+class ProductDiscountUpdate(BaseModel):
+    product_id: Optional[str]
+    description: Optional[str]
+    discount: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+
+
 # ---------------- CREATE ----------------
+
 @router.post("/create")
-async def create_product_discount_endpoint(
-    payload: ProductDiscountCreate,
-    session: AsyncSession = Depends(get_session)
-):
-    pd = ProductDiscount(
-        product_id=payload.product_id,
-        description=payload.description,
-        discount=payload.discount,
-        start_date=payload.start_date,
-        end_date=payload.end_date
-    )
-    return await create_product_discount(pd, session)
+async def create_product_discount_endpoint(payload: ProductDiscountCreate):
+
+    if payload.start_date > payload.end_date:
+        raise HTTPException(400, "start_date cannot be after end_date")
+
+    pd = ProductDiscount(**payload.dict())
+
+    return await create_product_discount(pd)
+
 
 # ---------------- GET ALL ----------------
+
 @router.get("/list")
-async def list_product_discounts(session: AsyncSession = Depends(get_session)):
-    return {"discounts": await get_all_product_discounts(session)}
+async def list_product_discounts():
+    return {"discounts": await get_all_product_discounts()}
+
+
+@router.get("/list/active")
+async def list_product_discounts_active():
+    return {"discounts": await get_all_product_discounts_active()}
+
 
 # ---------------- GET BY ID ----------------
+
 @router.get("/{id}")
-async def get_product_discount_endpoint(id: str, session: AsyncSession = Depends(get_session)):
-    discount = await get_product_discount_by_id(id, session)
+async def get_product_discount_endpoint(id: str):
+    discount = await get_product_discount_by_id(id)
     if not discount:
         raise HTTPException(404, "Product Discount not found")
     return discount
 
+
 # ---------------- GET BY PRODUCT ----------------
+
 @router.get("/product/{product_id}")
-async def list_product_discounts_by_product(product_id: str, session: AsyncSession = Depends(get_session)):
-    return {"discounts": await get_product_discounts_by_product(product_id, session)}
+async def list_product_discounts_by_product(product_id: str):
+    return {"discounts": await get_product_discounts_by_product(product_id)}
+
 
 # ---------------- UPDATE ----------------
+
 @router.put("/{id}")
 async def update_product_discount_endpoint(
     id: str,
     product_id: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
-    discount: str = Form("0%"),
-    start_date: datetime = Form(..., description="Select start date (date picker)"),
-    end_date: datetime = Form(..., description="Select end date (date picker)"),
-    session: AsyncSession = Depends(get_session)
+    discount: Optional[str] = Form(None),
+    start_date: Optional[str] = Form(None),
+    end_date: Optional[str] = Form(None),
+    is_active: Optional[bool] = Form(None),
 ):
-    pd = ProductDiscount(
-        product_id=product_id,
-        description=description,
-        discount=discount,
-        start_date=start_date,
-        end_date=end_date
-    )
-    updated = await update_product_discount(id, pd, session)
-    if not updated:
+    existing = await get_product_discount_by_id(id)
+    if not existing:
         raise HTTPException(404, "Product Discount not found")
-    return updated
+
+    # Convert date strings manually
+    parsed_start = datetime.fromisoformat(start_date) if start_date else existing["start_date"]
+    parsed_end = datetime.fromisoformat(end_date) if end_date else existing["end_date"]
+
+    if parsed_start > parsed_end:
+        raise HTTPException(400, "start_date cannot be after end_date")
+
+    pd = ProductDiscount(
+        product_id=product_id or existing["product_id"],
+        description=description or existing["description"],
+        discount=discount or existing["discount"],
+        start_date=parsed_start,
+        end_date=parsed_end,
+    )
+
+    return await update_product_discount(id, pd)
+
 
 # ---------------- SOFT DELETE ----------------
+
 @router.delete("/{id}")
-async def delete_product_discount_endpoint(id: str, session: AsyncSession = Depends(get_session)):
-    return await delete_product_discount(id, session)
+async def delete_product_discount_endpoint(id: str):
+    return await delete_product_discount(id)
+
 
 # ---------------- ACTIVATE ----------------
+
 @router.put("/{id}/activate")
-async def activate_product_discount_endpoint(id: str, session: AsyncSession = Depends(get_session)):
-    return await activate_product_discount(id, session)
+async def activate_product_discount_endpoint(id: str):
+    return await activate_product_discount(id)
+
+
+# ---------------- DEACTIVATE ----------------
+
+@router.put("/{id}/deactivate")
+async def deactivate_product_discount_endpoint(id: str):
+    return await deactivate_product_discount(id)
+
 
 # ---------------- DATE RANGE FILTER ----------------
+
 @router.get("/by_date_range")
 async def list_product_discounts_by_date_range(
-    start_date: datetime = Query(..., description="Start date (date picker)"),
-    end_date: datetime = Query(..., description="End date (date picker)"),
-    session: AsyncSession = Depends(get_session)
+    start_date: datetime = Query(...),
+    end_date: datetime = Query(...)
 ):
     if start_date > end_date:
         raise HTTPException(400, "start_date cannot be after end_date")
-    discounts = await get_product_discounts_by_date_range(start_date, end_date, session)
+
+    discounts = await get_product_discounts_by_date_range(start_date, end_date)
     return {"discounts": discounts}

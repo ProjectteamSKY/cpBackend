@@ -3,13 +3,11 @@
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text
-from app.core.database import SessionLocal
-
+from app.core.database import AsyncSessionLocal  # <-- updated
 
 class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
-
         auth = request.headers.get("Authorization")
         request.state.roles = []
 
@@ -18,14 +16,14 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         token = auth.replace("Bearer ", "").strip()
 
-        async with SessionLocal() as session:
+        # Use AsyncSessionLocal instead of SessionLocal
+        async with AsyncSessionLocal() as session:
 
             # Get user by token
             result = await session.execute(
                 text("SELECT id FROM users WHERE bearer_token = :token"),
                 {"token": token}
             )
-
             user_row = result.fetchone()
 
             if not user_row:

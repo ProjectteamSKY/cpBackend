@@ -1,8 +1,7 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import get_session
+
 from app.domain.cart_domain import Cart
 from app.services.cart_service import (
     create_cart,
@@ -32,29 +31,21 @@ class CartUpdate(BaseModel):
 
 # ---------------- CREATE ----------------
 @router.post("/")
-async def create_cart_endpoint(
-    payload: CartCreate,
-    session: AsyncSession = Depends(get_session)
-):
+async def create_cart_endpoint(payload: CartCreate):
     cart = Cart(**payload.model_dump())
-    return await create_cart(cart, session)
+    return await create_cart(cart)
 
 
 # ---------------- GET ALL ----------------
 @router.get("/")
-async def get_all_carts_endpoint(
-    session: AsyncSession = Depends(get_session)
-):
-    return await get_all_carts(session)
+async def get_all_carts_endpoint():
+    return await get_all_carts()
 
 
 # ---------------- GET BY ID ----------------
 @router.get("/{id}")
-async def get_cart_endpoint(
-    id: str,
-    session: AsyncSession = Depends(get_session)
-):
-    cart = await get_cart_by_id(id, session)
+async def get_cart_endpoint(id: str):
+    cart = await get_cart_by_id(id)
     if not cart:
         raise HTTPException(status_code=404, detail="Cart not found")
     return cart
@@ -62,11 +53,8 @@ async def get_cart_endpoint(
 
 # ---------------- GET ACTIVE BY USER ----------------
 @router.get("/user/{user_id}")
-async def get_cart_by_user(
-    user_id: str,
-    session: AsyncSession = Depends(get_session)
-):
-    cart = await get_cart_by_user_id(user_id, session)
+async def get_cart_by_user(user_id: str):
+    cart = await get_cart_by_user_id(user_id)
     if not cart:
         raise HTTPException(status_code=404, detail="Active cart not found")
     return cart
@@ -74,17 +62,13 @@ async def get_cart_by_user(
 
 # ---------------- UPDATE ----------------
 @router.put("/{id}")
-async def update_cart_endpoint(
-    id: str,
-    payload: CartUpdate,
-    session: AsyncSession = Depends(get_session)
-):
+async def update_cart_endpoint(id: str, payload: CartUpdate):
     updates = payload.model_dump(exclude_unset=True)
 
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    cart = await update_cart(id, updates, session)
+    cart = await update_cart(id, updates)
 
     if not cart:
         raise HTTPException(status_code=404, detail="Cart not found")
@@ -94,11 +78,8 @@ async def update_cart_endpoint(
 
 # ---------------- DELETE ----------------
 @router.delete("/{id}")
-async def delete_cart_endpoint(
-    id: str,
-    session: AsyncSession = Depends(get_session)
-):
-    result = await delete_cart(id, session)
+async def delete_cart_endpoint(id: str):
+    result = await delete_cart(id)
 
     if not result:
         raise HTTPException(status_code=404, detail="Cart not found")

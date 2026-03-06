@@ -22,6 +22,49 @@ WHERE id = :id;
 get_all_tracking = """
 SELECT 
     o.*, 
+
+    u.full_name AS username,
+    u.email,
+    u.contact AS user_phone,
+
+    a.address AS address_line,
+    a.city,
+    a.state,
+    a.country,
+    a.postal_code,
+    a.phone AS address_phone,
+
+    s.awb_code,
+    s.courier_name,
+    s.freight_charges,
+    s.tracking_url,
+    s.label_url,
+    s.current_status,
+    s.pickup_status,
+    s.delivered_at
+
+FROM orders o
+JOIN users u ON u.id = o.user_id
+LEFT JOIN user_addresses a ON a.id = o.address_id
+LEFT JOIN shipments s ON s.order_id = o.id
+
+ORDER BY o.created_at DESC;
+"""
+
+update = """
+UPDATE orders
+SET {set_clause}
+WHERE id = :id;
+"""
+
+delete = """
+DELETE FROM orders
+WHERE id = :id;
+"""
+
+order_query = """
+SELECT 
+    o.*, 
     u.full_name AS username,
     u.email,
     u.contact AS user_phone,
@@ -35,15 +78,4 @@ FROM orders o
 JOIN users u ON u.id = o.user_id
 LEFT JOIN user_addresses a ON a.id = o.address_id
 ORDER BY o.created_at DESC;
-"""
-
-update = """
-UPDATE orders
-SET {set_clause}
-WHERE id = :id;
-"""
-
-delete = """
-DELETE FROM orders
-WHERE id = :id;
 """
