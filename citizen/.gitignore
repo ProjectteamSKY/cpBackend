@@ -27,6 +27,7 @@ var/
 venv/
 ENV/
 env/
+.env/
 .venv/
 
 # PyInstaller
@@ -52,7 +53,8 @@ env/
 *.sqlite3
 
 # Environment variables
-
+!.env 
+!.env.*
 
 # OS files
 .DS_Store
