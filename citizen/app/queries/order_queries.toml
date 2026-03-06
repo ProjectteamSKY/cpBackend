@@ -2,27 +2,30 @@
 
 create = """
 INSERT INTO orders (
-    id, user_id, cart_id, address_id, status, total_amount, created_at, updated_at
+    id, user_id, cart_id, address_id, status,
+    total_amount, created_at, updated_at
 ) VALUES (
-    :id, :user_id, :cart_id, :address_id, :status, :total_amount, :created_at, :updated_at
+    :id, :user_id, :cart_id, :address_id, :status,
+    :total_amount, :created_at, :updated_at
 );
 """
 
 get_all = """
-SELECT * FROM orders
+SELECT *
+FROM orders
 WHERE user_id = :user_id
 ORDER BY created_at DESC;
 """
 
 get_by_id = """
-SELECT * FROM orders
+SELECT *
+FROM orders
 WHERE id = :id;
 """
 
 get_all_tracking = """
 SELECT 
     o.*, 
-
     u.full_name AS username,
     u.email,
     u.contact AS user_phone,
@@ -62,20 +65,75 @@ DELETE FROM orders
 WHERE id = :id;
 """
 
-order_query = """
-SELECT 
-    o.*, 
-    u.full_name AS username,
-    u.email,
-    u.contact AS user_phone,
-    a.address AS address_line,
-    a.city,
-    a.state,
-    a.country,
-    a.postal_code,
-    a.phone AS address_phone
-FROM orders o
-JOIN users u ON u.id = o.user_id
-LEFT JOIN user_addresses a ON a.id = o.address_id
-ORDER BY o.created_at DESC;
+get_status = """
+SELECT status
+FROM orders
+WHERE id = :id;
+"""
+
+update_status = """
+UPDATE orders
+SET status = :status,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+
+
+[order_item]
+
+create = """
+INSERT INTO order_items (
+    order_id, cart_item_id, product_id, variant_id,
+    quantity, price, total, created_at, updated_at
+)
+VALUES (
+    :order_id, :cart_item_id, :product_id, :variant_id,
+    :quantity, :price, :total, :created_at, :updated_at
+);
+"""
+
+get_all_by_order = """
+SELECT *
+FROM order_items
+WHERE order_id = :order_id;
+"""
+
+
+
+[cart]
+
+lock_items = """
+SELECT *
+FROM cart_items
+WHERE cart_id = :cart_id
+AND id IN :cart_item_ids
+FOR UPDATE;
+"""
+
+get_files = """
+SELECT *
+FROM cart_item_files
+WHERE cart_item_id = :cart_item_id;
+"""
+
+mark_purchased = """
+UPDATE cart_items
+SET status = 'purchased',
+    updated_at = :updated_at
+WHERE id IN :cart_item_ids;
+"""
+
+get_cart_total = """
+SELECT COALESCE(SUM(total_price), 0) AS total
+FROM cart_items
+WHERE cart_id = :cart_id
+AND status = 'active';
+"""
+
+update_cart_total = """
+UPDATE carts
+SET total_amount = :total,
+    updated_at = :updated_at
+WHERE id = :cart_id;
 """

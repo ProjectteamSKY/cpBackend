@@ -377,7 +377,6 @@ from uuid import uuid4
 import uuid
 from fastapi import UploadFile
 
-from sqlalchemy import bindparam, text
 from app.core.database import execute, query, query_all
 from app.utils.query_loader import load_queries
 
@@ -386,92 +385,98 @@ queries = load_queries()
 UPLOAD_FOLDER = "media/orderfiles"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+
 def save_upload(file: UploadFile) -> str:
     ext = os.path.splitext(file.filename)[1]
     filename = f"{uuid.uuid4()}{ext}"
     path = os.path.join(UPLOAD_FOLDER, filename)
+
     with open(path, "wb") as f:
         shutil.copyfileobj(file.file, f)
+
     return path.replace("\\", "/")
 
-# CREATE
+
+# CREATE ORDER
 async def create_order(order: dict):
     await execute(queries["order"]["create"], order)
     return await query(queries["order"]["get_by_id"], {"id": order["id"]})
 
-# GET ALL
+
+# GET USER ORDERS
 async def get_all_orders(user_id: str):
     return await query_all(queries["order"]["get_all"], {"user_id": user_id})
 
-# GET ALL ORDERS (TRACKING / ADMIN)
+
+# ADMIN ORDER TRACKING
 async def get_all_orders_tracking():
     return await query_all(queries["order"]["get_all_tracking"], {})
 
-# GET BY ID
+
+# GET ORDER
 async def get_order_by_id(id: str):
     return await query(queries["order"]["get_by_id"], {"id": id})
 
-# UPDATE
+
+# UPDATE ORDER
 async def update_order(id: str, updates: dict):
-    set_clause = ", ".join(f"{key} = :{key}" for key in updates.keys())
+    set_clause = ", ".join(f"{k} = :{k}" for k in updates.keys())
+
     await execute(
         queries["order"]["update"].format(set_clause=set_clause),
-        {"id": id, **updates}
+        {"id": id, **updates},
     )
+
     return await get_order_by_id(id)
 
-# DELETE
+
+# DELETE ORDER
 async def delete_order(id: str):
     existing = await get_order_by_id(id)
+
     if not existing:
         return None
+
     await execute(queries["order"]["delete"], {"id": id})
+
     return {"id": id}
+
 
 # GET ORDER ITEMS
 async def get_order_items(order_id: str):
-    return await query_all(queries["order_item"]["get_all_by_order"], {"order_id": order_id})
+    return await query_all(
+        queries["order_item"]["get_all_by_order"],
+        {"order_id": order_id},
+    )
 
-# CHECKOUT FUNCTION
-# ✅ PERFECTLY WORKING - Using your database functions
+
+# CHECKOUT
 async def checkout(user_id: str, cart_id: str, cart_item_ids: List[str], address_id: str):
+
     if not cart_item_ids:
         raise Exception("No cart items provided")
 
     now = datetime.utcnow()
     order_id = str(uuid4())
 
-    # 1️⃣ Lock selected cart items
+    # LOCK CART ITEMS
     cart_items = await query_all(
-        """
-        SELECT *
-        FROM cart_items
-        WHERE cart_id = :cart_id
-        AND id IN :cart_item_ids
-        FOR UPDATE
-        """,
-        {"cart_id": cart_id, "cart_item_ids": tuple(cart_item_ids)}
+        queries["cart"]["lock_items"],
+        {"cart_id": cart_id, "cart_item_ids": tuple(cart_item_ids)},
     )
-    
+
     if not cart_items:
         raise Exception("Cart items not found")
-    if len(cart_items) != len(cart_item_ids):
-        raise Exception("Some cart items not found")
 
-    # 2️⃣ Calculate order total
+    if len(cart_items) != len(cart_item_ids):
+        raise Exception("Some cart items missing")
+
+    # CALCULATE TOTAL
     order_total = sum(item["total_price"] for item in cart_items)
 
-    # 3️⃣ Create Order
+    # CREATE ORDER
     await execute(
-        """
-        INSERT INTO orders (
-            id, user_id, cart_id, address_id, status,
-            total_amount, created_at, updated_at
-        ) VALUES (
-            :id, :user_id, :cart_id, :address_id, :status,
-            :total_amount, :created_at, :updated_at
-        )
-        """,
+        queries["order"]["create"],
         {
             "id": order_id,
             "user_id": user_id,
@@ -480,24 +485,15 @@ async def checkout(user_id: str, cart_id: str, cart_item_ids: List[str], address
             "status": "pending",
             "total_amount": order_total,
             "created_at": now,
-            "updated_at": now
-        }
+            "updated_at": now,
+        },
     )
 
-    # 4️⃣ Create Order Items & Files - ✅ SIMPLIFIED SOLUTION
+    # CREATE ORDER ITEMS
     for item in cart_items:
-        # Insert order_item (let it auto-increment, no ID needed)
+
         await execute(
-            """
-            INSERT INTO order_items (
-                order_id, cart_item_id, product_id, variant_id,
-                quantity, price, total, created_at, updated_at
-            )
-            VALUES (
-                :order_id, :cart_item_id, :product_id, :variant_id,
-                :quantity, :price, :total, :created_at, :updated_at
-            )
-            """,
+            queries["order_item"]["create"],
             {
                 "order_id": order_id,
                 "cart_item_id": item["id"],
@@ -507,112 +503,99 @@ async def checkout(user_id: str, cart_id: str, cart_item_ids: List[str], address
                 "price": item["unit_price"],
                 "total": item["total_price"],
                 "created_at": now,
-                "updated_at": now
-            }
+                "updated_at": now,
+            },
         )
 
-        # Fetch cart item files
+        # FETCH FILES
         cart_files = await query_all(
-            "SELECT * FROM cart_item_files WHERE cart_item_id = :cart_item_id",
-            {"cart_item_id": item["id"]}
+            queries["cart"]["get_files"],
+            {"cart_item_id": item["id"]},
         )
 
-        # ✅ FIXED: Store files with cart_item_id reference OR skip files table
         for f in cart_files:
-            new_front_url = None
-            new_back_url = None
 
             if f["front_side_url"]:
                 filename = os.path.basename(f["front_side_url"])
-                new_front_path = os.path.join(UPLOAD_FOLDER, f"order_{order_id}_{filename}")
-                shutil.copy(f["front_side_url"], new_front_path)
-                new_front_url = new_front_path.replace("\\", "/")
+                new_path = os.path.join(
+                    UPLOAD_FOLDER, f"order_{order_id}_{filename}"
+                )
+                shutil.copy(f["front_side_url"], new_path)
 
             if f["back_side_url"]:
                 filename = os.path.basename(f["back_side_url"])
-                new_back_path = os.path.join(UPLOAD_FOLDER, f"order_{order_id}_{filename}")
-                shutil.copy(f["back_side_url"], new_back_path)
-                new_back_url = new_back_path.replace("\\", "/")
+                new_path = os.path.join(
+                    UPLOAD_FOLDER, f"order_{order_id}_{filename}"
+                )
+                shutil.copy(f["back_side_url"], new_path)
 
-            # ✅ SOLUTION 1: Skip order_item_files table - files copied to folder
-            # Files are safely copied to media/orderfiles/ with order_id prefix
-
-    # 5️⃣ Soft delete purchased cart items
+    # MARK CART ITEMS PURCHASED
     await execute(
-        """
-        UPDATE cart_items
-        SET status = 'purchased', updated_at = :updated_at
-        WHERE id IN :cart_item_ids
-        """,
-        {"cart_item_ids": tuple(cart_item_ids), "updated_at": now}
+        queries["cart"]["mark_purchased"],
+        {"cart_item_ids": tuple(cart_item_ids), "updated_at": now},
     )
 
-    # 6️⃣ Recalculate remaining cart total
-    new_total = (await query(
-        """
-        SELECT COALESCE(SUM(total_price), 0) AS total
-        FROM cart_items
-        WHERE cart_id = :cart_id
-        AND status = 'active'
-        """,
-        {"cart_id": cart_id}
-    ))["total"]
+    # RECALCULATE CART
+    new_total = (
+        await query(
+            queries["cart"]["get_cart_total"],
+            {"cart_id": cart_id},
+        )
+    )["total"]
 
     await execute(
-        """
-        UPDATE carts
-        SET total_amount = :total,
-            updated_at = :updated_at
-        WHERE id = :cart_id
-        """,
-        {"total": new_total, "updated_at": now, "cart_id": cart_id}
+        queries["cart"]["update_cart_total"],
+        {
+            "cart_id": cart_id,
+            "total": new_total,
+            "updated_at": now,
+        },
     )
 
     return {
         "status": "success",
         "order_id": order_id,
-        "total_amount": order_total
+        "total_amount": order_total,
     }
 
 
-
+# ORDER STATUS FLOW
 ORDER_STATUS_FLOW = {
     "pending": ["process"],
     "process": ["printing"],
     "printing": ["packed"],
     "packed": ["shipment"],
     "shipment": ["delivery"],
-    "delivery": []
+    "delivery": [],
 }
 
-async def update_order_status(order_id: str, new_status: str):
-    # 1️⃣ Get current status
-    current_order = await query("SELECT status FROM orders WHERE id = :id", {"id": order_id})
-    if not current_order:
-        raise Exception("Order not found")
-    
-    current_status = current_order["status"]
 
-    # 2️⃣ Validate transition
+async def update_order_status(order_id: str, new_status: str):
+
+    current = await query(
+        queries["order"]["get_status"],
+        {"id": order_id},
+    )
+
+    if not current:
+        raise Exception("Order not found")
+
+    current_status = current["status"]
+
     allowed = ORDER_STATUS_FLOW.get(current_status, [])
+
     if new_status not in allowed:
         raise Exception(
-            f"Invalid status transition: {current_status} → {new_status}"
+            f"Invalid transition: {current_status} → {new_status}"
         )
 
-    # 3️⃣ Update status
     await execute(
-        """
-        UPDATE orders
-        SET status = :status,
-            updated_at = NOW()
-        WHERE id = :id
-        """,
-        {"status": new_status, "id": order_id}
+        queries["order"]["update_status"],
+        {"id": order_id, "status": new_status},
     )
 
     return {
         "order_id": order_id,
         "old_status": current_status,
-        "new_status": new_status
+        "new_status": new_status,
     }
