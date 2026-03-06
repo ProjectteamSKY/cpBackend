@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from mangum import Mangum
 
 # Import all routers
 from fastapi import FastAPI, APIRouter
@@ -144,6 +144,11 @@ app.openapi = custom_openapi
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=".*",  # allows all origins
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://citizenprints.s3-website.ap-south-1.amazonaws.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -222,3 +227,12 @@ async def root():
 @app.get("/health", tags=["Root"])
 async def health_check():
     return {"status": "OK"}
+
+# ------------------------
+# Lambda test route
+# ------------------------
+@app.get("/")
+def root():
+    return {"message": "Hello from Lambda 🚀"}
+
+handler = Mangum(app)
