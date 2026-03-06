@@ -1,9 +1,9 @@
 import hashlib
 import secrets
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+
 from app.domain.user_domain import User
 from app.utils.query_loader import load_queries
+from app.core.database import execute, query, query_all
 
 queries = load_queries()
 
@@ -12,9 +12,9 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
-async def create_user(user: User, session: AsyncSession):
-    await session.execute(
-        text(queries["user"]["create_user"]),
+async def create_user(user: User):
+    await execute(
+        queries["user"]["create_user"],
         {
             "id": user.id,
             "full_name": user.full_name,
@@ -23,7 +23,6 @@ async def create_user(user: User, session: AsyncSession):
             "password_hash": hash_password(user.password),
         },
     )
-    await session.commit()
 
     return {
         "id": user.id,
@@ -34,54 +33,52 @@ async def create_user(user: User, session: AsyncSession):
     }
 
 
-async def get_user_by_email(email: str, session: AsyncSession):
-    result = await session.execute(
-        text(queries["user"]["get_by_email"]),
+async def get_user_by_email(email: str):
+    return await query(
+        queries["user"]["get_by_email"],
         {"email": email},
     )
-    row = result.fetchone()
-    return dict(row._mapping) if row else None
 
 
-async def get_user_by_id(user_id: str, session: AsyncSession):
-    result = await session.execute(
-        text(queries["user"]["get_by_id"]),
+async def get_user_by_id(user_id: str):
+    return await query(
+        queries["user"]["get_by_id"],
         {"user_id": user_id},
     )
-    row = result.fetchone()
-    return dict(row._mapping) if row else None
 
 
-async def get_all_users(session: AsyncSession):
-    result = await session.execute(text(queries["user"]["get_all"]))
-    return [dict(r._mapping) for r in result.fetchall()]
+async def get_all_users():
+    return await query_all(
+        queries["user"]["get_all"]
+    )
 
 
-async def delete_user(user_id: str, session: AsyncSession):
-    result = await session.execute(
-        text(queries["user"]["delete_user"]),
+async def delete_user(user_id: str):
+    result = await execute(
+        queries["user"]["delete_user"],
         {"user_id": user_id},
     )
-    await session.commit()
-    return result.rowcount > 0
+
+    return result > 0
 
 
-async def login_user(email: str, password: str, session: AsyncSession):
-    user = await get_user_by_email(email, session)
+async def login_user(email: str, password: str):
+    user = await get_user_by_email(email)
+
     if not user:
         return None
 
     hashed = hash_password(password)
+
     if hashed != user["password_hash"]:
         return None
 
     token = secrets.token_hex(32)
 
-    await session.execute(
-        text(queries["user"]["update_token"]),
+    await execute(
+        queries["user"]["update_token"],
         {"token": token, "id": user["id"]},
     )
-    await session.commit()
 
     return {
         "id": user["id"],

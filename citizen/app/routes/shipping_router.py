@@ -9,7 +9,8 @@ from app.services.shipping_service import (
     update_webhook_status_service,
     download_label_service,
     cancel_order_service,
-    refund_order_service
+    refund_order_service,
+    couriers_service
 )
 from app.integrations.shiprocket_client import ShiprocketClient
 
@@ -27,59 +28,52 @@ class RefundRequest(BaseModel):
 @router.post("/create-order/{order_id}")
 async def create_shiprocket_order(
     order_id: str,
-    session: AsyncSession = Depends(get_session)
 ):
-    return await create_order_service(order_id, session)
+    return await create_order_service(order_id)
 
 
 @router.get("/couriers/{order_id}")
 async def get_available_couriers(
     order_id: str,
-    session: AsyncSession = Depends(get_session)
 ):
-    return await get_available_couriers_service(order_id, session)
+    return await get_available_couriers_service(order_id)
 
 
 @router.post("/assign-courier/{order_id}")
 async def assign_courier(
     order_id: str,
     data: CourierSelect,
-    session: AsyncSession = Depends(get_session)
 ):
-    return await assign_courier_service(order_id, data.courier_id, session)
+    return await assign_courier_service(order_id, data.courier_id)
 
 
 @router.get("/label/{order_id}")
 async def download_label(
     order_id: str,
-    session: AsyncSession = Depends(get_session)
 ):
-    return await download_label_service(order_id, session)
+    return await download_label_service(order_id)
 
 
 @router.post("/webhook/shiprocket")
 async def shiprocket_webhook(
     payload: dict,
-    session: AsyncSession = Depends(get_session)
 ):
-    return await update_webhook_status_service(payload, session)
+    return await update_webhook_status_service(payload)
 
 
 @router.post("/cancel-order/{order_id}")
 async def cancel_order(
     order_id: str,
-    session: AsyncSession = Depends(get_session)
 ):
-    return await cancel_order_service(order_id, session)
+    return await cancel_order_service(order_id)
 
 
 @router.post("/refund-order/{order_id}")
 async def refund_order(
     order_id: str,
     data: RefundRequest,
-    session: AsyncSession = Depends(get_session)
 ):
-    return await refund_order_service(order_id, session, data.amount)
+    return await refund_order_service(order_id, data.amount)
 
 
 @router.get("/track/{awb_code}")
@@ -91,3 +85,20 @@ async def track_awb(awb_code: str):
         return client.get_tracking(awb_code)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+
+@router.get("/couriers/serviceavailability")
+async def get_available_couriers(
+    pickup_postcode: str,
+    delivery_postcode: str,
+    weight: float = 0.5,
+    cod: int = 0,
+    declared_value: float = 500
+):
+    return await couriers_service(
+        pickup_postcode,
+        delivery_postcode,
+        weight,
+        cod,
+        declared_value
+    )
