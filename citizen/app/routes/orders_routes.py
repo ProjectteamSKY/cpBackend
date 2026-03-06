@@ -193,7 +193,6 @@
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.core.database import execute, query, query_all
 from app.services.orders_service import (
     checkout,
     create_order,

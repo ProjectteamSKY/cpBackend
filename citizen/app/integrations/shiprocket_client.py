@@ -289,3 +289,49 @@ class ShiprocketClient:
             raise Exception(f"Tracking fetch failed: {response.text}")
 
         return response.json()
+    
+    def get_couriers_by_address(
+        self,
+        pickup_postcode: str,
+        delivery_postcode: str,
+        weight: float,
+        cod: int = 0,
+        declared_value: float = 100,
+        length: int = 10,
+        breadth: int = 10,
+        height: int = 10,
+    ):
+        """
+        Fetch available couriers based on pickup & delivery address
+        WITHOUT creating shipment/order.
+        """
+
+        self.ensure_token()
+
+        url = f"{BASE_URL}/courier/serviceability/"
+
+        payload = {
+            "pickup_postcode": pickup_postcode,
+            "delivery_postcode": delivery_postcode,
+            "weight": weight,
+            "cod": cod,
+            "declared_value": declared_value,
+            "length": length,
+            "breadth": breadth,
+            "height": height
+        }
+
+        response = requests.post(
+            url,
+            headers={**self.headers(), "Content-Type": "application/json"},
+            json=payload
+        )
+
+        data = response.json()
+
+        print("Shiprocket courier list by address: - shiprocket_client.py:332", data)
+
+        if response.status_code != 200:
+            raise Exception(f"Failed to fetch courier list: {data}")
+
+        return data

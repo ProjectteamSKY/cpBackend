@@ -1,21 +1,19 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from app.domain.role_permission_domain import RolePermission
 from app.utils.query_loader import load_queries
+from app.core.database import execute, query_all
 
 queries = load_queries()
 
 
-async def assign_permission(role_permission: RolePermission, session: AsyncSession):
-    await session.execute(
-        text(queries["role_permission"]["assign_permission"]),
+async def assign_permission(role_permission: RolePermission):
+    await execute(
+        queries["role_permission"]["assign_permission"],
         {
             "id": role_permission.id,
             "role_id": role_permission.role_id,
             "permission_id": role_permission.permission_id,
         },
     )
-    await session.commit()
 
     return {
         "id": role_permission.id,
@@ -24,29 +22,27 @@ async def assign_permission(role_permission: RolePermission, session: AsyncSessi
     }
 
 
-async def get_permissions_by_role(role_id: str, session: AsyncSession):
-    result = await session.execute(
-        text(queries["role_permission"]["get_permissions_by_role"]),
+async def get_permissions_by_role(role_id: str):
+    return await query_all(
+        queries["role_permission"]["get_permissions_by_role"],
         {"role_id": role_id},
     )
-    return [dict(row._mapping) for row in result.fetchall()]
 
 
-async def get_roles_by_permission(permission_id: str, session: AsyncSession):
-    result = await session.execute(
-        text(queries["role_permission"]["get_roles_by_permission"]),
+async def get_roles_by_permission(permission_id: str):
+    return await query_all(
+        queries["role_permission"]["get_roles_by_permission"],
         {"permission_id": permission_id},
     )
-    return [dict(row._mapping) for row in result.fetchall()]
 
 
-async def remove_permission(role_id: str, permission_id: str, session: AsyncSession):
-    result = await session.execute(
-        text(queries["role_permission"]["remove_permission"]),
+async def remove_permission(role_id: str, permission_id: str):
+    result = await execute(
+        queries["role_permission"]["remove_permission"],
         {
             "role_id": role_id,
             "permission_id": permission_id,
         },
     )
-    await session.commit()
-    return result.rowcount > 0
+
+    return result > 0

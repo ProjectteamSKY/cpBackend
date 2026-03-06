@@ -1,21 +1,19 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from app.domain.resource_domain import Resource
 from app.utils.query_loader import load_queries
+from app.core.database import execute, query, query_all
 
 queries = load_queries()
 
 
-async def create_resource(resource: Resource, session: AsyncSession):
-    await session.execute(
-        text(queries["resource"]["create_resource"]),
+async def create_resource(resource: Resource):
+    await execute(
+        queries["resource"]["create_resource"],
         {
             "id": resource.id,
             "name": resource.name,
             "description": resource.description,
         },
     )
-    await session.commit()
 
     return {
         "id": resource.id,
@@ -24,33 +22,30 @@ async def create_resource(resource: Resource, session: AsyncSession):
     }
 
 
-async def get_resource_by_name(name: str, session: AsyncSession):
-    result = await session.execute(
-        text(queries["resource"]["get_by_name"]),
+async def get_resource_by_name(name: str):
+    return await query(
+        queries["resource"]["get_by_name"],
         {"name": name},
     )
-    row = result.fetchone()
-    return dict(row._mapping) if row else None
 
 
-async def get_resource_by_id(resource_id: str, session: AsyncSession):
-    result = await session.execute(
-        text(queries["resource"]["get_by_id"]),
+async def get_resource_by_id(resource_id: str):
+    return await query(
+        queries["resource"]["get_by_id"],
         {"resource_id": resource_id},
     )
-    row = result.fetchone()
-    return dict(row._mapping) if row else None
 
 
-async def get_all_resources(session: AsyncSession):
-    result = await session.execute(text(queries["resource"]["get_all"]))
-    return [dict(r._mapping) for r in result.fetchall()]
+async def get_all_resources():
+    return await query_all(
+        queries["resource"]["get_all"]
+    )
 
 
-async def delete_resource(resource_id: str, session: AsyncSession):
-    result = await session.execute(
-        text(queries["resource"]["delete_resource"]),
+async def delete_resource(resource_id: str):
+    result = await execute(
+        queries["resource"]["delete_resource"],
         {"resource_id": resource_id},
     )
-    await session.commit()
-    return result.rowcount > 0
+
+    return result > 0

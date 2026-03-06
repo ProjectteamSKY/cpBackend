@@ -1,5 +1,34 @@
 [shipping]
 
+get_order_details = """
+SELECT 
+    o.*,
+    u.full_name AS username,
+    u.email,
+    u.contact AS user_phone,
+    a.address AS address_line,
+    a.city,
+    a.state,
+    a.country,
+    a.postal_code
+FROM orders o
+JOIN users u ON u.id = o.user_id
+LEFT JOIN user_addresses a ON a.id = o.address_id
+WHERE o.id = :id
+"""
+
+get_shipment_by_order = """
+SELECT *
+FROM shipments
+WHERE order_id = :order_id
+"""
+
+get_order_amount = """
+SELECT total_amount
+FROM orders
+WHERE id = :order_id
+"""
+
 create_shipment = """
 INSERT INTO shipments (
     id,
@@ -23,18 +52,47 @@ INSERT INTO shipments (
     :current_status,
     :created_at,
     :updated_at
-);
+)
 """
 
-get_by_awb = """
-SELECT *
-FROM shipments
-WHERE awb_code = :awb_code;
+assign_courier = """
+UPDATE shipments
+SET courier_id = :courier_id,
+    courier_name = :courier_name,
+    awb_code = :awb_code,
+    freight_charges = :freight_charges,
+    updated_at = NOW()
+WHERE shipment_id = :shipment_id
+"""
+
+update_label = """
+UPDATE shipments
+SET label_url = :label_url
+WHERE shipment_id = :shipment_id
 """
 
 update_status = """
 UPDATE shipments
 SET current_status = :status,
     updated_at = NOW()
-WHERE awb_code = :awb_code;
+WHERE awb_code = :awb_code
+"""
+
+update_order_status = """
+UPDATE orders o
+JOIN shipments s ON s.order_id = o.id
+SET o.status = :status
+WHERE s.awb_code = :awb_code
+"""
+
+cancel_order = """
+UPDATE orders
+SET status = 'cancelled'
+WHERE id = :order_id
+"""
+
+refund_order = """
+UPDATE orders
+SET status = 'refunded'
+WHERE id = :order_id
 """
