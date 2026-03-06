@@ -2,18 +2,19 @@
 
 create = """
 INSERT INTO products (
-    id, category_id, subcategory_id, name, description,
+    id, category_id, subcategory_id, name, sku, description,
     min_order_qty, max_order_qty, images, related_images,
     is_active, is_deleted, created_at, updated_at
 )
 VALUES (
-    :id, :category_id, :subcategory_id, :name, :description,
+    :id, :category_id, :subcategory_id, :name, :sku, :description,
     :min_order_qty, :max_order_qty, :images, :related_images,
     :is_active, FALSE, :created_at, :updated_at
 )
 ON DUPLICATE KEY UPDATE
     is_deleted = FALSE,
     is_active = TRUE,
+    sku = VALUES(sku),
     description = VALUES(description),
     category_id = VALUES(category_id),
     subcategory_id = VALUES(subcategory_id),
@@ -28,6 +29,7 @@ get_all = """
 SELECT 
     p.id,
     p.name,
+    p.sku,
     p.description,
     p.min_order_qty,
     p.max_order_qty,
@@ -51,6 +53,7 @@ get_all_active = """
 SELECT 
     p.id,
     p.name,
+    p.sku,
     p.description,
     p.min_order_qty,
     p.max_order_qty,
@@ -88,6 +91,7 @@ SET
     category_id = :category_id,
     subcategory_id = :subcategory_id,
     name = :name,
+    sku = :sku,
     description = :description,
     min_order_qty = :min_order_qty,
     max_order_qty = :max_order_qty,

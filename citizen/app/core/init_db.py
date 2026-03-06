@@ -99,9 +99,9 @@ SQL_FILES_ORDER = [
     "product.sql",
     "cart.sql"
     "order.sql",
-    # "user_order_file.sql",
-    # "wish_list.sql",
-    # "cart.sql",
+    "user_order_file.sql",
+    "wish_list.sql",
+    "cart.sql",
 ]
 
 
