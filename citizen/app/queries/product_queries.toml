@@ -2,20 +2,34 @@
 
 create = """
 INSERT INTO products (
-    id, category_id, subcategory_id, name, description,
+    id, category_id, subcategory_id, name, sku, description,
     min_order_qty, max_order_qty, images, related_images,
-    is_active, created_at, updated_at
-) VALUES (
-    :id, :category_id, :subcategory_id, :name, :description,
+    is_active, is_deleted, created_at, updated_at
+)
+VALUES (
+    :id, :category_id, :subcategory_id, :name, :sku, :description,
     :min_order_qty, :max_order_qty, :images, :related_images,
-    :is_active, :created_at, :updated_at
-);
+    :is_active, FALSE, :created_at, :updated_at
+)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    is_active = TRUE,
+    sku = VALUES(sku),
+    description = VALUES(description),
+    category_id = VALUES(category_id),
+    subcategory_id = VALUES(subcategory_id),
+    min_order_qty = VALUES(min_order_qty),
+    max_order_qty = VALUES(max_order_qty),
+    images = VALUES(images),
+    related_images = VALUES(related_images),
+    updated_at = NOW();
 """
 
 get_all = """
 SELECT 
     p.id,
     p.name,
+    p.sku,
     p.description,
     p.min_order_qty,
     p.max_order_qty,
@@ -25,10 +39,37 @@ SELECT
     s.name AS subcategory_name,
     p.images,
     p.related_images,
+    p.is_active,
     p.created_at
 FROM products p
 LEFT JOIN categories c ON p.category_id = c.id
 LEFT JOIN subcategories s ON p.subcategory_id = s.id
+WHERE p.is_deleted = FALSE
+ORDER BY p.created_at DESC;
+"""
+
+
+get_all_active = """
+SELECT 
+    p.id,
+    p.name,
+    p.sku,
+    p.description,
+    p.min_order_qty,
+    p.max_order_qty,
+    p.category_id,
+    c.name AS category_name,
+    p.subcategory_id,
+    s.name AS subcategory_name,
+    p.images,
+    p.related_images,
+    p.is_active,
+    p.created_at
+FROM products p
+LEFT JOIN categories c ON p.category_id = c.id
+LEFT JOIN subcategories s ON p.subcategory_id = s.id
+WHERE p.is_deleted = FALSE
+AND P.is_active = TRUE
 ORDER BY p.created_at DESC;
 """
 
@@ -50,6 +91,7 @@ SET
     category_id = :category_id,
     subcategory_id = :subcategory_id,
     name = :name,
+    sku = :sku,
     description = :description,
     min_order_qty = :min_order_qty,
     max_order_qty = :max_order_qty,
@@ -59,10 +101,13 @@ SET
 WHERE id = :id;
 """
 
-soft_delete = """
+delete = """
 UPDATE products
-SET is_active = FALSE, updated_at = NOW()
-WHERE id = :id;
+SET is_deleted = TRUE,
+    is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
 activate = """
@@ -71,3 +116,9 @@ SET is_active = TRUE, updated_at = NOW()
 WHERE id = :id;
 """
 
+deactivate = """
+UPDATE products
+SET is_active = FALSE, updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""

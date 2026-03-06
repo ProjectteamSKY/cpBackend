@@ -11,7 +11,8 @@ from app.services.size_service import (
     update_size,
     delete_size,
     activate_size,
-    deactivate_size
+    deactivate_size,
+    get_all_sizes_active
 )
 
 router = APIRouter()
@@ -24,7 +25,6 @@ async def create_size_endpoint(
     height: float = Form(...),
     unit: str = Form("mm"),
     description: str = Form(None),
-    session: AsyncSession = Depends(get_session)
 ):
 
     size = Size(
@@ -35,26 +35,31 @@ async def create_size_endpoint(
         description=description
     )
 
-    return await create_size(size, session)
+    return await create_size(size)
 
 
 @router.get("/list")
 async def list_sizes(
-    session: AsyncSession = Depends(get_session)
 ):
 
     return {
-        "sizes": await get_all_sizes(session)
+        "sizes": await get_all_sizes()
     }
 
+@router.get("/list/active")
+async def list_sizes(
+):
+
+    return {
+        "sizes": await get_all_sizes_active()
+    }
 
 @router.get("/{id}")
 async def get_size_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    result = await get_size_by_id(id, session)
+    result = await get_size_by_id(id)
 
     if not result:
         raise HTTPException(404, "Size not found")
@@ -62,29 +67,38 @@ async def get_size_endpoint(
     return result
 
 
+
+# UPDATE SIZE
 @router.put("/{id}")
 async def update_size_endpoint(
     id: str,
-    name: str = Form(...),
-    width: float = Form(...),
-    height: float = Form(...),
-    unit: str = Form(...),
+    name: str = Form(None),
+    width: float = Form(None),
+    height: float = Form(None),
+    unit: str = Form(None),
     description: str = Form(None),
-    session: AsyncSession = Depends(get_session)
 ):
 
-    result = await update_size(
-        id,
-        name,
-        width,
-        height,
-        unit,
-        description,
-        session
-    )
+    # Build updates dict
+    updates = {}
+    if name is not None:
+        updates["name"] = name
+    if width is not None:
+        updates["width"] = width
+    if height is not None:
+        updates["height"] = height
+    if unit is not None:
+        updates["unit"] = unit
+    if description is not None:
+        updates["description"] = description
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    result = await update_size(id, updates)
 
     if not result:
-        raise HTTPException(404, "Size not found")
+        raise HTTPException(status_code=404, detail="Size not found")
 
     return result
 
@@ -92,24 +106,21 @@ async def update_size_endpoint(
 @router.delete("/{id}")
 async def delete_size_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    return await delete_size(id, session)
+    return await delete_size(id)
 
 
 @router.put("/{id}/activate")
 async def activate_size_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    return await activate_size(id, session)
+    return await activate_size(id)
 
 @router.put("/{id}/deactivate")
 async def activate_size_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    return await deactivate_size(id, session)
+    return await deactivate_size(id)

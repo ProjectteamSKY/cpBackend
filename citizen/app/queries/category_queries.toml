@@ -1,23 +1,13 @@
 [category]
 
 create = """
-INSERT INTO categories (
-    id,
-    name,
-    description,
-    is_active,
-    is_deleted,
-    created_at,
-    updated_at
-) VALUES (
-    :id,
-    :name,
-    :description,
-    :is_active,
-    :is_deleted,
-    :created_at,
-    :updated_at
-);
+INSERT INTO categories (id, name, description, is_active, is_deleted, created_at, updated_at)
+VALUES (:id, :name, :description, :is_active, FALSE, :created_at, :updated_at)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    description = VALUES(description),
+    is_active = VALUES(is_active),
+    updated_at = NOW();
 """
 
 get_all = """

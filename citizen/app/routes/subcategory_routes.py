@@ -27,7 +27,6 @@ async def create_subcategory_endpoint(
     name: str = Form(...),
     description: str = Form(None),
     is_active: bool = Form(True),
-    session: AsyncSession = Depends(get_session)
 ):
 
     subcategory = Subcategory(
@@ -37,20 +36,19 @@ async def create_subcategory_endpoint(
         is_active=is_active
     )
 
-    return await create_subcategory(subcategory, session)
+    return await create_subcategory(subcategory)
 
 
 # LIST ALL
 @router.get("/list")
 async def list_subcategories(
     category_id: str = None,
-    session: AsyncSession = Depends(get_session)
 ):
 
     if category_id:
-        data = await get_subcategories_by_category(category_id, session)
+        data = await get_subcategories_by_category(category_id)
     else:
-        data = await get_all_subcategories(session)
+        data = await get_all_subcategories()
 
     return {"subcategories": data}
 
@@ -59,10 +57,9 @@ async def list_subcategories(
 @router.get("/{id}")
 async def get_subcategory_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    data = await get_subcategory_by_id(id, session)
+    data = await get_subcategory_by_id(id)
 
     if not data:
         raise HTTPException(404, "Subcategory not found")
@@ -77,7 +74,6 @@ async def update_subcategory_endpoint(
     name: str = Form(None),
     description: str = Form(None),
     is_active: bool = Form(None),
-    session: AsyncSession = Depends(get_session)
 ):
 
     payload = {}
@@ -94,7 +90,7 @@ async def update_subcategory_endpoint(
     if not payload:
         raise HTTPException(400, "No fields to update")
 
-    result = await update_subcategory(id, payload, session)
+    result = await update_subcategory(id, payload)
 
     if not result:
         raise HTTPException(404, "Subcategory not found")
@@ -106,13 +102,12 @@ async def update_subcategory_endpoint(
 
 
 # DELETE
-@router.delete("/subcategory/{id}")
+@router.delete("/delete/subcategory/{id}")
 async def delete_subcategory_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    result = await delete_subcategory(id, session)
+    result = await delete_subcategory(id)
 
     if not result:
         raise HTTPException(404, "Subcategory not found")
@@ -127,10 +122,9 @@ async def delete_subcategory_endpoint(
 @router.put("/{id}/activate")
 async def activate_subcategory_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    result = await activate_subcategory(id, session)
+    result = await activate_subcategory(id)
 
     if not result:
         raise HTTPException(404, "Subcategory not found")
@@ -142,10 +136,9 @@ async def activate_subcategory_endpoint(
 @router.put("/{id}/deactivate")
 async def deactivate_subcategory_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    result = await deactivate_subcategory(id, session)
+    result = await deactivate_subcategory(id)
 
     if not result:
         raise HTTPException(404, "Subcategory not found")

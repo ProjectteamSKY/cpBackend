@@ -64,3 +64,24 @@ CREATE INDEX idx_orderitems_order ON order_items(order_id);
 CREATE INDEX idx_orderitems_cartitem ON order_items(cart_item_id);
 CREATE INDEX idx_orderitems_product ON order_items(product_id);
 CREATE INDEX idx_orderitems_variant ON order_items(variant_id);
+
+CREATE TABLE order_item_files (
+    id VARCHAR(36) PRIMARY KEY,
+    order_item_id INT NOT NULL,
+
+    front_side_url VARCHAR(255) NULL,
+    back_side_url VARCHAR(255) NULL,
+
+    front_original_name VARCHAR(255),
+    back_original_name VARCHAR(255),
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_orderitemfile_orderitem
+    FOREIGN KEY (order_item_id)
+    REFERENCES order_items(id)
+    ON DELETE CASCADE
+);
+
+CREATE INDEX idx_order_item_files_order_item 
+ON order_item_files(order_item_id);

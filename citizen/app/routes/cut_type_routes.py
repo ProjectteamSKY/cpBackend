@@ -11,7 +11,8 @@ from app.services.cut_type_service import (
     update_cut_type,
     delete_cut_type,
     activate_cut_type,
-    deactivate_cut_type
+    deactivate_cut_type,
+    get_all_cut_types_active
 )
 
 router = APIRouter()
@@ -21,7 +22,6 @@ router = APIRouter()
 async def create_cut_type_endpoint(
     name: str = Form(...),
     description: str = Form(None),
-    session: AsyncSession = Depends(get_session)
 ):
 
     cut_type = CutType(
@@ -29,26 +29,31 @@ async def create_cut_type_endpoint(
         description=description
     )
 
-    return await create_cut_type(cut_type, session)
+    return await create_cut_type(cut_type)
 
 
 @router.get("/list")
 async def list_cut_types(
-    session: AsyncSession = Depends(get_session)
 ):
 
     return {
-        "cut_types": await get_all_cut_types(session)
+        "cut_types": await get_all_cut_types()
     }
 
+@router.get("/list/active")
+async def list_cut_types_active(
+):
+
+    return {
+        "cut_types": await get_all_cut_types_active()
+    }
 
 @router.get("/{id}")
 async def get_cut_type_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    result = await get_cut_type_by_id(id, session)
+    result = await get_cut_type_by_id(id)
 
     if not result:
         raise HTTPException(404, "Cut Type not found")
@@ -59,45 +64,46 @@ async def get_cut_type_endpoint(
 @router.put("/{id}")
 async def update_cut_type_endpoint(
     id: str,
-    name: str = Form(...),
+    name: str = Form(None),
     description: str = Form(None),
-    session: AsyncSession = Depends(get_session)
 ):
+    updates = {}
+
+    if name is not None:
+        updates["name"] = name
+
+    if description is not None:
+        updates["description"] = description
 
     result = await update_cut_type(
         id,
-        name,
-        description,
-        session
+        updates
     )
 
     if not result:
-        raise HTTPException(404, "Cut Type not found")
+        raise HTTPException(status_code=404, detail="Cut Type not found")
 
     return result
-
 
 @router.delete("/{id}")
 async def delete_cut_type_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    return await delete_cut_type(id, session)
+    return await delete_cut_type(id)
 
 
 @router.put("/{id}/activate")
 async def activate_cut_type_endpoint(
     id: str,
-    session: AsyncSession = Depends(get_session)
 ):
 
-    return await activate_cut_type(id, session)
+    return await activate_cut_type(id)
 
 
 @router.put("/{id}/deactivate")
-async def deactivate_cut_type_endpoint(id: str, session: AsyncSession = Depends(get_session)):
-    result = await deactivate_cut_type(id, session)
+async def deactivate_cut_type_endpoint(id: str):
+    result = await deactivate_cut_type(id)
     if not result:
         raise HTTPException(404, "Cut Type not found or already inactive")
     return result

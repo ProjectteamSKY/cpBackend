@@ -1,144 +1,144 @@
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from fastapi import HTTPException
 from app.domain.paper_type_domain import PaperType
 from app.utils.query_loader import load_queries
-
+from app.core.database import execute, query, query_all
 
 queries = load_queries()
 
 
+# -------------------------
 # CREATE
-async def create_paper_type(paper_type: PaperType, session: AsyncSession):
+# -------------------------
 
-    await session.execute(
-        text(queries["paper_type"]["create"]),
+async def create_paper_type(paper_type: PaperType):
+
+    existing = await query(
+        "SELECT * FROM paper_types WHERE name = :name AND is_deleted = FALSE",
+        {"name": paper_type.name}
+    )
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Paper type already exists")
+
+    await execute(
+        queries["paper_type"]["create"],
         paper_type.to_dict()
     )
 
-    await session.commit()
-
-    result = await session.execute(
-        text(queries["paper_type"]["get_by_id"]),
+    return await query(
+        queries["paper_type"]["get_by_id"],
         {"id": paper_type.id}
     )
 
-    row = result.fetchone()
 
-    return dict(row._mapping) if row else None
-
-
+# -------------------------
 # GET ALL
-async def get_all_paper_types(session: AsyncSession):
+# -------------------------
 
-    result = await session.execute(
-        text(queries["paper_type"]["get_all"])
+async def get_all_paper_types():
+
+    return await query_all(
+        queries["paper_type"]["get_all"]
     )
 
-    return [
-        dict(row._mapping)
-        for row in result.fetchall()
-    ]
+
+async def get_all_paper_types_active():
+
+    return await query_all(
+        queries["paper_type"]["get_all_active"]
+    )
 
 
+
+# -------------------------
 # GET BY ID
-async def get_paper_type_by_id(id: str, session: AsyncSession):
+# -------------------------
 
-    result = await session.execute(
-        text(queries["paper_type"]["get_by_id"]),
+async def get_paper_type_by_id(id: str):
+
+    return await query(
+        queries["paper_type"]["get_by_id"],
         {"id": id}
     )
 
-    row = result.fetchone()
 
-    return dict(row._mapping) if row else None
-
-
+# -------------------------
 # UPDATE
-async def update_paper_type(id: str, updates: dict, session: AsyncSession):
+# -------------------------
+
+async def update_paper_type(id: str, updates: dict):
+
+    existing = await get_paper_type_by_id(id)
+
+    if not existing:
+        return None
 
     set_clause = ", ".join(
         f"{key} = :{key}"
         for key in updates.keys()
     )
 
-    await session.execute(
-        text(
-            queries["paper_type"]["update"].format(
-                set_clause=set_clause
-            )
-        ),
-        {"id": id, **updates}
+    sql = queries["paper_type"]["update"].format(
+        set_clause=set_clause
     )
 
-    await session.commit()
+    await execute(sql, {"id": id, **updates})
 
-    result = await session.execute(
-        text(queries["paper_type"]["get_by_id"]),
-        {"id": id}
-    )
-
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+    return await get_paper_type_by_id(id)
 
 
-# SOFT DELETE
-async def delete_paper_type(id: str, session: AsyncSession):
+# -------------------------
+# DELETE (SOFT)
+# -------------------------
 
-    result = await session.execute(
-        text(queries["paper_type"]["get_by_id"]),
-        {"id": id}
-    )
+async def delete_paper_type(id: str):
 
-    if not result.fetchone():
+    existing = await get_paper_type_by_id(id)
+
+    if not existing:
         return None
 
-    await session.execute(
-        text(queries["paper_type"]["delete"]),
+    await execute(
+        queries["paper_type"]["delete"],
         {"id": id}
     )
 
-    await session.commit()
-
-    return {"id": id, "deleted": True}
+    return {"id": id}
 
 
+# -------------------------
 # ACTIVATE
-async def activate_paper_type(id: str, session: AsyncSession):
+# -------------------------
 
-    await session.execute(
-        text(queries["paper_type"]["activate"]),
+async def activate_paper_type(id: str):
+
+    existing = await get_paper_type_by_id(id)
+
+    if not existing:
+        return None
+
+    await execute(
+        queries["paper_type"]["activate"],
         {"id": id}
     )
 
-    await session.commit()
-
-    result = await session.execute(
-        text(queries["paper_type"]["get_by_id"]),
-        {"id": id}
-    )
-
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+    return await get_paper_type_by_id(id)
 
 
+# -------------------------
 # DEACTIVATE
-async def deactivate_paper_type(id: str, session: AsyncSession):
+# -------------------------
 
-    await session.execute(
-        text(queries["paper_type"]["deactivate"]),
+async def deactivate_paper_type(id: str):
+
+    existing = await get_paper_type_by_id(id)
+
+    if not existing:
+        return None
+
+    await execute(
+        queries["paper_type"]["deactivate"],
         {"id": id}
     )
 
-    await session.commit()
-
-    result = await session.execute(
-        text(queries["paper_type"]["get_by_id"]),
-        {"id": id}
-    )
-
-    row = result.fetchone()
-
-    return dict(row._mapping) if row else None
+    return await get_paper_type_by_id(id)

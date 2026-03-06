@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, Form, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Form, HTTPException
 from typing import Optional
-from app.core.database import get_session
+
 from app.domain.product_variant_domain import ProductVariant
 from app.services.product_variant_service import (
     create_product_variant,
@@ -27,7 +26,6 @@ async def create_product_variant_endpoint(
     two_side_cut: bool = Form(False),
     four_side_cut: bool = Form(False),
     orientation: str = Form("Portrait"),
-    session: AsyncSession = Depends(get_session)
 ):
     variant = ProductVariant(
         product_id=product_id,
@@ -40,25 +38,26 @@ async def create_product_variant_endpoint(
         four_side_cut=four_side_cut,
         orientation=orientation
     )
-    return await create_product_variant(variant, session)
+
+    return await create_product_variant(variant)
 
 
 @router.get("/list")
-async def list_product_variants(session: AsyncSession = Depends(get_session)):
-    return {"variants": await get_all_product_variants(session)}
+async def list_product_variants():
+    return {"variants": await get_all_product_variants()}
 
 
 @router.get("/{id}")
-async def get_product_variant_endpoint(id: str, session: AsyncSession = Depends(get_session)):
-    variant = await get_product_variant_by_id(id, session)
+async def get_product_variant_endpoint(id: str):
+    variant = await get_product_variant_by_id(id)
     if not variant:
         raise HTTPException(404, "Product Variant not found")
     return variant
 
 
 @router.get("/product/{product_id}")
-async def list_product_variants_by_product(product_id: str, session: AsyncSession = Depends(get_session)):
-    return {"variants": await get_product_variants_by_product(product_id, session)}
+async def list_product_variants_by_product(product_id: str):
+    return {"variants": await get_product_variants_by_product(product_id)}
 
 
 @router.put("/{id}")
@@ -73,7 +72,6 @@ async def update_product_variant_endpoint(
     two_side_cut: bool = Form(False),
     four_side_cut: bool = Form(False),
     orientation: str = Form("Portrait"),
-    session: AsyncSession = Depends(get_session)
 ):
     variant = ProductVariant(
         product_id=product_id,
@@ -86,17 +84,20 @@ async def update_product_variant_endpoint(
         four_side_cut=four_side_cut,
         orientation=orientation
     )
-    updated = await update_product_variant(id, variant, session)
+
+    updated = await update_product_variant(id, variant)
+
     if not updated:
         raise HTTPException(404, "Product Variant not found")
+
     return updated
 
 
 @router.delete("/{id}")
-async def delete_product_variant_endpoint(id: str, session: AsyncSession = Depends(get_session)):
-    return await delete_product_variant(id, session)
+async def delete_product_variant_endpoint(id: str):
+    return await delete_product_variant(id)
 
 
 @router.put("/{id}/activate")
-async def activate_product_variant_endpoint(id: str, session: AsyncSession = Depends(get_session)):
-    return await activate_product_variant(id, session)
+async def activate_product_variant_endpoint(id: str):
+    return await activate_product_variant(id)
