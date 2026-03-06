@@ -42,7 +42,7 @@ jobs:
             export DATABASE_URL="${{ secrets.DATABASE_URL }}"
             export SHIPROCKET_EMAIL="${{ secrets.SHIPROCKET_EMAIL }}"
             export SHIPROCKET_PASSWORD="${{ secrets.SHIPROCKET_PASSWORD }}"
-            export WAREHOUSE_PINCODE="${{ secrets.WAREHOUSE_PINCODE }}"
+            
 
             
             sudo systemctl restart fastapi
