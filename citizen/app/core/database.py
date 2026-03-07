@@ -65,6 +65,8 @@ from sqlalchemy import MetaData, text
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set")
 
 # -------------------------
 # 1. Async engine
