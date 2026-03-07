@@ -1,185 +1,155 @@
 from typing import Optional
 from fastapi import APIRouter, Form, HTTPException
-from pydantic import BaseModel
-
 from app.domain.paper_type_domain import PaperType
 from app.services.paper_type_service import (
-    create_paper_type,
-    get_all_paper_types,
-    get_paper_type_by_id,
-    update_paper_type,
-    delete_paper_type,
-    activate_paper_type,
-    deactivate_paper_type,
-    get_all_paper_types_active
+    create_paper_type,
+    get_all_paper_types,
+    get_all_paper_types_active,
+    get_paper_type_by_id,
+    update_paper_type,
+    delete_paper_type,
+    activate_paper_type,
+    deactivate_paper_type
 )
 
 router = APIRouter()
 
 
-# --------------------------
-# Pydantic Models
-# --------------------------
-
-class PaperTypeCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
-    is_active: bool = True
-
-
-class PaperTypeUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    is_active: Optional[bool] = None
-
 
 # --------------------------
 # CREATE
 # --------------------------
-
 @router.post("/create")
-async def create_paper_type_endpoint(payload: PaperTypeCreate):
+async def create_paper_type_endpoint(
+    name: str = Form(...),
+    gsm: float = Form(300),
+    description: Optional[str] = Form(None),
+    is_active: bool = Form(True)
+):
+    paper_type = PaperType(
+        name=name,
+        gsm=gsm,
+        description=description,
+        is_active=is_active
+    )
 
-    paper_type = PaperType(
-        name=payload.name,
-        description=payload.description,
-        is_active=payload.is_active
-    )
+    created = await create_paper_type(paper_type)
 
-    created = await create_paper_type(paper_type)
+    return {
+        "status": "success",
+        "data": created
+    }
 
-    return {
-        "status": "success",
-        "data": created
-    }
 
 
 # --------------------------
 # LIST ALL
 # --------------------------
-
 @router.get("/list")
 async def list_paper_types():
+    data = await get_all_paper_types()
+    return {"status": "success", "paper_types": data}
 
-    data = await get_all_paper_types()
 
-    return {
-        "status": "success",
-        "paper_types": data
-    }
 
 @router.get("/list/active")
-async def list_paper_types():
-
-    data = await get_all_paper_types_active()
-
-    return {
-        "status": "success",
-        "paper_types": data
-    }
+async def list_paper_types_active():
+    data = await get_all_paper_types_active()
+    return {"status": "success", "paper_types": data}
 
 
 
 # --------------------------
 # GET BY ID
 # --------------------------
-
 @router.get("/{id}")
 async def get_paper_type_endpoint(id: str):
+    data = await get_paper_type_by_id(id)
 
-    data = await get_paper_type_by_id(id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Paper type not found")
 
-    if not data:
-        raise HTTPException(status_code=404, detail="Paper type not found")
+    return {"status": "success", "data": data}
 
-    return {
-        "status": "success",
-        "data": data
-    }
 
 
 # --------------------------
 # UPDATE
 # --------------------------
-
 @router.put("/{id}")
 async def update_paper_type_endpoint(
-    id: str,
-    name: Optional[str] = Form(None),
-    description: Optional[str] = Form(None),
-    is_active: Optional[bool] = Form(None),
+    id: str,
+    name: Optional[str] = Form(None),
+    gsm: Optional[float] = Form(None),
+    description: Optional[str] = Form(None),
+    is_active: Optional[bool] = Form(None)
 ):
-    update_data = {}
 
-    if name is not None:
-        update_data["name"] = name
-    if description is not None:
-        update_data["description"] = description
-    if is_active is not None:
-        update_data["is_active"] = is_active
+    update_data = {}
 
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No fields to update")
+    if name is not None:
+        update_data["name"] = name
 
-    result = await update_paper_type(id, update_data)
+    if gsm is not None:
+        update_data["gsm"] = gsm
 
-    if not result:
-        raise HTTPException(status_code=404, detail="Paper type not found")
+    if description is not None:
+        update_data["description"] = description
 
-    return {
-        "status": "success",
-        "data": result
-    }
+    if is_active is not None:
+        update_data["is_active"] = is_active
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    result = await update_paper_type(id, update_data)
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Paper type not found")
+
+    return {"status": "success", "data": result}
+
+
 
 # --------------------------
-# DELETE (SOFT)
+# DELETE
 # --------------------------
-
 @router.delete("/{id}")
 async def delete_paper_type_endpoint(id: str):
 
-    result = await delete_paper_type(id)
+    result = await delete_paper_type(id)
 
-    if not result:
-        raise HTTPException(status_code=404, detail="Paper type not found")
+    if not result:
+        raise HTTPException(status_code=404, detail="Paper type not found")
 
-    return {
-        "status": "success",
-        "deleted_id": id
-    }
+    return {"status": "success", "deleted_id": id}
+
 
 
 # --------------------------
 # ACTIVATE
 # --------------------------
-
 @router.put("/{id}/activate")
 async def activate_paper_type_endpoint(id: str):
 
-    result = await activate_paper_type(id)
+    result = await activate_paper_type(id)
 
-    if not result:
-        raise HTTPException(status_code=404, detail="Paper type not found")
+    if not result:
+        raise HTTPException(status_code=404, detail="Paper type not found")
 
-    return {
-        "status": "success",
-        "data": result
-    }
+    return {"status": "success", "data": result}
+
 
 
 # --------------------------
 # DEACTIVATE
 # --------------------------
-
 @router.put("/{id}/deactivate")
 async def deactivate_paper_type_endpoint(id: str):
 
-    result = await deactivate_paper_type(id)
+    result = await deactivate_paper_type(id)
 
-    if not result:
-        raise HTTPException(status_code=404, detail="Paper type not found")
+    if not result:
+        raise HTTPException(status_code=404, detail="Paper type not found")
 
-    return {
-        "status": "success",
-        "data": result
-    }
+    return {"status": "success", "data": result}
