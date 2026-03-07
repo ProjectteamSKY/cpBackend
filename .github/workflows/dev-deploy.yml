@@ -38,6 +38,12 @@ jobs:
            
             pip install -r requirements.txt
 
+            # Export env variables for this session
+            export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+            export SHIPROCKET_EMAIL="${{ secrets.SHIPROCKET_EMAIL }}"
+            export SHIPROCKET_PASSWORD="${{ secrets.SHIPROCKET_PASSWORD }}"
+            
+
             
             sudo systemctl restart fastapi
 
