@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Form, HTTPException
 from app.domain.paper_type_domain import PaperType
 from app.services.paper_type_service import (
-    create_paper_type,
+    create_paper_type,
     get_all_paper_types,
     get_all_paper_types_active,
     get_paper_type_by_id,
