@@ -351,28 +351,54 @@ async def update_product_endpoint(
     max_order_qty: Optional[int] = Form(None),
     images: List[UploadFile] = File(default=[]),
     related_images: List[UploadFile] = File(default=[]),
-    existing_image_ids: List[str] = Form(default=[]),
-    existing_related_image_ids: List[str] = Form(default=[]),
+    existing_image_ids: List[str] = Form(default_factory=list),
+    existing_related_image_ids: List[str] = Form(default_factory=list),
 ):
     existing_product = await get_product_by_id(id)
     if not existing_product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    existing_images_all = json.loads(existing_product.get("images", "[]")) if isinstance(existing_product.get("images"), str) else existing_product.get("images", [])
-    existing_related_all = json.loads(existing_product.get("related_images", "[]")) if isinstance(existing_product.get("related_images"), str) else existing_product.get("related_images", [])
+    # Safely handle image data from database
+    existing_images_all = (
+        json.loads(existing_product.get("images", "[]")) 
+        if isinstance(existing_product.get("images"), str) 
+        else existing_product.get("images", [])
+    ) or []
+    
+    existing_related_all = (
+        json.loads(existing_product.get("related_images", "[]")) 
+        if isinstance(existing_product.get("related_images"), str) 
+        else existing_product.get("related_images", [])
+    ) or []
 
-    existing_images_to_keep = [img for img in existing_images_all if img["id"] in existing_image_ids]
-    existing_related_to_keep = [img for img in existing_related_all if img["id"] in existing_related_image_ids]
+    # Filter existing images to keep (safe since lists are guaranteed)
+    existing_images_to_keep = [
+        img for img in existing_images_all 
+        if img.get("id") in existing_image_ids
+    ]
+    existing_related_to_keep = [
+        img for img in existing_related_all 
+        if img.get("id") in existing_related_image_ids
+    ]
 
-    new_images = [{"id": str(uuid.uuid4()), "url": save_upload(f), "is_default": False} for f in images]
-    new_related = [{"id": str(uuid.uuid4()), "url": save_upload(f)} for f in related_images]
+    # Process new uploads
+    new_images = [
+        {"id": str(uuid.uuid4()), "url": save_upload(f), "is_default": False} 
+        for f in images
+    ]
+    new_related = [
+        {"id": str(uuid.uuid4()), "url": save_upload(f)} 
+        for f in related_images
+    ]
 
+    # Combine existing + new images
     images_list = existing_images_to_keep + new_images
     related_list = existing_related_to_keep + new_related
 
+    # Create updated product (keep SKU unchanged)
     product = Product(
         name=name,
-        sku=existing_product.get("sku"),  # Keep SKU unchanged
+        sku=existing_product.get("sku"),
         category_id=category_id,
         subcategory_id=subcategory_id,
         description=description,
@@ -385,7 +411,9 @@ async def update_product_endpoint(
     updated = await update_product(id, product)
     if not updated:
         raise HTTPException(status_code=404, detail="Product not found")
+    
     return updated
+
 
 
 # ------------------------

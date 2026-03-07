@@ -76,3 +76,19 @@ async def deactivate_product_variant_price(id: str):
     sql = queries["product_variant_price"]["deactivate"]
     await execute(sql, {"id": id})
     return {"status": "success", "deactivated_id": id}
+
+
+async def get_variant_with_paper_and_size(variant_id: str):
+    sql = """
+    SELECT
+        pv.id,
+        s.width,
+        s.height,
+        pt.gsm
+    FROM product_variants pv
+    LEFT JOIN sizes s ON pv.size_id = s.id
+    LEFT JOIN paper_types pt ON pv.paper_type_id = pt.id
+    WHERE pv.id = :variant_id
+    """
+    row = await query(sql, {"variant_id": variant_id})
+    return dict(row) if row else None

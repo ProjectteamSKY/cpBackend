@@ -290,27 +290,29 @@ class ShiprocketClient:
 
         return response.json()
     
+    # shiprocket_client.py
     def get_couriers_by_address(
-        self,
-        pickup_postcode: str,
-        delivery_postcode: str,
-        weight: float,
-        cod: int = 0,
-        declared_value: float = 100,
-        length: int = 10,
-        breadth: int = 10,
-        height: int = 10,
+        self, pickup_postcode, delivery_postcode, weight, cod, declared_value, length=10, breadth=10, height=10
     ):
         """
-        Fetch available couriers based on pickup & delivery address
-        WITHOUT creating shipment/order.
-        """
+        Fetch available couriers and rates for a shipment using Shiprocket serviceability API.
+        
+        Parameters:
+        - pickup_postcode: str
+        - delivery_postcode: str
+        - weight: float (in kg)
+        - cod: int (0 or 1)
+        - declared_value: float
+        - length, breadth, height: int (dimensions in cm, default 10)
 
+        Returns:
+        - dict: Shiprocket API response containing available couriers and rates.
+        """
+        # Ensure valid auth token
         self.ensure_token()
 
-        url = f"{BASE_URL}/courier/serviceability/"
-
-        payload = {
+        url = f"{BASE_URL}/courier/serviceability"
+        params = {
             "pickup_postcode": pickup_postcode,
             "delivery_postcode": delivery_postcode,
             "weight": weight,
@@ -321,17 +323,22 @@ class ShiprocketClient:
             "height": height
         }
 
-        response = requests.post(
-            url,
-            headers={**self.headers(), "Content-Type": "application/json"},
-            json=payload
-        )
+        try:
+            # Corrected headers call
+            resp = requests.get(url, headers=self.headers(), params=params)
+        except requests.RequestException as e:
+            raise Exception(f"Shiprocket request failed: {str(e)}")
 
-        data = response.json()
+        # Debug logs
+        print("Shiprocket serviceability response status: - shiprocket_client.py:333", resp.status_code)
+        print("Request URL: - shiprocket_client.py:334", resp.url)
 
-        print("Shiprocket courier list by address: - shiprocket_client.py:332", data)
+        try:
+            data = resp.json()
+        except ValueError:
+            raise Exception(f"Invalid JSON response from Shiprocket: {resp.text}")
 
-        if response.status_code != 200:
+        if resp.status_code != 200:
             raise Exception(f"Failed to fetch courier list: {data}")
 
         return data

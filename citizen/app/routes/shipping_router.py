@@ -87,7 +87,7 @@ async def track_awb(awb_code: str):
         raise HTTPException(status_code=400, detail=str(e))
     
 
-@router.get("/couriers/serviceavailability")
+@router.get("/serviceavailability")
 async def get_available_couriers(
     pickup_postcode: str,
     delivery_postcode: str,
@@ -95,6 +95,7 @@ async def get_available_couriers(
     cod: int = 0,
     declared_value: float = 500
 ):
+    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:98")
     return await couriers_service(
         pickup_postcode,
         delivery_postcode,

@@ -10,8 +10,10 @@ from app.services.product_variant_price_service import (
     update_product_variant_price,
     soft_delete_product_variant_price,
     activate_product_variant_price,
-    deactivate_product_variant_price
+    deactivate_product_variant_price,
+    get_variant_with_paper_and_size
 )
+from app.services.product_variant_service import calculate_variant_weight
 
 router = APIRouter()
 
@@ -105,3 +107,48 @@ async def activate_pvp_endpoint(id: str):
 @router.put("/{id}/deactivate")
 async def deactivate_pvp_endpoint(id: str):
     return await deactivate_product_variant_price(id)
+
+
+@router.get("/variant/{variant_id}/price-weight/{price_id}")
+async def get_price_weight_by_price_id(variant_id: str, price_id: str):
+    """
+    Calculate total weight and total price based on selected product_variant_price ID.
+    """
+
+    # 1️⃣ Fetch the variant details (width, height, gsm)
+    variant = await get_variant_with_paper_and_size(variant_id)
+    if not variant:
+        raise HTTPException(status_code=404, detail="Product variant not found")
+
+    # 2️⃣ Fetch all prices for this variant
+    prices = await get_product_variant_prices_by_variant(variant_id)
+    if not prices:
+        raise HTTPException(status_code=404, detail="No prices found for this variant")
+
+    # 3️⃣ Find the selected price tier by price_id
+    selected_price = next((p for p in prices if p["id"] == price_id), None)
+    if not selected_price:
+        raise HTTPException(status_code=404, detail="Price ID not found")
+
+    # 4️⃣ Get quantity from the selected price tier's min_qty
+    quantity = selected_price["min_qty"]
+
+    # 5️⃣ Calculate weight
+    width_m = variant["width"] / 1000   # mm → meters
+    height_m = variant["height"] / 1000
+    area_m2 = width_m * height_m
+    gsm = variant.get("gsm") or 300
+    total_weight_grams = area_m2 * gsm * quantity
+
+    # 6️⃣ Calculate total price
+    total_price = selected_price["price"] * quantity
+
+    # 7️⃣ Return response
+    return {
+        "variant_id": variant_id,
+        "price_id": price_id,
+        "quantity": quantity,
+        "unit_price": selected_price["price"],
+        "total_price": round(total_price, 2),
+        "total_weight_grams": round(total_weight_grams, 2)
+    }

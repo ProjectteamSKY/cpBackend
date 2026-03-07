@@ -2,6 +2,8 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
+from app.services.product_variant_service import calculate_variant_weight
+
 
 class ProductVariantPrice:
 
@@ -76,7 +78,9 @@ class ProductVariantPrice:
 
     def touch(self):
         self.updated_at = datetime.utcnow()
-
+    
+    async def total_weight(self, quantity: int):
+        return await calculate_variant_weight(self.variant_id, quantity)
     # ---------------------------
     # Convert to Dict
     # ---------------------------
@@ -93,3 +97,4 @@ class ProductVariantPrice:
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
+    
