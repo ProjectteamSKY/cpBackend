@@ -2,22 +2,23 @@
 
 create = """
 INSERT INTO paper_types (
-    id,
-    name,
-    description,
-    is_active,
-    created_at,
-    updated_at
+    id,
+    name,
+    gsm,
+    description,
+    is_active,
+    created_at,
+    updated_at
 ) VALUES (
-    :id,
-    :name,
-    :description,
-    :is_active,
-    :created_at,
-    :updated_at
+    :id,
+    :name,
+    :gsm,
+    :description,
+    :is_active,
+    :created_at,
+    :updated_at
 );
 """
-
 
 get_all = """
 SELECT *
@@ -29,7 +30,7 @@ ORDER BY created_at DESC;
 get_all_active = """
 SELECT *
 FROM paper_types
-WHERE is_active = TRUE
+WHERE is_active = TRUE AND is_deleted = FALSE
 ORDER BY created_at DESC;
 """
 
@@ -39,18 +40,16 @@ FROM paper_types
 WHERE id = :id;
 """
 
-
 update = """
 UPDATE paper_types
 SET {set_clause}, updated_at = NOW()
 WHERE id = :id;
 """
 
-
 delete = """
 UPDATE paper_types
 SET is_deleted = TRUE,
-    updated_at = NOW()
+    updated_at = NOW()
 WHERE id = :id
 AND is_deleted = FALSE;
 """
@@ -58,7 +57,7 @@ AND is_deleted = FALSE;
 activate = """
 UPDATE paper_types
 SET is_active = TRUE,
-    updated_at = NOW()
+    updated_at = NOW()
 WHERE id = :id
 AND is_deleted = FALSE;
 """
@@ -66,7 +65,7 @@ AND is_deleted = FALSE;
 deactivate = """
 UPDATE paper_types
 SET is_active = FALSE,
-    updated_at = NOW()
+    updated_at = NOW()
 WHERE id = :id
 AND is_deleted = FALSE;
 """
