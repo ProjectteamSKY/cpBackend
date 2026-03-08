@@ -9,7 +9,8 @@ from app.services.product_variant_service import (
     get_product_variants_by_product,
     update_product_variant,
     delete_product_variant,
-    activate_product_variant
+    activate_product_variant,
+    calculate_variant_weight
 )
 
 router = APIRouter()
@@ -101,3 +102,23 @@ async def delete_product_variant_endpoint(id: str):
 @router.put("/{id}/activate")
 async def activate_product_variant_endpoint(id: str):
     return await activate_product_variant(id)
+
+
+from fastapi import Query
+
+@router.get("/{variant_id}/weight")
+async def get_variant_weight(variant_id: str, quantity: int = Query(1, gt=0)):
+    """
+    Calculate total weight (grams) for a product variant given a quantity.
+    """
+
+    total_weight = await calculate_variant_weight(variant_id, quantity)
+    
+    if total_weight is None:
+        raise HTTPException(404, "Product Variant not found")
+    
+    return {
+        "variant_id": variant_id,
+        "quantity": quantity,
+        "total_weight_grams": total_weight
+    }

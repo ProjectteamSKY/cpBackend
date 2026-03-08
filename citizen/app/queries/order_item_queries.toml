@@ -2,14 +2,18 @@
 
 create = """
 INSERT INTO order_items (
-    order_id, cart_item_id, product_id, variant_id, quantity, price, total, created_at, updated_at
-) VALUES (
-    :order_id, :cart_item_id, :product_id, :variant_id, :quantity, :price, :total, :created_at, :updated_at
+    order_id, cart_item_id, product_id, variant_id,
+    quantity, price, total, created_at, updated_at
+)
+VALUES (
+    :order_id, :cart_item_id, :product_id, :variant_id,
+    :quantity, :price, :total, :created_at, :updated_at
 );
 """
 
 get_all_by_order = """
-SELECT * FROM order_items
+SELECT *
+FROM order_items
 WHERE order_id = :order_id;
 """
 

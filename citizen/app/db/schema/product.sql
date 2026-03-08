@@ -38,6 +38,7 @@ CREATE TABLE subcategories (
 CREATE TABLE paper_types (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
+    gsm FLOAT DEFAULT 300,
     description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     is_deleted BOOLEAN DEFAULT FALSE,

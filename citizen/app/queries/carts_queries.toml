@@ -46,3 +46,38 @@ WHERE id = :id;
 delete = """
 DELETE FROM carts WHERE id = :id;
 """
+
+lock_items = """
+SELECT *
+FROM cart_items
+WHERE cart_id = :cart_id
+AND id IN :cart_item_ids
+FOR UPDATE;
+"""
+
+get_files = """
+SELECT *
+FROM cart_item_files
+WHERE cart_item_id = :cart_item_id;
+"""
+
+mark_purchased = """
+UPDATE cart_items
+SET status = 'purchased',
+    updated_at = :updated_at
+WHERE id IN :cart_item_ids;
+"""
+
+get_cart_total = """
+SELECT COALESCE(SUM(total_price), 0) AS total
+FROM cart_items
+WHERE cart_id = :cart_id
+AND status = 'active';
+"""
+
+update_cart_total = """
+UPDATE carts
+SET total_amount = :total,
+    updated_at = :updated_at
+WHERE id = :cart_id;
+"""
