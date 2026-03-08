@@ -355,6 +355,7 @@ async def refund_order_service(order_id: str, refund_amount: float = None):
 
 
 
+
 async def couriers_service(
     pickup_postcode: str,
     delivery_postcode: str,
@@ -362,7 +363,14 @@ async def couriers_service(
     cod: int,
     declared_value: float
 ):
-
+    """
+    Fetch couriers from Shiprocket API and return:
+    1. Full filtered courier list
+    2. Single best courier based on lowest total cost
+    """
+    print("API triggers for courier availability - shipping_service.py:371")
+    
+    # Call Shiprocket API
     response = shiprocket.get_couriers_by_address(
         pickup_postcode=pickup_postcode,
         delivery_postcode=delivery_postcode,
@@ -370,5 +378,40 @@ async def couriers_service(
         cod=cod,
         declared_value=declared_value
     )
-
-    return response.get("data", {}).get("available_courier_companies", [])
+    
+    couriers = response.get("data", {}).get("available_courier_companies", [])
+    
+    # Filter required fields
+    filtered_couriers = []
+    for c in couriers:
+        filtered_couriers.append({
+            "courier_name": c.get("courier_name"),
+            "courier_type": "Surface" if c.get("is_surface") else "Air",
+            "city": c.get("city"),
+            "state": c.get("state"),
+            "postcode": c.get("postcode"),
+            "rate": c.get("rate") or 0,                      # base rate
+            "freight_charge": c.get("freight_charge") or 0,  # final charge
+            "other_charges": c.get("other_charges") or 0,    # additional charges
+            "cod": c.get("cod"),
+            "cod_charges": c.get("cod_charges") or 0,
+            "total_cost": (c.get("freight_charge") or 0) + (c.get("other_charges") or 0) + ((c.get("cod_charges") or 0) if cod else 0),
+            "estimated_delivery_days": c.get("estimated_delivery_days"),
+            "etd": c.get("etd"),
+            "pickup_availability": c.get("pickup_availability"),
+            "delivery_performance": c.get("delivery_performance"),
+            "pickup_performance": c.get("pickup_performance"),
+            "rating": c.get("rating"),
+            "surface_max_weight": c.get("surface_max_weight"),
+            "air_max_weight": c.get("air_max_weight")
+        })
+    
+    # Sort by total cost (lowest first)
+    filtered_couriers.sort(key=lambda x: x["total_cost"])
+    
+    # Best single courier (lowest total cost)
+    best_courier = filtered_couriers[0] if filtered_couriers else None
+    
+    return {
+        "best_courier": best_courier
+    }

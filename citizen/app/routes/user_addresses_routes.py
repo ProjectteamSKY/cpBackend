@@ -34,39 +34,39 @@ class UserAddressUpdate(BaseModel):
 
 # CREATE
 @router.post("/create")
-async def create_address(payload: UserAddressCreate, session: AsyncSession = Depends(get_session)):
+async def create_address(payload: UserAddressCreate):
     address = UserAddress(**payload.model_dump())
-    return await create_user_address(address, session)
+    return await create_user_address(address)
 
 # LIST
 @router.get("/list/{user_id}")
-async def list_addresses(user_id: str, session: AsyncSession = Depends(get_session)):
-    addresses = await get_all_addresses(user_id, session)
+async def list_addresses(user_id: str):
+    addresses = await get_all_addresses(user_id)
     return {"addresses": addresses}
 
 # GET BY ID
 @router.get("/{id}")
-async def get_address(id: str, session: AsyncSession = Depends(get_session)):
-    address = await get_address_by_id(id, session)
+async def get_address(id: str):
+    address = await get_address_by_id(id)
     if not address:
         raise HTTPException(404, "Address not found")
     return address
 
 # UPDATE
 @router.put("/{id}")
-async def update_address(id: str, payload: UserAddressUpdate, session: AsyncSession = Depends(get_session)):
+async def update_address(id: str, payload: UserAddressUpdate):
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(400, "No fields to update")
-    updated = await update_user_address(id, updates, session)
+    updated = await update_user_address(id, updates)
     if not updated:
         raise HTTPException(404, "Address not found")
     return {"status": "success", "data": updated}
 
 # DELETE
 @router.delete("/{id}")
-async def delete_address(id: str, session: AsyncSession = Depends(get_session)):
-    result = await delete_user_address(id, session)
+async def delete_address(id: str):
+    result = await delete_user_address(id)
     if not result:
         raise HTTPException(404, "Address not found")
     return {"status": "success", "deleted_id": id}

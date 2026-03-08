@@ -40,6 +40,8 @@ CREATE TABLE order_items (
     cart_item_id VARCHAR(36) NOT NULL,
     product_id VARCHAR(36) NOT NULL,
     variant_id VARCHAR(36) NOT NULL,
+    product_variant_price_id VARCHAR(36) NULL,
+    customize_qty INT NULL,
     quantity INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     total DECIMAL(10,2) NOT NULL,
@@ -49,6 +51,10 @@ CREATE TABLE order_items (
     CONSTRAINT fk_order_items_cartitem FOREIGN KEY (cart_item_id) REFERENCES cart_items(id) ON DELETE CASCADE,
     CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
     CONSTRAINT fk_order_items_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE RESTRICT
+    CONSTRAINT fk_cartitem_variant_price 
+        FOREIGN KEY (product_variant_price_id) 
+        REFERENCES product_variant_prices(id) 
+        ON DELETE CASCADE,
 );
 
 -- =========================================================
