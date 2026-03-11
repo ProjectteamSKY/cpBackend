@@ -657,10 +657,10 @@ async def checkout(user_id: str, cart_id: str, cart_items: List[dict], address_i
             "product_variant_price_id", row.get("product_variant_price_id")
         )
 
-    # 2️⃣ Calculate total
+    #  Calculate total
     order_total = sum(item["total_price"] for item in cart_items_data)
 
-    # 3️⃣ Create Order
+    #  Create Order
     order_id = str(uuid.uuid4())
     await execute(
         """
@@ -679,7 +679,7 @@ async def checkout(user_id: str, cart_id: str, cart_items: List[dict], address_i
         },
     )
 
-    # 4️⃣ ✅ FIXED: Create Order Items & copy files
+    # 4 FIXED: Create Order Items & copy files
     for item in cart_items_data:
         # Insert order item
         await execute(
@@ -710,7 +710,7 @@ async def checkout(user_id: str, cart_id: str, cart_items: List[dict], address_i
             },
         )
         
-        # ✅ FIXED: Get the actual order_item.id (not LAST_INSERT_ID())
+        #  FIXED: Get the actual order_item.id (not LAST_INSERT_ID())
         order_item_result = await query(
             """
             SELECT id FROM order_items 
@@ -750,7 +750,7 @@ async def checkout(user_id: str, cart_id: str, cart_items: List[dict], address_i
                 """,
                 {
                     "id": str(uuid.uuid4()),
-                    "order_item_id": order_item_id,  # ✅ Now correct ID
+                    "order_item_id": order_item_id,  #  Now correct ID
                     "front_side_url": new_front,
                     "back_side_url": new_back,
                     "front_original_name": f["front_original_name"],

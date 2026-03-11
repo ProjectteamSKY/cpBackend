@@ -47,7 +47,7 @@ async def recalculate_cart(cart_id: str):
     )
 
 async def create_cart_item(payload: Any):
-    # ✅ NO CHECKS - DIRECT INSERT FROM FRONTEND
+    #  NO CHECKS - DIRECT INSERT FROM FRONTEND
     product_variant_price_id = getattr(payload, 'product_variant_price_id', None)
     customize_qty = getattr(payload, 'customize_qty', payload.quantity)
     
@@ -74,8 +74,8 @@ async def create_cart_item(payload: Any):
                 "unit_price": price["price"],
                 "total_price": price["price"] * new_qty,
                 "discount_id": price.get("discount_id"),
-                "product_variant_price_id": product_variant_price_id,  # ✅ FRONTEND VALUE
-                "customize_qty": customize_qty,                        # ✅ FRONTEND VALUE
+                "product_variant_price_id": product_variant_price_id,  
+                "customize_qty": customize_qty,                        
             },
         )
         await recalculate_cart(payload.cart_id)
@@ -90,8 +90,8 @@ async def create_cart_item(payload: Any):
             "cart_id": payload.cart_id,
             "product_id": payload.product_id,
             "variant_id": payload.variant_id,
-            "product_variant_price_id": product_variant_price_id,     # ✅ "3f9e4079-..." FROM FRONTEND
-            "customize_qty": customize_qty,                           # ✅ 100 FROM FRONTEND
+            "product_variant_price_id": product_variant_price_id,     
+            "customize_qty": customize_qty,                           
             "quantity": payload.quantity,
             "unit_price": price["price"],
             "discount_id": price.get("discount_id"),
