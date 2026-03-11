@@ -1,0 +1,32 @@
+[wishlist]
+
+create = """
+INSERT INTO wishlists (id, user_id, product_id, created_at, updated_at)
+VALUES (:id, :user_id, :product_id, :created_at, :updated_at)
+ON DUPLICATE KEY UPDATE
+    updated_at = NOW();
+"""
+
+get_all = """
+SELECT *
+FROM wishlists
+ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT *
+FROM wishlists
+WHERE id = :id;
+"""
+
+get_by_user = """
+SELECT *
+FROM wishlists
+WHERE user_id = :user_id
+ORDER BY created_at DESC;
+"""
+
+delete = """
+DELETE FROM wishlists
+WHERE id = :id;
+"""
