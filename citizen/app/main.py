@@ -30,7 +30,17 @@ from app.routes import order_items_routes
 from app.routes import shipping_router
 from app.routes import payment_routes
 from app.routes import wishlist_routes
-
+from app.routes.bank import vpa_routes
+from app.routes.bank import vpa_inquiry_routes
+from app.routes.bank import vpa_deactivation_routes
+from app.routes.bank import vpa_deactivation_inquiry_routes
+from app.routes.bank import verify_vpa_routes
+from app.routes.bank import qr_generation_routes
+from app.routes.bank import transaction_status_routes
+from app.routes.bank import transaction_status_extid_routes
+from app.routes.bank import qr_callback_routes
+from app.routes.bank import qr_statement_routes
+from app.routes.bank import oauth_routes
 
 
 
@@ -199,8 +209,17 @@ api_router.include_router(shipping_router.router, prefix="/shipping", tags=["Shi
 api_router.include_router(payment_routes.router, prefix="/payment_routes", tags=["payment_routes"])
 api_router.include_router(wishlist_routes.router, prefix="/wishlist_routes", tags=["wishlist_routes"])
 
-
-
+api_router.include_router(vpa_routes.router,prefix="/bank", tags=["Bank APIs"])
+api_router.include_router(vpa_inquiry_routes.router,prefix="/bank", tags=["Bank APIs"])
+api_router.include_router(vpa_deactivation_routes.router, prefix="/bank", tags=["Bank APIs"])
+api_router.include_router(vpa_deactivation_inquiry_routes.router, prefix="/bank", tags=["Bank APIs"])
+api_router.include_router(verify_vpa_routes.router, prefix="/bank", tags=["Bank APIs"])
+api_router.include_router(qr_generation_routes.router, prefix="/bank", tags=["Bank APIs"])
+api_router.include_router(transaction_status_routes.router, prefix="/bank", tags=["Bank APIs"])
+api_router.include_router(transaction_status_extid_routes.router, prefix="/bank", tags=["Bank APIs"])
+api_router.include_router(qr_callback_routes.router, prefix="/bank", tags=["Bank APIs"])
+api_router.include_router(qr_statement_routes.router, prefix="/bank", tags=["Bank APIs"])
+api_router.include_router(oauth_routes.router, prefix="/bank", tags=["Bank OAuth"])
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
 
