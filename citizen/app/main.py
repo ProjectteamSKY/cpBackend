@@ -28,6 +28,9 @@ from app.routes import user_addresses_routes
 from app.routes import orders_routes
 from app.routes import order_items_routes
 from app.routes import shipping_router
+from app.routes import payment_routes
+from app.routes import wishlist_routes
+
 
 
 
@@ -193,6 +196,9 @@ api_router.include_router(orders_routes.router, prefix="/orders_routes", tags=["
 api_router.include_router(order_items_routes.router, prefix="/order_items_routes", tags=["order_items_routes"])
 
 api_router.include_router(shipping_router.router, prefix="/shipping", tags=["Shipping"])
+api_router.include_router(payment_routes.router, prefix="/payment_routes", tags=["payment_routes"])
+api_router.include_router(wishlist_routes.router, prefix="/wishlist_routes", tags=["wishlist_routes"])
+
 
 
 

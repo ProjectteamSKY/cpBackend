@@ -1,10 +1,10 @@
 import json
+from datetime import datetime
 from app.domain.product_domain import Product
 from app.utils.query_loader import load_queries
 from app.core.database import execute, query, query_all
 
 queries = load_queries()
-
 
 # ===================================
 # CREATE
@@ -20,7 +20,6 @@ async def create_product(product: Product):
     )
     return await get_product_by_id(product.id)
 
-
 # ===================================
 # GET ALL
 # ===================================
@@ -35,7 +34,6 @@ async def get_all_products():
 
     return products
 
-
 async def get_all_products_active():
     products = await query_all(queries["product"]["get_all_active"])
 
@@ -46,7 +44,6 @@ async def get_all_products_active():
             p["related_images"] = json.loads(p["related_images"])
 
     return products
-
 
 # ===================================
 # GET BY ID
@@ -65,7 +62,6 @@ async def get_product_by_id(product_id: str):
 
     return product
 
-
 # ===================================
 # GET BY CATEGORY
 # ===================================
@@ -74,32 +70,34 @@ async def get_products_by_category(category_id: str):
         queries["product"]["get_by_category"],
         {"category_id": category_id}
     )
-
     return products
 
-
 # ===================================
-# UPDATE
+# ✅ FIXED UPDATE
 # ===================================
 async def update_product(product_id: str, product: Product):
-    await execute(
+    # ✅ Ensure ALL required fields have values
+    params = {
+        "id": product_id,
+        "updated_at": datetime.utcnow(),
+        "category_id": product.category_id or None,
+        "subcategory_id": product.subcategory_id or None,
+        "name": product.name or "",
+        "sku": getattr(product, 'sku', None) or "",  # ✅ Critical fix
+        "description": product.description or None,
+        "min_order_qty": product.min_order_qty or 100,
+        "max_order_qty": product.max_order_qty or None,
+        "images": json.dumps(product.images or []),
+        "related_images": json.dumps(product.related_images or []),
+    }
+    
+    result = await execute(
         queries["product"]["update"],
-        {
-            "id": product_id,
-            "category_id": product.category_id,
-            "subcategory_id": product.subcategory_id,
-            "name": product.name,
-            "description": product.description,
-            "min_order_qty": product.min_order_qty,
-            "max_order_qty": product.max_order_qty,
-            "images": json.dumps(product.images),
-            "related_images": json.dumps(product.related_images),
-            "updated_at": product.updated_at,
-        }
+        params
     )
-
-    return await get_product_by_id(product_id)
-
+    
+    await get_product_by_id(product_id)
+    return result
 
 # ===================================
 # DELETE
@@ -111,7 +109,6 @@ async def delete_product(product_id: str):
     )
     return {"message": "Product deleted successfully"}
 
-
 # ===================================
 # ACTIVATE / DEACTIVATE
 # ===================================
@@ -121,7 +118,6 @@ async def activate_product(product_id: str):
         {"id": product_id}
     )
     return await get_product_by_id(product_id)
-
 
 async def deactivate_product(product_id: str):
     await execute(
