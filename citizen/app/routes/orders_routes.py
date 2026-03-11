@@ -600,7 +600,7 @@ async def track_orders():
 
 
 # UPDATE ORDER STATUS
-@router.put("/{order_id}/status")
+@router.put("/orders/{order_id}/status")
 async def change_order_status(order_id: str, payload: OrderStatusUpdate):
     try:
         return await update_order_status(order_id, payload.status)
