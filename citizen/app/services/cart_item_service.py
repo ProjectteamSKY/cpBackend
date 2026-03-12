@@ -83,7 +83,7 @@ async def create_cart_item(payload: Any):
     
     # CREATE - DIRECT INSERT
     item_id = str(uuid.uuid4())
-    await execute(
+    await execute(  
         queries["cart_items"]["create"],
         {
             "id": item_id,
