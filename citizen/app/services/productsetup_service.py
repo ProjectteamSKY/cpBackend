@@ -1,7 +1,9 @@
+# SERVICE FILE (Complete)
 from datetime import datetime
 import os
 import uuid
 import json
+import re
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -16,13 +18,31 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Load SQL templates from TOML
 queries = load_queries()
 
+async def generate_sku(name: str) -> str:
+    """
+    Generate SKU from product name
+    Format: First 3 letters (UPPER) + Random 6 chars
+    Example: "Business Card" -> "BUS-ABC123"
+    """
+    # Clean and take first 3 letters, uppercase
+    clean_name = re.sub(r'[^a-zA-Z\s]', '', name).strip()
+    name_prefix = ''.join(clean_name.split()[:1])[:3].upper()
+    
+    # Generate random part
+    random_part = uuid.uuid4().hex[:6].upper()
+    
+    return f"{name_prefix}-{random_part}"
 
 async def create_productsetup(data: ProductSetup):
     product_id = data.product_id or str(uuid.uuid4())
     data.product_id = product_id
 
+    # ✅ FIXED: Use generated SKU from data.sku
+    sku = getattr(data, 'sku', await generate_sku(data.name))
+
     product_params = {
         "id": product_id,
+        "sku": sku,  # ✅ Now properly provided
         "category_id": data.category_id,
         "subcategory_id": data.subcategory_id,
         "name": data.name,
@@ -104,10 +124,6 @@ async def create_productsetup(data: ProductSetup):
 
     return {"status": "success", "product_id": product_id}
 
-
-
-
-
 async def get_product_by_id(product_id: str):
     """Fetch product with variants, prices, and discounts"""
 
@@ -164,7 +180,6 @@ async def get_product_by_id(product_id: str):
     product_dict["variants"] = variant_list
 
     return product_dict
-
 
 async def get_all_products_with_details():
     """
@@ -228,11 +243,14 @@ async def get_all_products_with_details():
     return product_list
 
 async def update_productsetup(product_id: str, data: dict):
+    # ✅ FIXED: Use SKU from data (preserves or uses generated)
+    sku = data.get("sku")
 
     await execute(
         queries["product"]["update"],
         {
             "id": product_id,
+            "sku": sku,  # ✅ SKU properly passed
             "category_id": data["category_id"],
             "subcategory_id": data["subcategory_id"],
             "name": data["name"],
@@ -303,7 +321,7 @@ async def update_productsetup(product_id: str, data: dict):
                     "discount_id": discount_id,
                     "min_qty": price.get("min_qty"),
                     "price": price.get("price"),
-                    "is_active": price.get("is_active"),
+                    "is_active": price.get("is_active", True),
                     "updated_at": datetime.utcnow(),
                 }
             )
