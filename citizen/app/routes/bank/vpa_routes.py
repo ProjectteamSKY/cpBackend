@@ -3,6 +3,8 @@ from app.services.bank_services.vpa_service import create_vpa
 
 router = APIRouter()
 
+# vpa creation
+
 @router.post("/vpa/create")
 async def vpa_creation(accesstoken: str = Query(..., description="OAuth access token")):
     """
