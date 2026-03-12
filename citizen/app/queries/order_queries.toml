@@ -2,10 +2,10 @@
 
 create = """
 INSERT INTO orders (
-    id, user_id, cart_id, address_id, status,
+    id, user_id, order_number, cart_id, address_id, status,
     total_amount, created_at, updated_at
 ) VALUES (
-    :id, :user_id, :cart_id, :address_id, :status,
+    :id, :user_id, :order_number, :cart_id, :address_id, :status,
     :total_amount, :created_at, :updated_at
 );
 """
@@ -78,7 +78,74 @@ SET status = :status,
 WHERE id = :id;
 """
 
+get_total_orders = """
+SELECT COUNT(*) AS total_orders
+FROM orders;
+"""
 
+get_total_orders_by_user = """
+SELECT COUNT(*) AS total_orders
+FROM orders
+WHERE user_id = :user_id;
+"""
+
+get_total_orders_by_status = """
+SELECT status, COUNT(*) AS total
+FROM orders
+GROUP BY status;
+"""
+
+get_orders_summary = """
+SELECT
+    COUNT(*) AS total_orders,
+    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_orders,
+    SUM(CASE WHEN status = 'process' THEN 1 ELSE 0 END) AS process_orders,
+    SUM(CASE WHEN status = 'printing' THEN 1 ELSE 0 END) AS printing_orders,
+    SUM(CASE WHEN status = 'packed' THEN 1 ELSE 0 END) AS packed_orders,
+    SUM(CASE WHEN status = 'shipment' THEN 1 ELSE 0 END) AS shipment_orders,
+    SUM(CASE WHEN status = 'delivery' THEN 1 ELSE 0 END) AS delivery_orders
+FROM orders;
+"""
+
+get_monthly_revenue = """
+SELECT
+    DATE_FORMAT(created_at, '%b') AS month,
+    SUM(total_amount) AS revenue
+FROM orders
+GROUP BY MONTH(created_at), DATE_FORMAT(created_at, '%b')
+ORDER BY MONTH(created_at);
+"""
+
+get_top_products = """
+SELECT
+    p.name,
+    COUNT(oi.id) AS orders,
+    SUM(oi.total) AS revenue
+FROM order_items oi
+JOIN products p ON p.id = oi.product_id
+GROUP BY p.name
+ORDER BY orders DESC
+LIMIT 5;
+"""
+
+get_recent_orders = """
+SELECT
+    o.order_number,
+    u.full_name AS customer,
+    o.total_amount AS amount,
+    o.status
+FROM orders o
+JOIN users u ON u.id = o.user_id
+ORDER BY o.created_at DESC
+LIMIT 5;
+"""
+
+get_last_order_number = """
+SELECT order_number
+FROM orders
+ORDER BY created_at DESC
+LIMIT 1;
+"""
 
 [order_item]
 
@@ -137,3 +204,4 @@ SET total_amount = :total,
     updated_at = :updated_at
 WHERE id = :cart_id;
 """
+

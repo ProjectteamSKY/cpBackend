@@ -408,7 +408,13 @@ from app.services.orders_service import (
     get_order_items,
     get_all_orders_tracking,
     update_order_status,
-    get_user_orders
+    get_user_orders,
+    get_total_orders,
+    get_total_orders_by_user,
+    get_orders_summary,
+    get_monthly_revenue,
+    get_top_products,
+    get_recent_orders
 )
 from app.core.database import query_all
 
@@ -509,7 +515,7 @@ async def checkout_endpoint(payload: CheckoutRequest):
             cart_id=payload.cart_id,
             cart_items=cart_items_dicts,
             address_id=payload.address_id,
-        )
+        )   
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -597,7 +603,49 @@ async def track_orders():
 
     return response
 
+@router.get("/total")
+async def total_orders():
+    try:
+        return await get_total_orders()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/total/{user_id}")
+async def total_orders_by_user(user_id: str):
+    try:
+        return await get_total_orders_by_user(user_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/summary")
+async def orders_summary():
+    try:
+        return await get_orders_summary()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/revenue/monthly")
+async def monthly_revenue():
+    try:
+        return await get_monthly_revenue()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+
+@router.get("/top-products")
+async def top_products():
+    try:
+        return await get_top_products()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/recent-orders")
+async def recent_orders():
+    try:
+        return await get_recent_orders()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
 
 # UPDATE ORDER STATUS
 @router.put("/orders/{order_id}/status")
@@ -645,3 +693,5 @@ async def get_user_orders_endpoint(user_id: str):
         return orders
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+
