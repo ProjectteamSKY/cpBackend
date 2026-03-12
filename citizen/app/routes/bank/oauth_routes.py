@@ -1,66 +1,84 @@
-from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException, Query
+from typing import Optional
+
 from app.services.bank_services.oauth_service import (
-  generate_access_token, refresh_access_token, get_saved_access_token
+    generate_access_token,
+    refresh_access_token,
+    get_access_token,
+    get_refresh_token
 )
 
 router = APIRouter()
 
 
+# OAuth Callback from Bank
+@router.get("/oauth-callback")
+async def oauth_callback(
+    code: str,
+    scope: Optional[str] = "van",
+    state: Optional[str] = None
+):
 
-router = APIRouter()
-
-@router.post("/generate-token")
-async def generate_token(code: str = Query(..., description="Authorization code from step 1")):
     try:
-        token_data = await generate_access_token(code)
-        return {"message": "Access token generated successfully", "data": token_data}
+        token = await generate_access_token(code, scope)
+
+        return {
+            "message": "Access token generated successfully",
+            "access_token": token.get("access_token"),
+            "refresh_token": token.get("refresh_token")
+        }
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# Manual Token Generation
+@router.post("/generate-token")
+async def manual_generate_token(
+    code: str = Query(...),
+    scope: str = Query("van")
+):
+
+    try:
+        token = await generate_access_token(code, scope)
+
+        return {
+            "message": "Token generated",
+            "data": token
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# Refresh Access Token
 @router.post("/refresh-token")
 async def refresh_token():
-    refresh_token = get_saved_access_token()  # or get refresh token separately
-    if not refresh_token:
-        raise HTTPException(status_code=400, detail="No refresh token available. Generate access token first.")
+
+    refresh_token_value = get_refresh_token()
+
+    if not refresh_token_value:
+        raise HTTPException(status_code=400, detail="Refresh token not available")
+
     try:
-        token_data = await refresh_access_token(refresh_token)
-        return {"message": "Token refreshed successfully", "data": token_data}
+        token = await refresh_access_token(refresh_token_value)
+
+        return {
+            "message": "Access token refreshed",
+            "data": token
+        }
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-oauth_tokens = {}
-upi_responses = {}
-
+# Get Current Access Token
 @router.get("/access-token")
-async def get_token():
-    token = get_saved_access_token()
+def current_access_token():
+
+    token = get_access_token()
+
     if not token:
-        raise HTTPException(status_code=404, detail="No access token found")
+        raise HTTPException(status_code=404, detail="Access token not found")
+
     return {"access_token": token}
-
-
-@router.get("/api/bank/oauth-callback")
-async def oauth_callback(code: str):
-    return {"message": "OAuth code received", "code": code}
-
-
-@router.post("/upi-callback")
-async def upi_callback(request: Request):
-    """
-    Handle UPI payment callback from Canara Bank.
-    Receives payment status, transaction id, and other details.
-    """
-    try:
-        payload = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON payload")
-
-    # Store UPI callback data for demo purposes
-    txn_id = payload.get("transactionId") or "unknown_txn"
-    upi_responses[txn_id] = payload
-
-    # You can also process the payment status here (success/failure)
-    return JSONResponse(content={"message": "UPI callback received", "transactionId": txn_id, "status": payload.get("status")})
