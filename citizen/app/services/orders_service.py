@@ -570,35 +570,35 @@
 # # }
 
 
-# # async def update_order_status(order_id: str, new_status: str):
+# async def update_order_status(order_id: str, new_status: str):
 
-# #     current = await query(
-# #         queries["order"]["get_status"],
-# #         {"id": order_id},
-# #     )
+#     current = await query(
+#         queries["order"]["get_status"],
+#         {"id": order_id},
+#     )
 
-# #     if not current:
-# #         raise Exception("Order not found")
+#     if not current:
+#         raise Exception("Order not found")
 
-# #     current_status = current["status"]
+#     current_status = current["status"]
 
-# #     allowed = ORDER_STATUS_FLOW.get(current_status, [])
+#     allowed = ORDER_STATUS_FLOW.get(current_status, [])
 
-# #     if new_status not in allowed:
-# #         raise Exception(
-# #             f"Invalid transition: {current_status} → {new_status}"
-# #         )
+#     if new_status not in allowed:
+#         raise Exception(
+#             f"Invalid transition: {current_status} → {new_status}"
+#         )
 
-# #     await execute(
-# #         queries["order"]["update_status"],
-# #         {"id": order_id, "status": new_status},
-# #     )
+#     await execute(
+#         queries["order"]["update_status"],
+#         {"id": order_id, "status": new_status},
+#     )
 
-# #     return {
-# #         "order_id": order_id,
-# #         "old_status": current_status,
-# #         "new_status": new_status,
-# #     }
+#     return {
+#         "order_id": order_id,
+#         "old_status": current_status,
+#         "new_status": new_status,
+#     }
 
 
 # app/services/orders_service.py
@@ -610,6 +610,9 @@ import uuid
 from typing import List
 
 from app.core.database import execute, query, query_all
+from app.utils.query_loader import load_queries
+
+queries = load_queries()
 
 # Folder to store uploaded files for orders
 UPLOAD_FOLDER = "media/orderfiles"
@@ -662,14 +665,17 @@ async def checkout(user_id: str, cart_id: str, cart_items: List[dict], address_i
 
     #  Create Order
     order_id = str(uuid.uuid4())
+    order_number = await generate_order_number()
+    
     await execute(
         """
-        INSERT INTO orders (id, user_id, cart_id, address_id, status, total_amount, created_at, updated_at)
-        VALUES (:id, :user_id, :cart_id, :address_id, :status, :total_amount, :created_at, :updated_at)
+        INSERT INTO orders (id,  user_id, order_number, cart_id, address_id, status, total_amount, created_at, updated_at)
+        VALUES (:id, :user_id, :order_number, :cart_id, :address_id, :status, :total_amount, :created_at, :updated_at)
         """,
         {
             "id": order_id,
             "user_id": user_id,
+            "order_number": order_number,
             "cart_id": cart_id,
             "address_id": address_id,
             "status": "pending",
@@ -859,3 +865,99 @@ async def get_user_orders(user_id: str):
         "SELECT * FROM orders WHERE user_id = :user_id ORDER BY created_at DESC", 
         {"user_id": user_id}
     )
+
+
+async def get_total_orders():
+
+    result = await query(
+        queries["order"]["get_total_orders"],
+        {},
+    )
+    print("total orders@@@@@@@@@@@@@@@@@@@@@@@@@@@@",result)
+    if not result:
+        return {"total_orders": 0}
+
+    return {
+        "total_orders": result["total_orders"]
+    }
+
+async def get_total_orders_by_user(user_id: str):
+
+    result = await query(
+        queries["order"]["get_total_orders_by_user"],
+        {"user_id": user_id},
+    )
+
+    if not result:
+        return {"total_orders": 0}
+
+    return {
+        "user_id": user_id,
+        "total_orders": result["total_orders"],
+    }
+
+async def get_orders_summary():
+
+    result = await query(
+        queries["order"]["get_orders_summary"],
+        {},
+    )
+
+    if not result:
+        return {}
+
+    return {
+        "total_orders": result["total_orders"],
+        "pending_orders": result["pending_orders"],
+        "process_orders": result["process_orders"],
+        "printing_orders": result["printing_orders"],
+        "packed_orders": result["packed_orders"],
+        "shipment_orders": result["shipment_orders"],
+        "delivery_orders": result["delivery_orders"],
+    }
+
+
+async def get_monthly_revenue():
+
+    rows = await query_all(
+        queries["order"]["get_monthly_revenue"],
+        {},
+    )
+
+    return rows
+
+async def get_top_products():
+
+    rows = await query_all(
+        queries["order"]["get_top_products"],
+        {},
+    )
+
+    return rows
+
+async def get_recent_orders():
+
+    rows = await query_all(
+        queries["order"]["get_recent_orders"],
+        {},
+    )
+
+    return rows
+
+async def generate_order_number():
+
+    row = await query(
+        queries["order"]["get_last_order_number"],
+        {}
+    )
+
+    year = datetime.utcnow().year
+
+    if not row or not row["order_number"]:
+        return f"ORD-{year}-0001"
+
+    last = row["order_number"]
+
+    number = int(last.split("-")[-1]) + 1
+
+    return f"ORD-{year}-{number:04d}"
