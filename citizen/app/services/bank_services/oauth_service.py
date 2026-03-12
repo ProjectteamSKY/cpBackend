@@ -10,7 +10,7 @@ import base64
 # )
 CLIENT_ID="AUx27zglhuuiRxahKUTmpAVEVKuJ3rsr"
 CLIENT_SECRET="B7WgKfGeURXYkEgRA1ZASYRFtUG64SEn"
-TOKEN_URL="https://api.canarauat.bank.in /v1/oauth2/token"
+TOKEN_URL="https://api.canarauat.bank.in/v1/oauth2/token"
 REFRESH_URL="https://api.canarauat.bank.in/v1/oauth2/refresh-token"
 REDIRECT_URI="http://54.206.3.97/api/bank/oauth-callback"
 DEFAULT_SCOPE="van"
