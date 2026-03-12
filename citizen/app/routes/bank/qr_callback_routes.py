@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 
 router = APIRouter()
 
-@router.post("/qr-callback")
+@router.post("/api/qr-callback")
 async def qr_callback(request: Request):
 
     payload = await request.json()
