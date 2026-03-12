@@ -42,23 +42,9 @@ async def get_token():
     return {"access_token": token}
 
 
-@router.get("/oauth-callback")
-async def oauth_callback(
-    code: str = Query(..., description="Authorization code from Canara Bank"),
-    state: str = Query(None, description="State parameter if sent")
-):
-    """
-    Handle OAuth callback from Canara Bank.
-    Typically receives a `code` which is exchanged for access/refresh tokens.
-    """
-    # For demonstration, just store the code
-    oauth_tokens["code"] = code
-    oauth_tokens["state"] = state
-
-    # Here you can exchange code for access token using Canara API
-    # e.g., call `POST /oauth/token` with code, client_id, client_secret
-
-    return JSONResponse(content={"message": "OAuth callback received", "code": code, "state": state})
+@router.get("/api/bank/oauth-callback")
+async def oauth_callback(code: str):
+    return {"message": "OAuth code received", "code": code}
 
 
 @router.post("/upi-callback")
