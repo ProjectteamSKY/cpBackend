@@ -1,51 +1,51 @@
 import httpx
 import base64
-
-CANARA_BASE_URL = "https://api.canarauat.bank.in/v1"
-
-CLIENT_ID = "<YOUR_CLIENT_ID>"
-CLIENT_SECRET = "<YOUR_CLIENT_SECRET>"
-
-REDIRECT_URI = "http://54.206.3.97/api/bank/oauth-callback"
-
-
-# In-memory storage
+# from app.core.config import (
+#     CLIENT_ID,
+#     CLIENT_SECRET,
+#     TOKEN_URL,
+#     REFRESH_URL,
+#     REDIRECT_URI,
+#     DEFAULT_SCOPE
+# )
+CLIENT_ID="AUx27zglhuuiRxahKUTmpAVEVKuJ3rsr"
+CLIENT_SECRET="B7WgKfGeURXYkEgRA1ZASYRFtUG64SEn"
+TOKEN_URL="https://api.canarauat.bank.in /v1/oauth2/token"
+REFRESH_URL="https://api.canarauat.bank.in/v1/oauth2/refresh-token"
+REDIRECT_URI="http://54.206.3.97/api/bank/oauth-callback"
+DEFAULT_SCOPE="van"
+# Temporary token storage
 token_storage = {
     "access_token": None,
     "refresh_token": None
 }
 
 
-def get_basic_auth():
+def basic_auth():
     credentials = f"{CLIENT_ID}:{CLIENT_SECRET}"
     encoded = base64.b64encode(credentials.encode()).decode()
     return f"Basic {encoded}"
 
 
-# ---------------------------------------
-# Generate Access Token
-# ---------------------------------------
-async def generate_access_token(code: str, scope: str):
-
-    url = f"{CANARA_BASE_URL}/oauth2/token"
+async def generate_access_token(code: str, scope: str = DEFAULT_SCOPE):
 
     headers = {
-        "Authorization": get_basic_auth(),
+        "Authorization": basic_auth(),
         "Content-Type": "application/x-www-form-urlencoded"
     }
 
-    body = {
+    payload = {
         "grant_type": "authorization_code",
-        "redirect_uri": REDIRECT_URI,
         "code": code,
+        "redirect_uri": REDIRECT_URI,
         "scope": scope
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, headers=headers, data=body)
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(TOKEN_URL, headers=headers, data=payload)
 
     if response.status_code != 200:
-        raise Exception(response.text)
+        raise Exception(f"Token API Error: {response.text}")
 
     token_data = response.json()
 
@@ -55,28 +55,23 @@ async def generate_access_token(code: str, scope: str):
     return token_data
 
 
-# ---------------------------------------
-# Refresh Access Token
-# ---------------------------------------
 async def refresh_access_token(refresh_token: str):
 
-    url = f"{CANARA_BASE_URL}/oauth2/refresh-token"
-
     headers = {
-        "Authorization": get_basic_auth(),
+        "Authorization": basic_auth(),
         "Content-Type": "application/x-www-form-urlencoded"
     }
 
-    body = {
+    payload = {
         "grant_type": "refresh_token",
         "refresh_token": refresh_token
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, headers=headers, data=body)
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(REFRESH_URL, headers=headers, data=payload)
 
     if response.status_code != 200:
-        raise Exception(response.text)
+        raise Exception(f"Refresh Token API Error: {response.text}")
 
     token_data = response.json()
 
@@ -85,9 +80,9 @@ async def refresh_access_token(refresh_token: str):
     return token_data
 
 
-def get_saved_access_token():
+def get_access_token():
     return token_storage.get("access_token")
 
 
-def get_saved_refresh_token():
+def get_refresh_token():
     return token_storage.get("refresh_token")
