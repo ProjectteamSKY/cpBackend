@@ -70,6 +70,7 @@
 import json
 import time
 import base64
+from pathlib import Path
 import httpx
 import random
 import string
@@ -78,7 +79,7 @@ from jose import jwe
 from jose.constants import ALGORITHMS
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
-
+import uuid
 
 API_URL = "https://api.canarauat.bank.in/v1/upi/vpa-creation"
 
@@ -127,18 +128,15 @@ def sign(input_data):
     if isinstance(input_data, str):
         input_data = input_data.encode("utf-8")
 
-    # Private key without header/footer
-    private_key_str = "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCqmltBJslKy8d9jVcVznYvLN8PpM6l2WRH8avjVE020pBKCiwytSTbj0Qg3F+zzX81BS0LNeXd90jVklfCpZWgn9zBKdOgcAadfRbKoqcGiZeX7IPi0y3ab0pheQYjHawqu9CI305N5s4kYOIT+WTqOwUsZ8PW/bZ6CkrWjYzLHkllNWFVZCC6sR6UuWKDVNYWeT6gGtiyvirxSvvj16gs0/V7TS2p4CshK1GoMBUkOv8fwrsSyeDqDRd5p1uUjD5yvHpBxvQK6gsTijB5MMgCt5laexzfFXcBvAVM8tJzQLBIWe3t/yDeqpX6voYmX+Qjsa9vy83/ceeigW1P/SjJAgMBAAECggEABVOA2YmdtRaKfmm3e1n0OB65QkQfSUlYCpcpsK6QCfZfpIqC3NY2PDf4K0neBgXHVlv4dXyXCT7ZzAS/2/b7jL9Fu9UaHL/qmo4BdGcvRwwfV4U98wqsFSeU0nK3q/uwHvxsMzdV7g1jrnorP+7kRU8wgLVznuzR8dqMG0mVIledNjKc5/6XIq5cExb04X/tLDD8gU6Pw9lRSJAaNpzHn1qLM9F4WPr4i/KCrU9DlZ7b2k6dxBEPCYOqZl4wVCrzbHyuNzusRIkjgo5TBIi2dZy4qRkKpJIoLsHw0Hm7GNP9H/lHtqtQdAnCZFSvRB8CJLyG+jocqnRzDU1iRfk+RQKBgQDZRv+LJBa2YinQz1CyLTIHTNQR+iJe5lmPgydVmHe+BoimNpJO4Abl1SEO+bYheiIAKt9yRcP574XTRyFFcZdWN8yW56H1g+YfU1vG7ZATcJi/eVZAHw6u8CToe6S08ypVi6gYszA6vl03uF9XMk8soRzOB9HY5tNThUlg0k4o1QKBgQDJAeYl164UJgfzWP1D5Ro4x7YEERh0F3d/eJXIs4/IFYjUAgatT1Bmo7FZ0wXEzk8eCxGqD9ZqPGw4le0iVtRdpMWPhzsiMDwXK0PqKbORGLrV/z2heifALcNgEDpj/ETJ6VXZCgWWMeH4Af2l74675Uvb6j3+/vpC3df6C06JQKBgAuUmigrWz6LStlDQ3TLrd/vu1nd8BkIw/s/LUiFoNQy+vOI8xFbJWL4khN/QbLVFJzXrCMmDsTyfDp/jwlpfXxt6uycGejBB/HheoHGxagTl0CVUgCG5zxxtjXh6SxvzXDTybjPTCHFZaiDnilCmC+zwppElm2uF9NaxkdvzhSlAoGAKVp9qe1sf/KvEg6N1GkO8v2LYdzOhhvJ1S44YarkebJCZnNxp2UAHD4a/1vYGKs4zEsA+OxmVCDg0H5QgvD7W5AkhJ/0vWkJIKpAZIdTAf6pxzdL8L/t8sBn6JwpPqQBeepfJtKROL+9FSQvHzlqxp9Btwem4JXz5qcYQR/4Jg0CgYA53781wxlgA+uy91i7ThMq6T8HnLsdxkG8xvjGVllL+OdaM6h0bvenC4k79eCOkZLgii9sjkMUk42u8QVpMmDnrU9vlwZoCm+Nt7oFE6Y2+Sm5DIPCjbmP2Tbko5URQtVJGUUuHRHj1GurbY2meIgfFhO6VEEFedaO0y9mcvwszg=="  
-
-
-    private_key_pem = f"""-----BEGIN PRIVATE KEY-----
-{private_key_str}
------END PRIVATE KEY-----""".encode()
-
-    private_key = serialization.load_pem_private_key(
-        private_key_pem,
-        password=None
-    )
+    BASE_DIR = Path(__file__).resolve().parents[3]
+    key_path = BASE_DIR / "citizen_prints_pem.pem"
+    print("KEY PATH: - vpa_service.py:133", key_path)
+    print("FILE EXISTS: - vpa_service.py:134", key_path.exists())
+    with open(key_path, "rb") as key_file:
+        private_key = serialization.load_pem_private_key(
+            key_file.read(),
+            password=None
+        )
 
     signature = private_key.sign(
         input_data,
@@ -170,7 +168,7 @@ async def create_vpa(access_token: str):
         "ifsc_code": "CNRB0016044",
         "checksum": "",
         "additionalNo": "",
-        "sid": sid
+        "sid": "RNFMID0001"
     }
 
     payload = {
@@ -194,23 +192,24 @@ async def create_vpa(access_token: str):
     payload["Request"]["body"]["encryptData"] = jwt.decode("utf-8")
 
     payload_json = json.dumps(payload, separators=(',', ':')).encode("utf-8")
-
-    # ----------------------------
+    print("FINAL PAYLOAD: - vpa_service.py:195", json.dumps(payload, indent=2))
+    # ------------------
     # Digital Signature
     # ----------------------------
 
     signature = sign(payload_json)
+    print("ACCESS TOKEN USED: - vpa_service.py:201", access_token)
 
     headers = {
-        "Authorization": f"Bearer {access_token}",
         "x-client-id": CLIENT_ID,
         "x-client-secret": CLIENT_SECRET,
         "x-client-certificate": PUBLIC_KEY,
-        "x-api-interaction-id": "1",
-        "x-timestamp": str(time.time()),
+        "x-api-interaction-id": str(uuid.uuid4()),
+        "x-timestamp": str(int(time.time())),
         "x-signature": signature,
         "Content-Type": "application/json"
     }
+    print("ACCESS TOKEN USED: - vpa_service.py:212", headers)
 
     async with httpx.AsyncClient(timeout=30) as client:
 
@@ -220,8 +219,8 @@ async def create_vpa(access_token: str):
             headers=headers
         )
 
-    print("STATUS: - vpa_service.py:223", response.status_code)
-    print("ENCRYPTED RESPONSE: - vpa_service.py:224", response.text)
+    print("STATUS: - vpa_service.py:222", response.status_code)
+    print("ENCRYPTED RESPONSE: - vpa_service.py:223", response.text)
 
     try:
 

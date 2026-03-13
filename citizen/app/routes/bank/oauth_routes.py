@@ -3,19 +3,18 @@ from typing import Optional
 
 from app.services.bank_services.oauth_service import (
     generate_access_token,
-    refresh_access_token,
-    get_access_token,
-    get_refresh_token
+    get_valid_access_token
 )
 
 router = APIRouter()
 
 
 # OAuth Callback from Bank
+# OAuth callback from bank
 @router.get("/oauth-callback")
 async def oauth_callback(
     code: str,
-    scope: Optional[str] = "van",
+    scope: Optional[str] = "upi",
     state: Optional[str] = None
 ):
 
@@ -23,62 +22,27 @@ async def oauth_callback(
         token = await generate_access_token(code, scope)
 
         return {
-            "message": "Access token generated successfully",
-            "access_token": token.get("access_token"),
-            "refresh_token": token.get("refresh_token")
+            "message": "Access token generated",
+            "access_token": token["access_token"],
+            "refresh_token": token["refresh_token"]
         }
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# Manual Token Generation
-@router.post("/generate-token")
-async def manual_generate_token(
-    code: str = Query(...),
-    scope: str = Query("van")
-):
-
-    try:
-        token = await generate_access_token(code, scope)
-
-        return {
-            "message": "Token generated",
-            "data": token
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-# Refresh Access Token
-@router.post("/refresh-token")
-async def refresh_token():
-
-    refresh_token_value = get_refresh_token()
-
-    if not refresh_token_value:
-        raise HTTPException(status_code=400, detail="Refresh token not available")
-
-    try:
-        token = await refresh_access_token(refresh_token_value)
-
-        return {
-            "message": "Access token refreshed",
-            "data": token
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-# Get Current Access Token
+# Get valid access token
 @router.get("/access-token")
-def current_access_token():
+async def get_access_token():
 
-    token = get_access_token()
+    try:
+        token = await get_valid_access_token()
 
-    if not token:
-        raise HTTPException(status_code=404, detail="Access token not found")
+        return {
+            "access_token": token
+        }
 
-    return {"access_token": token}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+
