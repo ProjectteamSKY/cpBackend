@@ -12,11 +12,12 @@ import base64
 # )
 CLIENT_ID="AUx27zglhuuiRxahKUTmpAVEVKuJ3rsr"
 CLIENT_SECRET="B7WgKfGeURXYkEgRA1ZASYRFtUG64SEn"
-TOKEN_URL="https://api.canarauat.bank.in/v1/oauth2/token"
-REFRESH_URL="https://api.canarauat.bank.in/v1/oauth2/refresh-token"
-REDIRECT_URI="http://54.206.3.97/api/bank/oauth-callback"
-DEFAULT_SCOPE="upi"
-# Temporary token storage
+TOKEN_URL = "https://api.canarauat.bank.in/v1/oauth2/token"
+REFRESH_URL = "https://api.canarauat.bank.in/v1/oauth2/refresh-token"
+
+REDIRECT_URI = "http://54.206.3.97/api/bank/oauth-callback"
+DEFAULT_SCOPE = "upi"
+
 token_storage = {
     "access_token": None,
     "refresh_token": None,
@@ -45,6 +46,8 @@ async def generate_access_token(code: str, scope: str = DEFAULT_SCOPE):
         "scope": scope
     }
 
+    print("TOKEN REQUEST PAYLOAD: - oauth_service.py:49", payload)
+
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
             TOKEN_URL,
@@ -52,8 +55,49 @@ async def generate_access_token(code: str, scope: str = DEFAULT_SCOPE):
             data=payload
         )
 
+    print("TOKEN STATUS: - oauth_service.py:58", response.status_code)
+    print("TOKEN RESPONSE: - oauth_service.py:59", response.text)
+
     if response.status_code != 200:
-        raise Exception(f"Token API Error: {response.text}")
+        raise Exception(response.text)
+
+    token_data = response.json()
+
+    now = datetime.datetime.utcnow()
+
+    token_storage["access_token"] = token_data["access_token"]
+    token_storage["refresh_token"] = token_data["refresh_token"]
+
+    token_storage["access_expiry"] = now + datetime.timedelta(hours=24)
+    token_storage["refresh_expiry"] = now + datetime.timedelta(days=7)
+
+    return token_data
+async def generate_access_token(code: str, scope: str = DEFAULT_SCOPE):
+
+    headers = {
+        "Authorization": basic_auth(),
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    payload = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": REDIRECT_URI,
+        "scope": scope
+    }
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            TOKEN_URL,
+            headers=headers,
+            data=payload
+        )
+
+    print("TOKEN STATUS: - oauth_service.py:96", response.status_code)
+    print("TOKEN RESPONSE: - oauth_service.py:97", response.text)
+
+    if response.status_code != 200:
+        raise Exception(response.text)
 
     token_data = response.json()
 
@@ -88,7 +132,7 @@ async def refresh_access_token(refresh_token: str):
         )
 
     if response.status_code != 200:
-        raise Exception(f"Refresh Token Error: {response.text}")
+        raise Exception(response.text)
 
     token_data = response.json()
 
@@ -118,16 +162,19 @@ async def get_valid_access_token():
 
     now = datetime.datetime.utcnow()
 
-    # Access token valid
+    # 1️⃣ Access token still valid
     if access_token and access_expiry and now < access_expiry:
+        print("Using existing access token - oauth_service.py:167")
         return access_token
 
-    # Access expired → use refresh token
+    # 2️⃣ Access expired → try refresh token
     if refresh_token and refresh_expiry and now < refresh_expiry:
+
+        print("Access token expired. Refreshing... - oauth_service.py:173")
 
         token_data = await refresh_access_token(refresh_token)
 
         return token_data["access_token"]
 
-    # Refresh token expired
-    raise Exception("Refresh token expired. Run OAuth authorization again.")
+    # 3️⃣ Refresh token expired
+    raise Exception("Refresh token expired. OAuth authorization required again.")
