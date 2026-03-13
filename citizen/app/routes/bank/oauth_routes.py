@@ -12,15 +12,15 @@ router = APIRouter()
 # OAuth Callback from Bank
 # OAuth callback from bank
 @router.get("/oauth-callback")
-async def oauth_callback(
-    code: str,
-    scope: Optional[str] = "upi",
-    state: Optional[str] = None
-):
+async def oauth_callback(code: str, scope: str = "upi", state: str = None):
 
     try:
-        token = await generate_access_token(code, scope)
+        print("TOKEN RESPONSE: - oauth_routes.py:18", code)
+        print("TOKEN RESPONSE: - oauth_routes.py:19", scope)
+        print("TOKEN RESPONSE: - oauth_routes.py:20", state)
 
+        token = await generate_access_token(code, scope)
+        print("TOKEN RESPONSE: - oauth_routes.py:23", token)
         return {
             "message": "Access token generated",
             "access_token": token["access_token"],
