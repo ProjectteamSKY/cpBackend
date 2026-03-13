@@ -3,46 +3,84 @@ from typing import Optional
 
 from app.services.bank_services.oauth_service import (
     generate_access_token,
-    get_valid_access_token
+    refresh_access_token,
+    get_access_token,
+    get_refresh_token
 )
+import logging
 
+logger = logging.getLogger("oauth_logger")
+logging.basicConfig(level=logging.INFO)
 router = APIRouter()
 
 
 # OAuth Callback from Bank
-# OAuth callback from bank
 @router.get("/oauth-callback")
-async def oauth_callback(code: str, scope: str = "upi", state: str = None):
+async def oauth_callback(code: str, scope: Optional[str] = "upi", state: Optional[str] = None):
+    logger.info("code: %s", code)
+    logger.info("scope: %s", scope)
+    logger.info("state: %s", state)
 
     try:
-        print("TOKEN RESPONSE: - oauth_routes.py:18", code)
-        print("TOKEN RESPONSE: - oauth_routes.py:19", scope)
-        print("TOKEN RESPONSE: - oauth_routes.py:20", state)
-
         token = await generate_access_token(code, scope)
-        print("TOKEN RESPONSE: - oauth_routes.py:23", token)
+        logger.info("Access token generated successfully")
         return {
-            "message": "Access token generated",
-            "access_token": token["access_token"],
-            "refresh_token": token["refresh_token"]
+            "message": "Access token generated successfully",
+            "access_token": token.get("access_token"),
+            "refresh_token": token.get("refresh_token")
         }
-
     except Exception as e:
+        logger.error("Error generating token: %s", e)
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# Get valid access token
-@router.get("/access-token")
-async def get_access_token():
+# Manual Token Generation
+@router.post("/generate-token")
+async def manual_generate_token(
+    code: str = Query(...),
+    scope: str = Query("van")
+):
 
     try:
-        token = await get_valid_access_token()
+        token = await generate_access_token(code, scope)
 
         return {
-            "access_token": token
+            "message": "Token generated",
+            "data": token
         }
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
 
+
+# Refresh Access Token
+@router.post("/refresh-token")
+async def refresh_token():
+
+    refresh_token_value = get_refresh_token()
+
+    if not refresh_token_value:
+        raise HTTPException(status_code=400, detail="Refresh token not available")
+
+    try:
+        token = await refresh_access_token(refresh_token_value)
+
+        return {
+            "message": "Access token refreshed",
+            "data": token
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# Get Current Access Token
+@router.get("/access-token")
+def current_access_token():
+
+    token = get_access_token()
+
+    if not token:
+        raise HTTPException(status_code=404, detail="Access token not found")
+
+    return {"access_token": token}
