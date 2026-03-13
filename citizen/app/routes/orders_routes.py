@@ -645,7 +645,14 @@ async def recent_orders():
         return await get_recent_orders()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
+@router.get("/{order_id}")
+async def get_order(order_id: str):
+    order = await get_order_by_id(order_id)
+    if not order:
+        raise HTTPException(404, "Order not found")
+    return order
+
 
 # UPDATE ORDER STATUS
 @router.put("/orders/{order_id}/status")
@@ -657,12 +664,6 @@ async def change_order_status(order_id: str, payload: OrderStatusUpdate):
 
 
 # GET ORDER BY ID
-@router.get("/{order_id}")
-async def get_order(order_id: str):
-    order = await get_order_by_id(order_id)
-    if not order:
-        raise HTTPException(404, "Order not found")
-    return order
 
 
 # UPDATE ORDER
