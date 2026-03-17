@@ -6,8 +6,11 @@ class ProductDiscount:
     def __init__(
         self,
         product_id: Optional[str] = None,
+        title: Optional[str] = None,
         description: Optional[str] = None,
         discount: str = "0%",
+        banner_image_url: Optional[str] = None,
+        cta_text: Optional[str] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         is_active: bool = True,
@@ -17,8 +20,11 @@ class ProductDiscount:
     ):
         self.id = id or str(uuid.uuid4())
         self.product_id = product_id
+        self.title = title
         self.description = description
         self.discount = discount
+        self.banner_image_url = banner_image_url
+        self.cta_text = cta_text
         self.start_date = start_date or datetime.utcnow()
         self.end_date = end_date or datetime.utcnow()
         self.is_active = is_active
@@ -40,8 +46,11 @@ class ProductDiscount:
         return {
             "id": self.id,
             "product_id": self.product_id,
+            "title": self.title,
             "description": self.description,
             "discount": self.discount,
+            "banner_image_url": self.banner_image_url,
+            "cta_text": self.cta_text,
             "start_date": self.start_date,
             "end_date": self.end_date,
             "is_active": self.is_active,

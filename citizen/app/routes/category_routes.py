@@ -103,7 +103,7 @@ async def activate_category_endpoint(id: str):
 
 
 # --------------------------
-# DEACTIVATE
+# DEACTIVATE    
 # --------------------------
 @router.put("/{id}/deactivate")
 async def deactivate_category_endpoint(id: str):
