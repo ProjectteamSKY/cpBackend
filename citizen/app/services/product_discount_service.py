@@ -6,50 +6,37 @@ from app.utils.query_loader import load_queries
 queries = load_queries()
 
 
-# ---------------- CREATE ----------------
 
+# CREATE
 async def create_product_discount(discount: ProductDiscount):
+    """
+    Insert discount into database and return full record.
+    """
     await execute(
         queries["product_discount"]["create"],
         discount.to_dict()
     )
     return await get_product_discount_by_id(discount.id)
 
-
-# ---------------- GET ALL ----------------
-
+# GET ALL
 async def get_all_product_discounts():
-    return await query_all(
-        queries["product_discount"]["get_all"]
-    )
-
+    return await query_all(queries["product_discount"]["get_all"])
 
 async def get_all_product_discounts_active():
-    return await query_all(
-        queries["product_discount"]["get_all_active"]
-    )
+    return await query_all(queries["product_discount"]["get_all_active"])
 
-
-# ---------------- GET BY ID ----------------
-
+# GET BY ID
 async def get_product_discount_by_id(id: str):
-    return await query(
-        queries["product_discount"]["get_by_id"],
-        {"id": id}
-    )
+    return await query(queries["product_discount"]["get_by_id"], {"id": id})
 
-
-# ---------------- GET BY PRODUCT ----------------
-
+# GET BY PRODUCT
 async def get_product_discounts_by_product(product_id: str):
     return await query_all(
         queries["product_discount"]["get_by_product"],
         {"product_id": product_id}
     )
 
-
-# ---------------- UPDATE ----------------
-
+# UPDATE
 async def update_product_discount(id: str, discount: ProductDiscount):
     await execute(
         queries["product_discount"]["update"],
@@ -57,9 +44,7 @@ async def update_product_discount(id: str, discount: ProductDiscount):
     )
     return await get_product_discount_by_id(id)
 
-
-# ---------------- SOFT DELETE ----------------
-
+# SOFT DELETE
 async def delete_product_discount(id: str):
     await execute(
         queries["product_discount"]["soft_delete"],
@@ -67,9 +52,7 @@ async def delete_product_discount(id: str):
     )
     return {"message": "Product Discount deleted successfully"}
 
-
-# ---------------- ACTIVATE ----------------
-
+# ACTIVATE
 async def activate_product_discount(id: str):
     await execute(
         queries["product_discount"]["activate"],
@@ -77,9 +60,7 @@ async def activate_product_discount(id: str):
     )
     return await get_product_discount_by_id(id)
 
-
-# ---------------- DEACTIVATE ----------------
-
+# DEACTIVATE
 async def deactivate_product_discount(id: str):
     await execute(
         queries["product_discount"]["deactivate"],
@@ -87,11 +68,16 @@ async def deactivate_product_discount(id: str):
     )
     return await get_product_discount_by_id(id)
 
-
-# ---------------- DATE RANGE ----------------
-
+# DATE RANGE
 async def get_product_discounts_by_date_range(start_date: datetime, end_date: datetime):
     return await query_all(
         queries["product_discount"]["get_by_date_range"],
         {"start_date": start_date, "end_date": end_date}
     )
+
+
+async def get_last5_active_product_discounts():
+    """
+    Returns last 5 active product discounts with full details.
+    """
+    return await query_all(queries["product_discount"]["get_last5_active_discounts"])

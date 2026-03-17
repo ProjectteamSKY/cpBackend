@@ -2,10 +2,10 @@
 
 create = """
 INSERT INTO product_discounts (
-    id, product_id, description, discount,
+    id, product_id, title, description, discount, banner_image_url, cta_text,
     start_date, end_date, is_active, created_at, updated_at
 ) VALUES (
-    :id, :product_id, :description, :discount,
+    :id, :product_id, :title, :description, :discount, :banner_image_url, :cta_text,
     :start_date, :end_date, :is_active, :created_at, :updated_at
 );
 """
@@ -31,6 +31,7 @@ get_by_id = """
 SELECT * FROM product_discounts
 WHERE id = :id;
 """
+
 get_by_product = """
 SELECT pd.*, p.name AS product_name
 FROM product_discounts pd
@@ -43,8 +44,11 @@ update = """
 UPDATE product_discounts
 SET
     product_id = :product_id,
+    title = :title,
     description = :description,
     discount = :discount,
+    banner_image_url = :banner_image_url,
+    cta_text = :cta_text,
     start_date = :start_date,
     end_date = :end_date,
     updated_at = :updated_at
@@ -85,4 +89,15 @@ AND pd.end_date <= :end_date
 ORDER BY pd.start_date DESC;
 """
 
-
+get_last5_active_discounts = """
+SELECT *
+FROM product_discounts
+WHERE is_deleted = FALSE
+  AND is_active = TRUE
+  AND banner_image_url IS NOT NULL
+  AND title IS NOT NULL
+  AND description IS NOT NULL
+  AND cta_text IS NOT NULL
+ORDER BY created_at DESC
+LIMIT 5;
+"""
