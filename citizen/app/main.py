@@ -41,6 +41,8 @@ from app.routes.bank import transaction_status_extid_routes
 from app.routes.bank import qr_callback_routes
 from app.routes.bank import qr_statement_routes
 from app.routes.bank import oauth_routes
+from app.routes import review_routes
+
 
 
 
@@ -220,6 +222,8 @@ api_router.include_router(transaction_status_extid_routes.router, prefix="/bank"
 api_router.include_router(qr_callback_routes.router, prefix="/bank", tags=["Bank APIs"])
 api_router.include_router(qr_statement_routes.router, prefix="/bank", tags=["Bank APIs"])
 api_router.include_router(oauth_routes.router, prefix="/bank", tags=["Bank OAuth"])
+api_router.include_router(review_routes.router, prefix="/review", tags=["review"])
+
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
 

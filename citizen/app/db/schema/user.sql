@@ -21,7 +21,7 @@ CREATE TABLE email_otps (
     email VARCHAR(200) NOT NULL,
     otp_code VARCHAR(6) NOT NULL,
     expires_at DATETIME NOT NULL,
-    is_used BOOLEAN DEFAULT FALSE
+    is_used BOOLEAN DEFAULT FALSE   
 );
 
 CREATE TABLE refresh_tokens (
