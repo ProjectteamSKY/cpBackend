@@ -79,7 +79,7 @@ async def refresh_token():
 def current_access_token():
 
     token = get_access_token()
-
+    print("token - oauth_routes.py:82",token)
     if not token:
         raise HTTPException(status_code=404, detail="Access token not found")
 

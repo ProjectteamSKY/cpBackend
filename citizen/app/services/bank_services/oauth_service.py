@@ -44,10 +44,11 @@ async def generate_access_token(code: str, scope: str = DEFAULT_SCOPE):
 
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(TOKEN_URL, headers=headers, data=payload)
+        print("response - oauth_service.py:47",response)
 
     if response.status_code != 200:
         raise Exception(f"Token API Error: {response.text}")
-
+    print("response - oauth_service.py:51",response.text)
     token_data = response.json()
 
     token_storage["access_token"] = token_data.get("access_token")
@@ -82,6 +83,7 @@ async def refresh_access_token(refresh_token: str):
 
 
 def get_access_token():
+    print("token_storage - oauth_service.py:86")
     return token_storage.get("access_token")
 
 

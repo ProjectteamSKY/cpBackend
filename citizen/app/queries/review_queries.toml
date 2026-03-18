@@ -1,0 +1,111 @@
+[review]
+
+# --------------------------
+# CREATE (with upsert/duplicate handling)
+# --------------------------
+create = """
+INSERT INTO customer_reviews (id, product_id, user_id, customer_name, rating, comment, image_url, is_active, is_deleted, created_at, updated_at)
+VALUES (:id, :product_id, :user_id, :customer_name, :rating, :comment, :image_url, :is_active, FALSE, :created_at, :updated_at)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    comment = VALUES(comment),
+    image_url = VALUES(image_url),
+    rating = VALUES(rating),
+    is_active = VALUES(is_active),
+    updated_at = NOW();
+"""
+
+# --------------------------
+# GET ALL (active only)
+# --------------------------
+get_all = """
+SELECT *
+FROM customer_reviews
+WHERE is_deleted = FALSE
+ORDER BY created_at DESC;
+"""
+
+# --------------------------
+# GET BY ID
+# --------------------------
+get_by_id = """
+SELECT *
+FROM customer_reviews
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+# --------------------------
+# UPDATE
+# --------------------------
+update = """
+UPDATE customer_reviews
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+# --------------------------
+# SOFT DELETE
+# --------------------------
+delete = """
+UPDATE customer_reviews
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+# --------------------------
+# ACTIVATE
+# --------------------------
+activate = """
+UPDATE customer_reviews
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+# --------------------------
+# DEACTIVATE
+# --------------------------
+deactivate = """
+UPDATE customer_reviews
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+# --------------------------
+# RESTORE SOFT-DELETED
+# --------------------------
+restore = """
+UPDATE customer_reviews
+SET is_deleted = FALSE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+# --------------------------
+# LAST 5 ACTIVE REVIEWS PER PRODUCT
+# --------------------------
+latest_per_product = """
+SELECT *
+FROM customer_reviews
+WHERE product_id = :product_id
+AND is_active = TRUE
+AND is_deleted = FALSE
+ORDER BY created_at DESC;
+"""
+
+# --------------------------
+# ADMIN: GET ALL INCLUDING DELETED
+# --------------------------
+get_all_with_deleted = """
+SELECT *
+FROM customer_reviews
+ORDER BY created_at DESC;
+"""

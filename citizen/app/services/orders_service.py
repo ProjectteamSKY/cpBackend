@@ -860,11 +860,28 @@ async def update_order_status(order_id: str, new_status: str):
     }
 
 async def get_user_orders(user_id: str):
-    """Get all orders for a specific user"""
-    return await query_all(
+    """Get all orders for a specific user along with products"""
+    orders = await query_all(
         "SELECT * FROM orders WHERE user_id = :user_id ORDER BY created_at DESC", 
         {"user_id": user_id}
     )
+
+    # Fetch products for each order
+    for order in orders:
+        items = await query_all(
+            """
+            SELECT oi.id AS order_item_id, oi.product_id, oi.variant_id,
+                   oi.quantity, oi.price, oi.total,
+                   p.name AS product_name
+            FROM order_items oi
+            JOIN products p ON p.id = oi.product_id
+            WHERE oi.order_id = :order_id
+            """,
+            {"order_id": order["id"]}
+        )
+        order["products"] = items
+
+    return orders
 
 
 async def get_total_orders():
