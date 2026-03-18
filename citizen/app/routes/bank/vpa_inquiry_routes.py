@@ -1,13 +1,14 @@
-from fastapi import APIRouter
-from app.services.bank_services.vpa_inquiry_service import vpa_inquiry
+from fastapi import APIRouter, Query
+from app.services.bank_services.vpa_service import vpa_inquiry
 
 router = APIRouter()
 
 @router.post("/vpa-inquiry")
 async def vpa_inquiry_api(
-    mid: str,
-    terminalId: str,
-    sid: str,
-    batch_id: str
+    access_token: str = Query(...),
+    batch_id: str = Query(...)
 ):
-    return await vpa_inquiry(mid, terminalId, sid, batch_id)
+    return await vpa_inquiry(
+        access_token=access_token,
+        batch_id=batch_id
+    )
