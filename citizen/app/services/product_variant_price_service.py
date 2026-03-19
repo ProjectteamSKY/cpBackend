@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from fastapi import HTTPException
 from app.domain.product_variant_price_domain import ProductVariantPrice
 from app.utils.query_loader import load_queries
 from app.core.database import execute, query, query_all
@@ -7,10 +9,24 @@ queries = load_queries()
 
 # ---------------- CREATE ----------------
 async def create_product_variant_price(pvp: ProductVariantPrice):
-    sql = queries["product_variant_price"]["create"]  # ❌ no text()
-    await execute(sql, pvp.to_dict())
-    return pvp.to_dict()
+    # ✅ duplicate check
+    check_sql = queries["product_variant_price"]["check_existing"]
 
+    existing = await query(
+        check_sql,
+        {
+            "variant_id": pvp.variant_id,
+            "min_qty": pvp.min_qty,
+        },
+    )
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Quantity already exists")
+
+    sql = queries["product_variant_price"]["create"]
+    await execute(sql, pvp.to_dict())
+
+    return pvp.to_dict()
 
 # ---------------- GET ALL ----------------
 async def get_all_product_variant_prices():
