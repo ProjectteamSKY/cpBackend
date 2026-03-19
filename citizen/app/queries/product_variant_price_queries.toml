@@ -75,3 +75,12 @@ SET is_active = FALSE,
 WHERE id = :id
 AND is_deleted = FALSE;
 """
+
+check_existing = """
+SELECT id
+FROM product_variant_prices
+WHERE variant_id = :variant_id
+AND min_qty = :min_qty
+AND is_deleted = FALSE
+LIMIT 1;
+"""
