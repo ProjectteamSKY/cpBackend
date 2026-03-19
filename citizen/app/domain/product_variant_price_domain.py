@@ -2,9 +2,6 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from app.services.product_variant_service import calculate_variant_weight
-
-
 class ProductVariantPrice:
 
     def __init__(
@@ -14,76 +11,23 @@ class ProductVariantPrice:
         price: float,
         discount_id: Optional[str] = None,
         is_active: bool = True,
-        is_deleted: bool = False,   # ✅ NEW FIELD
+        is_deleted: bool = False,
         id: Optional[str] = None,
         created_at: Optional[datetime] = None,
         updated_at: Optional[datetime] = None,
     ):
-        self.id: str = id or str(uuid.uuid4())
-        self.variant_id: str = variant_id
-        self.discount_id: Optional[str] = discount_id
-        self.min_qty: int = min_qty
-        self.price: float = price
-        self.is_active: bool = is_active
-        self.is_deleted: bool = is_deleted   # ✅ NEW FIELD
-
-        self.created_at: datetime = created_at or datetime.utcnow()
-        self.updated_at: datetime = updated_at or datetime.utcnow()
-
-    # ---------------------------
-    # Active / Inactive
-    # ---------------------------
-
-    def activate(self):
-        self.is_active = True
-        self.touch()
-
-    def deactivate(self):
-        self.is_active = False
-        self.touch()
-
-    # ---------------------------
-    # Soft Delete
-    # ---------------------------
-
-    def soft_delete(self):
-        """Mark price as deleted (soft delete)"""
-        self.is_deleted = True
-        self.touch()
-
-    def restore(self):
-        """Restore soft deleted price"""
-        self.is_deleted = False
-        self.touch()
-
-    # ---------------------------
-    # Domain Methods
-    # ---------------------------
-
-    def update_price(self, price: float):
-        self.price = price
-        self.touch()
-
-    def update_min_qty(self, min_qty: int):
-        self.min_qty = min_qty
-        self.touch()
-
-    def update_discount(self, discount_id: Optional[str]):
+        self.id = id or str(uuid.uuid4())
+        self.variant_id = variant_id
         self.discount_id = discount_id
-        self.touch()
-
-    # ---------------------------
-    # Utility
-    # ---------------------------
+        self.min_qty = min_qty
+        self.price = price
+        self.is_active = is_active
+        self.is_deleted = is_deleted
+        self.created_at = created_at or datetime.utcnow()
+        self.updated_at = updated_at or datetime.utcnow()
 
     def touch(self):
         self.updated_at = datetime.utcnow()
-    
-    async def total_weight(self, quantity: int):
-        return await calculate_variant_weight(self.variant_id, quantity)
-    # ---------------------------
-    # Convert to Dict
-    # ---------------------------
 
     def to_dict(self):
         return {
@@ -93,8 +37,7 @@ class ProductVariantPrice:
             "min_qty": self.min_qty,
             "price": self.price,
             "is_active": self.is_active,
-            "is_deleted": self.is_deleted,   # ✅ INCLUDED
+            "is_deleted": self.is_deleted,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
-    
