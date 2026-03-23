@@ -1,3 +1,5 @@
+from datetime import datetime
+import uuid
 from app.domain.user_address_domain import UserAddress
 from app.utils.query_loader import load_queries
 from app.core.database import execute, query, query_all
@@ -7,15 +9,17 @@ queries = load_queries()
 
 # CREATE
 async def create_user_address(address: UserAddress):
-    await execute(
-        queries["user_address"]["create"],
-        address.to_dict()
-    )
+    address.id = str(uuid.uuid4())
+    address.created_at = datetime.utcnow()
 
-    return await query(
-        queries["user_address"]["get_by_id"],
-        {"id": address.id}
-    )
+    data = address.to_dict()
+
+    # ensure default values
+    data.setdefault("is_default", False)
+
+    await execute(queries["user_address"]["create"], data)
+
+    return await get_address_by_id(address.id)
 
 
 # GET ALL
@@ -36,7 +40,7 @@ async def get_address_by_id(id: str):
 
 # UPDATE
 async def update_user_address(id: str, updates: dict):
-    set_clause = ", ".join(f"{key} = :{key}" for key in updates.keys())
+    set_clause = ", ".join([f"{key} = :{key}" for key in updates.keys()])
 
     await execute(
         queries["user_address"]["update"].format(set_clause=set_clause),

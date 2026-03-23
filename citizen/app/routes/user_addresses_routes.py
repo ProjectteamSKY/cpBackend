@@ -17,20 +17,43 @@ router = APIRouter()
 # Pydantic models
 class UserAddressCreate(BaseModel):
     user_id: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
     address: str
+    landmark: Optional[str] = None
+
     city: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = None
     postal_code: Optional[str] = None
+
     phone: Optional[str] = None
+    email: Optional[str] = None
+
+    is_default: Optional[bool] = False
+
 
 class UserAddressUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
     address: Optional[str] = None
+    landmark: Optional[str] = None
+
     city: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = None
     postal_code: Optional[str] = None
+
     phone: Optional[str] = None
+    email: Optional[str] = None
+
+    is_default: Optional[bool] = None
+
+# CREATE
+
+
 
 # CREATE
 @router.post("/create")
@@ -38,11 +61,12 @@ async def create_address(payload: UserAddressCreate):
     address = UserAddress(**payload.model_dump())
     return await create_user_address(address)
 
+
 # LIST
 @router.get("/list/{user_id}")
 async def list_addresses(user_id: str):
-    addresses = await get_all_addresses(user_id)
-    return {"addresses": addresses}
+    return {"addresses": await get_all_addresses(user_id)}
+
 
 # GET BY ID
 @router.get("/{id}")
@@ -52,21 +76,29 @@ async def get_address(id: str):
         raise HTTPException(404, "Address not found")
     return address
 
+
 # UPDATE
 @router.put("/{id}")
 async def update_address(id: str, payload: UserAddressUpdate):
     updates = payload.model_dump(exclude_unset=True)
+
     if not updates:
         raise HTTPException(400, "No fields to update")
+
     updated = await update_user_address(id, updates)
+
     if not updated:
         raise HTTPException(404, "Address not found")
+
     return {"status": "success", "data": updated}
+
 
 # DELETE
 @router.delete("/{id}")
 async def delete_address(id: str):
     result = await delete_user_address(id)
+
     if not result:
         raise HTTPException(404, "Address not found")
+
     return {"status": "success", "deleted_id": id}

@@ -4,14 +4,21 @@
 CREATE TABLE user_addresses (
     id VARCHAR(36) PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
     address TEXT NOT NULL,
+    landmark VARCHAR(255),
     city VARCHAR(100),
     state VARCHAR(100),
     country VARCHAR(100),
     postal_code VARCHAR(20),
     phone VARCHAR(20),
+    email VARCHAR(150),
+    is_default BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_user_addresses_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_addresses_user 
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- =========================================================
