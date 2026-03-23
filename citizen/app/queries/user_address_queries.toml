@@ -2,9 +2,13 @@
 
 create = """
 INSERT INTO user_addresses (
-    id, user_id, address, city, state, country, postal_code, phone, created_at
+    id, user_id, first_name, last_name,
+    address, landmark, city, state, country,
+    postal_code, phone, email, is_default, created_at
 ) VALUES (
-    :id, :user_id, :address, :city, :state, :country, :postal_code, :phone, :created_at
+    :id, :user_id, :first_name, :last_name,
+    :address, :landmark, :city, :state, :country,
+    :postal_code, :phone, :email, :is_default, :created_at
 );
 """
 
@@ -21,7 +25,7 @@ WHERE id = :id;
 
 update = """
 UPDATE user_addresses
-SET {set_clause}
+SET {set_clause}, updated_at = CURRENT_TIMESTAMP
 WHERE id = :id;
 """
 
