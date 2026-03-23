@@ -1,0 +1,75 @@
+[faq]
+
+create = """
+INSERT INTO faqs (
+    id, question, answer, type,
+    category_id, product_id,
+    is_active, sort_order,
+    created_at, updated_at
+)
+VALUES (
+    :id, :question, :answer, :type,
+    :category_id, :product_id,
+    :is_active, :sort_order,
+    :created_at, :updated_at
+);
+"""
+
+get_all = """
+SELECT *
+FROM faqs
+ORDER BY sort_order ASC, created_at DESC;
+"""
+
+get_by_id = """
+SELECT *
+FROM faqs
+WHERE id = :id;
+"""
+
+get_by_product = """
+SELECT *
+FROM faqs
+WHERE is_active = TRUE
+AND (
+    category_id = :category_id
+    OR product_id = :product_id
+)
+ORDER BY sort_order ASC;
+"""
+
+get_by_category = """
+SELECT *
+FROM faqs
+WHERE is_active = TRUE
+AND type = 'category'
+AND category_id = :category_id
+AND product_id IS NULL
+ORDER BY sort_order ASC;
+"""
+
+update = """
+UPDATE faqs
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+delete = """
+DELETE FROM faqs
+WHERE id = :id;
+"""
+
+activate = """
+UPDATE faqs
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+deactivate = """
+UPDATE faqs
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id;
+"""

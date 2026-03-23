@@ -42,6 +42,8 @@ from app.routes.bank import qr_callback_routes
 from app.routes.bank import qr_statement_routes
 from app.routes.bank import oauth_routes
 from app.routes import review_routes
+from app.routes import faq_router
+
 
 
 
@@ -66,7 +68,7 @@ app = FastAPI(
 # @app.on_event("startup")
 # async def on_startup():
 #     await init_db()
-#     print("🟢 Database initialized on startup - main.py:51")
+#     print("🟢 Database initialized on startup - main.py:69")
 
 # # -------------------------
 # CORS middleware
@@ -223,6 +225,8 @@ api_router.include_router(qr_callback_routes.router, prefix="/bank", tags=["Bank
 api_router.include_router(qr_statement_routes.router, prefix="/bank", tags=["Bank APIs"])
 api_router.include_router(oauth_routes.router, prefix="/bank", tags=["Bank OAuth"])
 api_router.include_router(review_routes.router, prefix="/review", tags=["review"])
+api_router.include_router(faq_router.router, prefix="/faq", tags=["faq"])
+
 
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
