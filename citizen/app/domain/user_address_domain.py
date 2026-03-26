@@ -1,41 +1,37 @@
-import uuid
-from datetime import datetime
-from typing import Optional
-
-
 class UserAddress:
-
     def __init__(
         self,
         user_id: str,
         address: str,
-        city: Optional[str] = None,
-        state: Optional[str] = None,
-        country: Optional[str] = None,
-        postal_code: Optional[str] = None,
-        phone: Optional[str] = None,
-        id: Optional[str] = None,
-        created_at: Optional[datetime] = None,
+        first_name: str = None,
+        last_name: str = None,
+        landmark: str = None,
+        city: str = None,
+        state: str = None,
+        country: str = None,
+        postal_code: str = None,
+        phone: str = None,
+        email: str = None,
+        is_default: bool = False,
+        id: str = None,
+        created_at=None,
+        updated_at=None
     ):
-        self.id: str = id or str(uuid.uuid4())
-        self.user_id: str = user_id
-        self.address: str = address
-        self.city: Optional[str] = city
-        self.state: Optional[str] = state
-        self.country: Optional[str] = country
-        self.postal_code: Optional[str] = postal_code
-        self.phone: Optional[str] = phone
-        self.created_at: datetime = created_at or datetime.utcnow()
+        self.id = id
+        self.user_id = user_id
+        self.first_name = first_name
+        self.last_name = last_name
+        self.address = address
+        self.landmark = landmark
+        self.city = city
+        self.state = state
+        self.country = country
+        self.postal_code = postal_code
+        self.phone = phone
+        self.email = email
+        self.is_default = is_default
+        self.created_at = created_at
+        self.updated_at = updated_at
 
     def to_dict(self):
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "address": self.address,
-            "city": self.city,
-            "state": self.state,
-            "country": self.country,
-            "postal_code": self.postal_code,
-            "phone": self.phone,
-            "created_at": self.created_at,
-        }
+        return self.__dict__
