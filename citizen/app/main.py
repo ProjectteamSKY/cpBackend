@@ -44,7 +44,7 @@ from app.routes.bank import oauth_routes
 from app.routes import review_routes
 from app.routes import faq_router
 
-from routes import customer_erp
+from app.routes import customer_erp
 
 
 
