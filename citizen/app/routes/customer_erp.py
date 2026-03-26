@@ -1,18 +1,12 @@
-from fastapi import FastAPI, Query
+from fastapi import APIRouter, Query
 from fastapi.middleware.cors import CORSMiddleware
 import mysql.connector
 from typing import Optional
 import os
 
-app = FastAPI()
+app = APIRouter()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173","http://citizenprints-erp.s3-website-ap-southeast-2.amazonaws.com"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
@@ -25,7 +19,7 @@ def get_connection():
     return mysql.connector.connect(**DB_CONFIG)
 
 
-@app.get("/api/customers/search")
+@router.get("/api/customers/search")
 def search_customers(q: str = Query(default="", min_length=0)):
     """
     Search customers by name (partial match).
@@ -50,7 +44,7 @@ def search_customers(q: str = Query(default="", min_length=0)):
     return rows
 
 
-@app.get("/api/customers/{customer_code}")
+@router.get("/api/customers/{customer_code}")
 def get_customer(customer_code: str):
     """
     Get full customer details by customer_code.
@@ -78,7 +72,7 @@ def get_customer(customer_code: str):
     return row
 
 
-@app.get("/api/customers/{customer_code}/history")
+@router.get("/api/customers/{customer_code}/history")
 def get_customer_history(customer_code: str):
     """
     Get job card history for a customer.
