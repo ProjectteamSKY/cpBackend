@@ -44,6 +44,7 @@ from app.routes.bank import oauth_routes
 from app.routes import review_routes
 from app.routes import faq_router
 
+from routes import customer_erp
 
 
 
@@ -140,6 +141,11 @@ def custom_openapi():
         "/api/role-permissions/remove",
         "/api/clubs/{club_id}/assign-player",
         "/api/clubs/{club_id}/assign-admin",
+
+        # Customer Api - ERP system
+        "/api/customers/search",
+        "/api/customers/{customer_code}",
+        "/api/customers/{customer_code}/history", 
     ]
     
     # Remove security for public endpoints
@@ -227,7 +233,8 @@ api_router.include_router(oauth_routes.router, prefix="/bank", tags=["Bank OAuth
 api_router.include_router(review_routes.router, prefix="/review", tags=["review"])
 api_router.include_router(faq_router.router, prefix="/faq", tags=["faq"])
 
-
+# Include ERP customer routes
+api_router.include_router(customer_erp.router, prefix="", tags=["Customer ERP"])
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
 
