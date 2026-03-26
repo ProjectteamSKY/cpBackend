@@ -141,6 +141,11 @@ def custom_openapi():
         "/api/role-permissions/remove",
         "/api/clubs/{club_id}/assign-player",
         "/api/clubs/{club_id}/assign-admin",
+
+        # Customer Api - ERP system
+        "/api/customers/search",
+        "/api/customers/{customer_code}",
+        "/api/customers/{customer_code}/history", 
     ]
     
     # Remove security for public endpoints
