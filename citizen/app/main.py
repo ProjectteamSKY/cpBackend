@@ -205,7 +205,7 @@ api_router.include_router(size_routes.router, prefix="/size", tags=["size"])
 api_router.include_router(cart_routes.router, prefix="/cart", tags=["cart"])
 api_router.include_router(cart_item_routes.router, prefix="/cartitems", tags=["cartitems"])
 
-api_router.include_router(user_addresses_routes.router, prefix="/user_addresses", tags=["user_addresses"])
+api_router.include_router(user_addresses_routes.router, prefix="/user_address", tags=["user_addresses"])
 api_router.include_router(orders_routes.router, prefix="/orders_routes", tags=["orders_routes"])
 api_router.include_router(order_items_routes.router, prefix="/order_items_routes", tags=["order_items_routes"])
 
