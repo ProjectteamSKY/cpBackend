@@ -4,7 +4,7 @@ import mysql.connector
 from typing import Optional
 import os
 
-app = APIRouter()
+router = APIRouter()
 
 
 
