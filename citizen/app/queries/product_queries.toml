@@ -78,9 +78,41 @@ WHERE id = :id;
 """
 
 get_by_category = """
-SELECT * FROM products
-WHERE category_id = :category_id AND is_active = TRUE
-ORDER BY created_at DESC;
+SELECT 
+    p.id AS product_id,
+    p.name AS product_name,
+    p.description,
+    p.category_id,
+    p.created_at,
+
+    p.images,
+    p.related_images,
+
+    v.id AS variant_id,
+    v.size_id,
+    v.paper_type_id,
+    v.print_type_id,
+    v.cut_type_id,
+    v.sides,
+    v.orientation,
+
+    vp.id AS variant_price_id,
+    vp.price,
+    vp.min_qty
+
+FROM products p
+
+LEFT JOIN product_variants v 
+    ON v.product_id = p.id
+
+LEFT JOIN product_variant_prices vp 
+    ON vp.variant_id = v.id
+
+WHERE 
+    p.category_id = :category_id 
+    AND p.is_active = TRUE
+
+ORDER BY p.created_at DESC;
 """
 
 # ✅ FIXED UPDATE - All parameters with COALESCE fallback
