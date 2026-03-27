@@ -19,7 +19,7 @@ def get_connection():
     return mysql.connector.connect(**DB_CONFIG)
 
 
-@router.get("/api/customers/search")
+@router.get("/customers/search")
 def search_customers(q: str = Query(default="", min_length=0)):
     """
     Search customers by name (partial match).
@@ -44,7 +44,7 @@ def search_customers(q: str = Query(default="", min_length=0)):
     return rows
 
 
-@router.get("/api/customers/{customer_code}")
+@router.get("/customers/{customer_code}")
 def get_customer(customer_code: str):
     """
     Get full customer details by customer_code.
@@ -72,7 +72,7 @@ def get_customer(customer_code: str):
     return row
 
 
-@router.get("/api/customers/{customer_code}/history")
+@router.get("/customers/{customer_code}/history")
 def get_customer_history(customer_code: str):
     """
     Get job card history for a customer.
