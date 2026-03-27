@@ -14,7 +14,8 @@ from app.services.product_service import (
     delete_product,
     activate_product,
     deactivate_product,
-    get_all_products_active
+    get_all_products_active,
+    get_product_list_minimal
 )
 from app.utils.sku_generator import generate_sku
 
@@ -46,14 +47,25 @@ async def create_product_endpoint(
     images: Optional[List[UploadFile]] = File(None),
     related_images: Optional[List[UploadFile]] = File(None),
 ):
-    # Generate SKU automatically
+    # 🔥 FIX: Convert empty string → None
+    category_id = category_id or None
+    subcategory_id = subcategory_id or None
+    print("NAME: - product_routes.py:53", name)
+    print("CATEGORY: - product_routes.py:54", category_id)
+    print("subcategory_id: - product_routes.py:55", subcategory_id)
+
+    # Generate SKU
     sku = await generate_sku(name)
 
     images_list = [
         {"id": str(uuid.uuid4()), "url": save_upload(f), "is_default": i == 0}
         for i, f in enumerate(images or [])
     ]
-    related_list = [{"id": str(uuid.uuid4()), "url": save_upload(f)} for f in related_images or []]
+
+    related_list = [
+        {"id": str(uuid.uuid4()), "url": save_upload(f)}
+        for f in (related_images or [])
+    ]
 
     product = Product(
         name=name,
@@ -108,7 +120,7 @@ async def list_products_by_category(category_id: str):
 async def update_product_endpoint(
     id: str,
     name: str = Form(...),
-    sku: str = Form(""),  # ✅ Added SKU as optional form field
+    sku: str = Form(""),  #  Added SKU as optional form field
     category_id: Optional[str] = Form(None),
     subcategory_id: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
@@ -196,3 +208,8 @@ async def activate_product_endpoint(id: str):
 @router.put("/{id}/deactivate")
 async def deactivate_product_endpoint(id: str):
     return await deactivate_product(id)
+
+@router.get("/minimal/list")
+async def minimal_product_list():
+    products = await get_product_list_minimal()
+    return {"products": products}

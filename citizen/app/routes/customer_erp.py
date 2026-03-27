@@ -7,7 +7,7 @@ import os
 router = APIRouter()
 
 
-
+# package install
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
     "user": os.getenv("DB_USER", "citizen_erp"),
