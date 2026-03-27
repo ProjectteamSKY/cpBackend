@@ -20,24 +20,39 @@ def get_connection():
 
 
 @router.get("/customers/search")
-def search_customers(q: str = Query(default="", min_length=0)):
-    """
-    Search customers by name (partial match).
-    Returns: list of { customer_code, customer_name, mobile_no }
-    """
+def search_customers(
+    q: str = Query(default="", min_length=0),
+    type: str = Query(default="credit")
+):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     like_q = f"%{q}%"
-    cursor.execute(
-        """
-        SELECT customer_code, customer_name, mobile_no
-        FROM customer_master
-        WHERE customer_name LIKE %s
-        ORDER BY customer_name
-        LIMIT 20
-        """,
-        (like_q,),
-    )
+
+    if type == "general":
+        cursor.execute(
+            """
+            SELECT customer_code, customer_name, mobile_no
+            FROM customer_master
+            WHERE (customer_name LIKE %s OR mobile_no LIKE %s)
+            AND customer_type IN ('General', 'WalkIn')
+            ORDER BY customer_name
+            LIMIT 20
+            """,
+            (like_q, like_q),
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT customer_code, customer_name, mobile_no
+            FROM customer_master
+            WHERE customer_name LIKE %s
+            AND customer_type = 'Credit'
+            ORDER BY customer_name
+            LIMIT 20
+            """,
+            (like_q,),
+        )
+
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
