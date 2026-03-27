@@ -31,9 +31,9 @@ def search_customers(
     if type == "general":
         cursor.execute(
             """
-            SELECT customer_code, customer_name, mobile_no
-            FROM customer_master
-            WHERE (customer_name LIKE %s OR mobile_no LIKE %s)
+            SELECT DISTINCT customer_code, customer_name, customer_mobile_no as mobile_no
+            FROM jobcard_master
+            WHERE (customer_name LIKE %s OR customer_mobile_no LIKE %s)
             AND customer_type IN ('General', 'WalkIn')
             ORDER BY customer_name
             LIMIT 20
@@ -43,8 +43,8 @@ def search_customers(
     else:
         cursor.execute(
             """
-            SELECT customer_code, customer_name, mobile_no
-            FROM customer_master
+            SELECT DISTINCT customer_code, customer_name, customer_mobile_no as mobile_no
+            FROM jobcard_master
             WHERE customer_name LIKE %s
             AND customer_type = 'Credit'
             ORDER BY customer_name
@@ -57,7 +57,6 @@ def search_customers(
     cursor.close()
     conn.close()
     return rows
-
 
 @router.get("/customers/{customer_code}")
 def get_customer(customer_code: str):
