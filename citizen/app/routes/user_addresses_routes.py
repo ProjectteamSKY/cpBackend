@@ -67,7 +67,7 @@ async def create_address(payload: UserAddressCreate):
 async def list_addresses(user_id: str):
     return {"addresses": await get_all_addresses(user_id)}
 
-
+    
 # GET BY ID
 @router.get("/{id}")
 async def get_address(id: str):

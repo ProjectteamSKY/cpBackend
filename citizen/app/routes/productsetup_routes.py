@@ -7,7 +7,6 @@ from typing import List, Optional
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from sqlalchemy import text
 
-from app.core.database import execute, query, query_all
 from app.domain.productsetup_domain import ProductSetup
 from app.utils.query_loader import load_queries
 from app.services.productsetup_service import (
@@ -15,6 +14,8 @@ from app.services.productsetup_service import (
     get_all_products_with_details,
     create_productsetup,
     update_productsetup,
+    soft_delete_product_setup_service,
+    delete_productsetup
 )
 
 from app.utils.sku_generator import generate_sku
@@ -215,3 +216,19 @@ async def update_product_endpoint(
     result = await update_productsetup(product_id, product_data)
 
     return {"status": "success", "product_id": result["product_id"]}
+
+
+@router.delete("/remove/{id}")
+async def soft_delete_product_setup_route(id: str, type: str):
+    print("a - productsetup_routes.py:223")
+    result = await soft_delete_product_setup_service(id, type)
+    return result
+
+
+@router.delete("/delete/{product_id}")
+async def delete_product_endpoint(product_id: str):
+    """
+    Soft delete product with all variants, prices, and discounts.
+    """
+    result = await delete_productsetup(product_id)
+    return result
