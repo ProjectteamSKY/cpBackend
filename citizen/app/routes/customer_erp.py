@@ -19,32 +19,46 @@ def get_connection():
     return mysql.connector.connect(**DB_CONFIG)
 
 
-@router.get("/api/customers/search")
-def search_customers(q: str = Query(default="", min_length=0)):
-    """
-    Search customers by name (partial match).
-    Returns: list of { customer_code, customer_name, mobile_no }
-    """
+@router.get("/customers/search")
+def search_customers(
+    q: str = Query(default="", min_length=0),
+    type: str = Query(default="credit")
+):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     like_q = f"%{q}%"
-    cursor.execute(
-        """
-        SELECT customer_code, customer_name, mobile_no
-        FROM customer_master
-        WHERE customer_name LIKE %s
-        ORDER BY customer_name
-        LIMIT 20
-        """,
-        (like_q,),
-    )
+
+    if type == "general":
+        cursor.execute(
+            """
+            SELECT DISTINCT customer_code, customer_name, customer_mobile_no as mobile_no
+            FROM jobcard_master
+            WHERE (customer_name LIKE %s OR customer_mobile_no LIKE %s)
+            AND customer_type IN ('General', 'WalkIn')
+            ORDER BY customer_name
+            LIMIT 20
+            """,
+            (like_q, like_q),
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT DISTINCT customer_code, customer_name, customer_mobile_no as mobile_no
+            FROM jobcard_master
+            WHERE customer_name LIKE %s
+            AND customer_type = 'Credit'
+            ORDER BY customer_name
+            LIMIT 20
+            """,
+            (like_q,),
+        )
+
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
     return rows
 
-
-@router.get("/api/customers/{customer_code}")
+@router.get("/customers/{customer_code}")
 def get_customer(customer_code: str):
     """
     Get full customer details by customer_code.
@@ -72,7 +86,7 @@ def get_customer(customer_code: str):
     return row
 
 
-@router.get("/api/customers/{customer_code}/history")
+@router.get("/customers/{customer_code}/history")
 def get_customer_history(customer_code: str):
     """
     Get job card history for a customer.
