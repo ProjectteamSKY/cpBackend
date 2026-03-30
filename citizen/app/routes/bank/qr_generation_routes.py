@@ -1,3 +1,5 @@
+from typing import Dict
+
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from app.services.bank_services.vpa_service import generate_qr ,generate_qr_image ,build_clean_upi_qr
@@ -6,9 +8,23 @@ router = APIRouter()
 
 @router.post("/qr-generate")
 async def qr_generate_api(
-    access_token: str = Query(..., description="OAuth access token")
+    amount: str = Query(..., description="Payment amount"),
 ):
-    return await generate_qr(access_token=access_token)
+    try:
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@ qr api calling correctly - qr_generation_routes.py:14")
+        
+        # Call the QR generation service
+        result: Dict = await generate_qr(amount=amount)
+        
+        qr_image = result.get("qr_image")
+        if not qr_image:
+            raise HTTPException(status_code=500, detail="QR image generation failed")
+        
+        # Return QR image as StreamingResponse
+        return StreamingResponse(qr_image, media_type="image/png")
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 from pydantic import BaseModel
 
@@ -37,7 +53,7 @@ async def generate_qr_from_response(data: QRRequest):
             note=note
         )
 
-        print("CLEAN QR STRING: - qr_generation_routes.py:40", qr_string)
+        print("CLEAN QR STRING: - qr_generation_routes.py:56", qr_string)
 
         # ✅ Generate QR image
         buffer = generate_qr_image(qr_string)

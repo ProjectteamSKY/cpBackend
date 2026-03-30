@@ -69,7 +69,7 @@ app = FastAPI(
 # @app.on_event("startup")
 # async def on_startup():
 #     await init_db()
-#     print("🟢 Database initialized on startup - main.py:69")
+#     print("🟢 Database initialized on startup - main.py:72")
 
 # # -------------------------
 # CORS middleware
