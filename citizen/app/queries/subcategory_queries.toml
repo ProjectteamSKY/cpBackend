@@ -1,11 +1,13 @@
 [subcategory]
 
+# CREATE
 create = """
 INSERT INTO subcategories (
     id,
     category_id,
     name,
     description,
+    images,
     is_active,
     created_at,
     updated_at
@@ -14,6 +16,7 @@ INSERT INTO subcategories (
     :category_id,
     :name,
     :description,
+    :images,
     :is_active,
     :created_at,
     :updated_at
@@ -47,6 +50,7 @@ ORDER BY sc.created_at DESC;
 """
 
 
+# UPDATE
 update = """
 UPDATE subcategories
 SET {set_clause}, updated_at = NOW()
