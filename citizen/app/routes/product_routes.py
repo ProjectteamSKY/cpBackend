@@ -15,7 +15,9 @@ from app.services.product_service import (
     activate_product,
     deactivate_product,
     get_all_products_active,
-    get_product_list_minimal
+    get_product_list_minimal,
+    get_products_by_subcategory,
+    get_products_by_subcategory_minimal
 )
 from app.utils.sku_generator import generate_sku
 
@@ -36,6 +38,8 @@ def save_upload(file: UploadFile) -> str:
 # ------------------------
 # CREATE
 # ------------------------
+
+
 @router.post("/create")
 async def create_product_endpoint(
     name: str = Form(...),
@@ -50,9 +54,9 @@ async def create_product_endpoint(
     # 🔥 FIX: Convert empty string → None
     category_id = category_id or None
     subcategory_id = subcategory_id or None
-    print("NAME: - product_routes.py:53", name)
-    print("CATEGORY: - product_routes.py:54", category_id)
-    print("subcategory_id: - product_routes.py:55", subcategory_id)
+    print("NAME: - product_routes.py:57", name)
+    print("CATEGORY: - product_routes.py:58", category_id)
+    print("subcategory_id: - product_routes.py:59", subcategory_id)
 
     # Generate SKU
     sku = await generate_sku(name)
@@ -212,4 +216,14 @@ async def deactivate_product_endpoint(id: str):
 @router.get("/minimal/list")
 async def minimal_product_list():
     products = await get_product_list_minimal()
+    return {"products": products}
+
+
+@router.get("/subcategory/{subcategory_id}")
+async def list_products_by_subcategory(subcategory_id: str):
+    return {"products": await get_products_by_subcategory(subcategory_id)}
+
+@router.get("/subcategory/{subcategory_id}/minimal")
+async def minimal_products_by_subcategory(subcategory_id: str):
+    products = await get_products_by_subcategory_minimal(subcategory_id)
     return {"products": products}
