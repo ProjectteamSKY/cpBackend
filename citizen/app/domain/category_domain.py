@@ -81,4 +81,4 @@ class Category:
             "is_deleted": self.is_deleted,   # ✅ INCLUDED
             "created_at": self.created_at,
             "updated_at": self.updated_at,
-        }
+        }   

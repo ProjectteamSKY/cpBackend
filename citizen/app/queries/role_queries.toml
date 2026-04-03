@@ -1,18 +1,70 @@
 [role]
-create_role = """
-INSERT INTO role (name, description)
-VALUES ($1, $2)
-RETURNING id, name, description;
+
+create = """
+INSERT INTO roles (id, name, description, is_active, is_deleted, created_at, updated_at)
+VALUES (:id, :name, :description, :is_active, FALSE, :created_at, :updated_at)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    description = VALUES(description),
+    is_active = VALUES(is_active),
+    updated_at = NOW();
 """
 
-get_all_roles = """
-SELECT id, name, description
-FROM role
-ORDER BY id DESC;
+get_all = """
+SELECT *
+FROM roles
+WHERE is_deleted = FALSE
+ORDER BY created_at DESC;
 """
 
-delete_role = """
-DELETE FROM role
-WHERE id = $1
-RETURNING id;
+get_by_id = """
+SELECT *
+FROM roles
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+update = """
+UPDATE roles
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+delete = """
+UPDATE roles
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+activate = """
+UPDATE roles
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+deactivate = """
+UPDATE roles
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+restore = """
+UPDATE roles
+SET is_deleted = FALSE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+get_all_with_deleted = """
+SELECT *
+FROM roles
+ORDER BY created_at DESC;
 """

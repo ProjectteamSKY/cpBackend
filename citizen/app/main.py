@@ -71,7 +71,7 @@ app = FastAPI(
 # @app.on_event("startup")
 # async def on_startup():
 #     await init_db()
-#     print("🟢 Database initialized on startup - main.py:72")
+#     print("🟢 Database initialized on startup - main.py:74")
 
 # # -------------------------
 # CORS middleware
@@ -141,7 +141,101 @@ def custom_openapi():
         "/api/role-permissions/assign",
         "/api/role-permissions/{role_id}", 
         "/api/role-permissions/remove",
-      
+        "/api/category/list",
+        "/api/category/{id}",
+        "/api/subcategory/list",
+        "/api/subcategory/{id}",
+        "/api/product/list",
+        "/api/product/active/list",
+        "/api/product/{id}",
+        "/api/product_variant/list",
+        "/api/product_variant/{id}",
+        "/api/product_variant/product/{product_id}",
+        "/api/product_variant/{variant_id}/weight",
+        "/api/product_discount/list",
+        "/api/product_discount/list/active",
+        "/api/product_discount/{id}",
+        "/api/product_discount/product/{product_id}",
+        "/api/product_discount/by_date_range",
+        "/api/product_discount/active/last5",
+        "/api/product_variant_price/list",
+        "/api/product_variant_price/{id}",
+        "/api/product_variant_price/{id}",
+        "/api/product_variant_price/variant/{variant_id}/price-weight/{price_id}",
+        "/api/productsetup/products/{product_id}",
+        "/api/productsetup/list",
+        "/api/paper_type/list",
+        "/api/paper_type/list/active",
+        "/api/paper_type/{id}",
+        "/api/print_type/list",
+        "/api/print_type/list/active",
+        "/api/print_type/{id}",
+        "/api/cut_type/list",
+        "/api/cut_type/list/active",
+        "/api/cut_type/{id}",
+        "/api/size/list",
+        "/api/size/list/active",
+        "/api/size/{id}",
+        "/api/cart/",
+        "/api/cart/",
+        "/api/cart/{id}",
+        "/api/cart/{id}",
+        "/api/cart/{id}",
+        "/api/cart/user/{user_id}",
+        "/api/cartitems/",
+        "/api/cartitems/with-files",
+        "/api/cartitems/cart/{cart_id}",
+        "/api/cartitems/user/{user_id}",
+        "/api/cartitems/{id}",
+        "/api/cartitems/{id}",
+        "/api/cartitems/{id}",
+        "/api/user_address/create",
+        "/api/user_address/list/{user_id}",
+        "/api/user_address/{id}",
+        "/api/user_address/update/{id}",
+        "/api/user_address/update/{id}",
+        "/api/orders_routes/checkout"
+        "/api/orders_routes/tracking"
+        "/api/orders_routes/total"
+        "/api/orders_routes/total/{user_id}"
+        "/api/orders_routes/summary",
+        "/api/orders_routes/{order_id}",
+        "/api/orders_routes/list/{user_id}",
+        "/api/shipping/create-order/{order_id}",
+        "/api/shipping/couriers/{order_id}"
+        "/api/shipping/serviceavailability",
+        "/api/wishlist_routes/create",
+       " /api/wishlist_routes/list"
+        "/api/wishlist_routes/{id}",
+        "/api/wishlist_routes/{id}",
+        "/api/wishlist_routes/user/{user_id}",
+        "/api/bank/qr-generate",
+        "/api/bank/qr-image",
+        "/api/bank/api/qr-callback",
+        "/api/review/create",
+        "/api/review/{id}",
+        "/api/review/{id}",
+        "/api/review/{id}",
+        "/api/review/list",
+        "/api/review/{id}/activate",
+        "/api/review/{id}/deactivate",
+        "/api/review/product/{product_id}/latest",
+        "/api/faq/create",
+        "/api/faq/list",
+       " /api/faq/product",
+        "/api/faq/category/{category_id}",
+        "/api/faq/{id}",
+        "/api/faq/{id}",
+        "/api/design_request/create",
+        "/api/design_request/{id}/update",
+        "/api/design_request/{id}/status",
+        "/api/design_request/designedimage/{id}/approve",
+        "/api/design_request/designedimage/{id}/reject",
+        "/api/design_request/list",
+        "/api/design_request/{id}",
+        "/api/design_request/{id}",
+        "/api/design_request/user/{user_id}",
+
 
         # Customer Api - ERP system
         "/api/customers/search",
@@ -184,12 +278,12 @@ app.add_middleware(AuthMiddleware)
 api_router = APIRouter(prefix="/api")
 
 
-api_router.include_router(resource_routes.router)
+api_router.include_router(resource_routes.router,prefix="/resource", tags=["resource"])
 api_router.include_router(user_routes.router)
-api_router.include_router(role_routes.router)
-api_router.include_router(user_role_routes.router)
-api_router.include_router(permission_routes.router)
-api_router.include_router(role_permission_routes.router)
+api_router.include_router(role_routes.router,prefix="/role", tags=["role"])
+api_router.include_router(user_role_routes.router,prefix="/user_role", tags=["user_role"])
+api_router.include_router(permission_routes.router,prefix="/permission", tags=["permission"])
+api_router.include_router(role_permission_routes.router,prefix="/role_permission", tags=["role_permission"])
 api_router.include_router(user_profile_routes.router,prefix="/user-profile", tags=["User Profile"])
 
 # -------------------------
@@ -220,7 +314,7 @@ api_router.include_router(orders_routes.router, prefix="/orders_routes", tags=["
 api_router.include_router(order_items_routes.router, prefix="/order_items_routes", tags=["order_items_routes"])
 
 api_router.include_router(shipping_router.router, prefix="/shipping", tags=["Shipping"])
-api_router.include_router(payment_routes.router, prefix="/payment_routes", tags=["payment_routes"])
+# api_router.include_router(payment_routes.router, prefix="/payment_routes", tags=["payment_routes"])
 api_router.include_router(wishlist_routes.router, prefix="/wishlist_routes", tags=["wishlist_routes"])
 
 api_router.include_router(vpa_routes.router,prefix="/bank", tags=["Bank APIs"])

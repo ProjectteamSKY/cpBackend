@@ -81,6 +81,8 @@ CREATE TABLE roles (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -93,6 +95,8 @@ CREATE TABLE resources (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -108,6 +112,8 @@ CREATE TABLE permissions (
     method VARCHAR(10) NOT NULL,
     path TEXT NOT NULL,
     description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -116,7 +122,6 @@ CREATE TABLE permissions (
     REFERENCES resources(id)
     ON DELETE CASCADE
 );
-
 
 -- =====================================================
 -- USER ROLES TABLE (Many-to-Many)

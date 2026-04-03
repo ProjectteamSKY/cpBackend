@@ -369,8 +369,8 @@ async def create_user(
 
 
 @router.get("/")
-async def get_all_users(session: AsyncSession = Depends(get_session)):
-    return await user_service.get_all_users(session)
+async def get_all_users():
+    return await user_service.get_all_users()
 
 
 @router.get("/{user_id}")
@@ -388,22 +388,3 @@ async def delete_user(user_id: str, session: AsyncSession = Depends(get_session)
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "User deleted successfully"}
 
-
-# @router.post("/login")
-# async def login(
-#     email: str = Form(...),
-#     password: str = Form(...),
-#     session: AsyncSession = Depends(get_session),
-# ):
-#     auth = await user_service.login_user(email, password, session)
-#     if not auth:
-#         raise HTTPException(status_code=401, detail="Invalid credentials")
-
-#     return {
-#         "token": auth["token"],
-#         "token_type": "Bearer",
-#         "user": {
-#             "id": auth["id"],
-#             "email": auth["email"],
-#         },
-#     }
