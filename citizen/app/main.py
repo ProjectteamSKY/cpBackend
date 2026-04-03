@@ -7,6 +7,8 @@ from fastapi import FastAPI, APIRouter
 from fastapi.openapi.utils import get_openapi 
 
 from app.routes import user_routes
+from app.routes import user_profile_routes
+
 from app.routes import category_routes
 from app.routes import subcategory_routes
 from app.routes import cut_type_routes
@@ -139,8 +141,7 @@ def custom_openapi():
         "/api/role-permissions/assign",
         "/api/role-permissions/{role_id}", 
         "/api/role-permissions/remove",
-        "/api/clubs/{club_id}/assign-player",
-        "/api/clubs/{club_id}/assign-admin",
+      
 
         # Customer Api - ERP system
         "/api/customers/search",
@@ -189,6 +190,8 @@ api_router.include_router(role_routes.router)
 api_router.include_router(user_role_routes.router)
 api_router.include_router(permission_routes.router)
 api_router.include_router(role_permission_routes.router)
+api_router.include_router(user_profile_routes.router,prefix="/user-profile", tags=["User Profile"])
+
 # -------------------------
 # Include Routers
 # -------------------------

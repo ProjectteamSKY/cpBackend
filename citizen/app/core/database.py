@@ -139,3 +139,8 @@ async def query_all(sql: str, params: dict = {}):
         result = await session.execute(text(sql), params)
         rows = result.fetchall()
         return [dict(r._mapping) for r in rows]
+
+
+
+
+

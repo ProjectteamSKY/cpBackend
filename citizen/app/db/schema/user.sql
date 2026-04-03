@@ -40,6 +40,7 @@ CREATE TABLE user_profiles (
     user_id VARCHAR(36) PRIMARY KEY,
     profile_picture VARCHAR(500),
     phone_number VARCHAR(30),
+    gender VARCHAR(20) DEFAULT 'Not Specified',
     address TEXT,
     city VARCHAR(100),
     state VARCHAR(100),

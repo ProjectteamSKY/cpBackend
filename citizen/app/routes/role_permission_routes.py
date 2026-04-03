@@ -1,47 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException, Form
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import get_session
+from fastapi import APIRouter, Form, HTTPException
 from app.domain.role_permission_domain import RolePermission
-from app.services import role_permission_service
+from app.services.role_permission_service import (
+    assign_role_permission_service,
+    get_permissions_by_role_service,
+    remove_role_permission_service,
+    get_all_role_permissions_service,
+)
 
 router = APIRouter(prefix="/role-permissions", tags=["Role Permissions"])
 
 
+@router.get("/")
+async def get_all_role_permissions():
+    return await get_all_role_permissions_service()
+
+
 @router.post("/assign")
-async def assign_permission(
-    role_id: str = Form(...),
-    permission_id: str = Form(...),
-    session: AsyncSession = Depends(get_session),
-):
-    role_permission = RolePermission(
-        role_id=role_id,
-        permission_id=permission_id,
-    )
-
-    return await role_permission_service.assign_permission(role_permission, session)
+async def assign_permission(role_id: int = Form(...), permission_id: int = Form(...)):
+    return await assign_role_permission_service(RolePermission(role_id, permission_id))
 
 
-@router.get("/role/{role_id}")
-async def get_permissions(role_id: str, session: AsyncSession = Depends(get_session)):
-    return await role_permission_service.get_permissions_by_role(role_id, session)
-
-
-@router.get("/permission/{permission_id}")
-async def get_roles(permission_id: str, session: AsyncSession = Depends(get_session)):
-    return await role_permission_service.get_roles_by_permission(permission_id, session)
+@router.get("/{role_id}")
+async def get_permissions(role_id: int):
+    return await get_permissions_by_role_service(role_id)
 
 
 @router.delete("/remove")
-async def remove_permission(
-    role_id: str = Form(...),
-    permission_id: str = Form(...),
-    session: AsyncSession = Depends(get_session),
-):
-    removed = await role_permission_service.remove_permission(
-        role_id, permission_id, session
-    )
-
+async def remove_permission(role_id: int = Form(...), permission_id: int = Form(...)):
+    removed = await remove_role_permission_service(role_id, permission_id)
     if not removed:
-        raise HTTPException(status_code=404, detail="Mapping not found")
-
-    return {"message": "Permission removed from role"}
+        raise HTTPException(status_code=404, detail="Permission not assigned")
+    return {"message": "Permission removed"}
