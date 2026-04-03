@@ -1,27 +1,46 @@
 [role_permission]
-assign_role_permission = """
-INSERT INTO role_permission (role_id, permission_id)
-VALUES ($1, $2)
-RETURNING role_id, permission_id;
+
+create = """
+INSERT INTO role_permissions (id, role_id, permission_id, created_at, updated_at)
+VALUES (:id, :role_id, :permission_id, :created_at, :updated_at)
+ON DUPLICATE KEY UPDATE
+    updated_at = NOW();
 """
 
-get_permissions_by_role = """
-SELECT p.id, p.resource_id, p.action, p.description
-FROM role_permission rp
-JOIN permission p ON p.id = rp.permission_id
-WHERE rp.role_id = $1;
+get_all = """
+SELECT *
+FROM role_permissions
+ORDER BY created_at DESC;
 """
 
-remove_role_permission = """
-DELETE FROM role_permission
-WHERE role_id = $1 AND permission_id = $2
-RETURNING role_id, permission_id;
+get_by_id = """
+SELECT *
+FROM role_permissions
+WHERE id = :id;
 """
 
-get_all_role_permissions = """
-SELECT r.name AS role, res.name AS resource, p.action
-FROM role_permission rp
-JOIN role r ON r.id = rp.role_id
-JOIN permission p ON p.id = rp.permission_id
-JOIN resource res ON res.id = p.resource_id;
+get_by_role_id = """
+SELECT *
+FROM role_permissions
+WHERE role_id = :role_id
+ORDER BY created_at DESC;
+"""
+
+get_by_permission_id = """
+SELECT *
+FROM role_permissions
+WHERE permission_id = :permission_id
+ORDER BY created_at DESC;
+"""
+
+update = """
+UPDATE role_permissions
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+delete = """
+DELETE FROM role_permissions
+WHERE id = :id;
 """

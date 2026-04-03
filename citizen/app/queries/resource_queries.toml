@@ -1,38 +1,70 @@
 [resource]
-create_resource = """
-INSERT INTO resource (name, description)
-VALUES ($1, $2)
-RETURNING id, name, description;
+
+create = """
+INSERT INTO resources (id, name, description, is_active, is_deleted, created_at, updated_at)
+VALUES (:id, :name, :description, :is_active, FALSE, :created_at, :updated_at)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    description = VALUES(description),
+    is_active = VALUES(is_active),
+    updated_at = NOW();
 """
 
-get_all_resources = """
-SELECT id, name, description
-FROM resource
-ORDER BY id DESC;
+get_all = """
+SELECT *
+FROM resources
+WHERE is_deleted = FALSE
+ORDER BY created_at DESC;
 """
 
-get_resource_by_id = """
-SELECT id, name, description
-FROM resource
-WHERE id = $1;
+get_by_id = """
+SELECT *
+FROM resources
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
-get_resource_by_name = """
-SELECT id, name, description
-FROM resource
-WHERE name = $1;
+update = """
+UPDATE resources
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
-update_resource = """
-UPDATE resource
-SET name = $1,
-    description = $2
-WHERE id = $3
-RETURNING id, name, description;
+delete = """
+UPDATE resources
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
 """
 
-delete_resource = """
-DELETE FROM resource
-WHERE id = $1
-RETURNING id;
+activate = """
+UPDATE resources
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+deactivate = """
+UPDATE resources
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+restore = """
+UPDATE resources
+SET is_deleted = FALSE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+get_all_with_deleted = """
+SELECT *
+FROM resources
+ORDER BY created_at DESC;
 """
