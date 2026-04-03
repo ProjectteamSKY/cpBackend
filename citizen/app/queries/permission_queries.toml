@@ -1,31 +1,19 @@
 [permission]
 
 create_permission = """
-INSERT INTO permissions 
-(id, resource_id, action, method, path, description)
-VALUES 
-(:id, :resource_id, :action, :method, :path, :description);
+INSERT INTO permission (resource_id, action, method, path, description)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, resource_id, action, method, path, description;
 """
 
-get_by_id = """
-SELECT id, resource_id, action, method, path, description
-FROM permissions
-WHERE id = :permission_id;
-"""
-
-get_all = """
-SELECT id, resource_id, action, method, path, description
-FROM permissions
-ORDER BY created_at DESC;
-"""
-
-get_by_resource = """
-SELECT id, resource_id, action, method, path, description
-FROM permissions
-WHERE resource_id = :resource_id;
+get_all_permissions = """
+SELECT id, resource_id, action, description
+FROM Permission
+ORDER BY id DESC;
 """
 
 delete_permission = """
-DELETE FROM permissions
-WHERE id = :permission_id;
+DELETE FROM Permission
+WHERE id = $1
+RETURNING id;
 """

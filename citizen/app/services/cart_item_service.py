@@ -134,7 +134,103 @@ async def create_cart_item_with_files(
     
     return result
 
+async def create_cart_item_with_out_files(
+    cart_id, product_id, variant_id, quantity,
+    product_variant_price_id, customize_qty, selected_options,
+    front_file=None, back_file=None
+):
+    """
+    Create or update a cart item with optional file uploads
+    and recalculate the cart total once.
+    """
+    class Payload: pass
 
+    payload = Payload()
+    payload.cart_id = cart_id
+    payload.product_id = product_id
+    payload.variant_id = variant_id
+    payload.quantity = quantity
+    payload.product_variant_price_id = product_variant_price_id
+    payload.customize_qty = customize_qty
+    payload.selected_options = json.loads(selected_options or "{}")
+
+    # 1️⃣ Create or update cart item
+    existing_item = await query_all(
+        "SELECT * FROM cart_items WHERE cart_id = %s AND variant_id = %s LIMIT 1",
+        (cart_id, variant_id)
+    )
+
+    if existing_item:
+        # Update existing cart item
+        new_total_price = payload.quantity * payload.product_variant_price_id  # simple calculation
+        await execute(
+            """
+            UPDATE cart_items
+            SET quantity = %s,
+                unit_price = %s,
+                total_price = %s,
+                discount_id = %s,
+                updated_at = NOW()
+            WHERE id = %s
+            """,
+            (payload.quantity, payload.product_variant_price_id, new_total_price, None, existing_item["id"])
+        )
+        item_id = existing_item["id"]
+    else:
+        # Insert new cart item
+        item_id = str(uuid.uuid4())
+        await execute(
+            """
+            INSERT INTO cart_items (id, cart_id, product_id, variant_id, quantity,
+                unit_price, total_price, customize_qty, selected_options, created_at, updated_at)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())
+            """,
+            (
+                item_id,
+                cart_id,
+                product_id,
+                variant_id,
+                quantity,
+                product_variant_price_id,
+                quantity * product_variant_price_id,
+                customize_qty,
+                json.dumps(payload.selected_options)
+            )
+        )
+
+    # 2️⃣ Handle file uploads
+    if front_file and front_file.file:
+        front_url = save_upload(front_file)
+        await execute(
+            """
+            INSERT INTO cart_item_files (id, cart_item_id, front_side_url, front_original_name)
+            VALUES (%s,%s,%s,%s)
+            """,
+            (str(uuid.uuid4()), item_id, front_url, front_file.filename)
+        )
+    if back_file and back_file.file:
+        back_url = save_upload(back_file)
+        await execute(
+            """
+            INSERT INTO cart_item_files (id, cart_item_id, back_side_url, back_original_name)
+            VALUES (%s,%s,%s,%s)
+            """,
+            (str(uuid.uuid4()), item_id, back_url, back_file.filename)
+        )
+
+    # 3️⃣ Recalculate cart total once
+    total = await query_all(
+        "SELECT COALESCE(SUM(total_price),0) AS total FROM cart_items WHERE cart_id = %s",
+        (cart_id,)
+    )
+    await execute(
+        "UPDATE carts SET total_amount = %s, updated_at = %s WHERE id = %s",
+        (total["total"], datetime.utcnow(), cart_id)
+    )
+
+    # 4️⃣ Return the cart item info
+    result = await query_all("SELECT * FROM cart_items WHERE id = %s", (item_id,))
+    return result
 # Keep all other functions unchanged (get, update, delete)...
 async def get_cart_items_by_cart_id(cart_id: str):
     return await query_all(queries["cart_items"]["get_by_cart_id"], {"cart_id": cart_id})

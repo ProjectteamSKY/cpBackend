@@ -84,3 +84,18 @@ AND min_qty = :min_qty
 AND is_deleted = FALSE
 LIMIT 1;
 """
+
+get_price_by_quantity = """
+SELECT *
+FROM product_variant_prices
+WHERE variant_id = :variant_id
+AND is_active = TRUE
+AND is_deleted = FALSE
+ORDER BY 
+    CASE 
+        WHEN min_qty <= :quantity THEN 0 
+        ELSE 1 
+    END,
+    min_qty DESC
+LIMIT 1;
+"""

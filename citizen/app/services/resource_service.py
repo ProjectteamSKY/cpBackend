@@ -6,7 +6,7 @@ queries = load_queries()
 
 
 async def create_resource(resource: Resource):
-    await execute(
+    created = await execute(
         queries["resource"]["create_resource"],
         {
             "id": resource.id,
@@ -15,11 +15,7 @@ async def create_resource(resource: Resource):
         },
     )
 
-    return {
-        "id": resource.id,
-        "name": resource.name,
-        "description": resource.description,
-    }
+    return created
 
 
 async def get_resource_by_name(name: str):

@@ -1,0 +1,37 @@
+[user_profile]
+
+create_profile = """
+INSERT INTO user_profiles (
+    user_id, profile_picture, phone_number, gender,
+    address, city, state, country, postal_code, date_of_birth
+)
+VALUES (
+    :user_id, :profile_picture, :phone_number, :gender,
+    :address, :city, :state, :country, :postal_code, :date_of_birth
+);
+"""
+
+get_profile = """
+SELECT * FROM user_profiles
+WHERE user_id = :user_id;
+"""
+
+update_profile = """
+UPDATE user_profiles SET
+    profile_picture = :profile_picture,
+    phone_number = :phone_number,
+    gender = :gender,
+    address = :address,
+    city = :city,
+    state = :state,
+    country = :country,
+    postal_code = :postal_code,
+    date_of_birth = :date_of_birth,
+    updated_at = CURRENT_TIMESTAMP
+WHERE user_id = :user_id;
+"""
+
+delete_profile = """
+DELETE FROM user_profiles
+WHERE user_id = :user_id;
+"""

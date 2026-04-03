@@ -48,14 +48,38 @@ async def get_design_request_by_id(id: str):
 async def update_design_request(id: str, updates: dict):
     if not updates:
         return await get_design_request_by_id(id)
-
+    print("UPDATES RECEIVED: - design_request_service.py:51", updates)
     updates["updated_at"] = datetime.utcnow()
 
-    set_clause = ", ".join(f"{key} = :{key}" for key in updates.keys())
-    sql = queries["design_request"]["update"].format(set_clause=set_clause)
+    allowed_fields = {
+        "status",
+        "is_approved",
+        "designed_images",
+        "logo_images",
+        "design_price",
+        "name",
+        "phone",
+        "email",
+        "product_id",
+        "product_name",
+        "variant_id",
+        "product_variant_price_id",
+        "design_notes",
+        "updated_at"
+    }
 
-    await execute(sql, {"id": id, **updates})
+    filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
 
+    if not filtered_updates:
+        return await get_design_request_by_id(id)
+
+    set_clause = ", ".join([f"{key} = :{key}" for key in filtered_updates.keys()])
+    sql = f"""
+        UPDATE design_requests
+        SET {set_clause}
+        WHERE id = :id
+    """
+    await execute(sql, {"id": id, **filtered_updates})
     return await get_design_request_by_id(id)
 
 
