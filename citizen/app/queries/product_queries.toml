@@ -153,3 +153,56 @@ SET is_active = FALSE, updated_at = NOW()
 WHERE id = :id
 AND is_deleted = FALSE;
 """
+
+get_by_subcategory = """
+SELECT 
+    p.id AS product_id,
+    p.name AS product_name,
+    p.description,
+    p.category_id,
+    p.subcategory_id,
+    p.created_at,
+
+    p.images,
+    p.related_images,
+
+    v.id AS variant_id,
+    v.size_id,
+    v.paper_type_id,
+    v.print_type_id,
+    v.cut_type_id,
+    v.sides,
+    v.orientation,
+
+    vp.id AS variant_price_id,
+    vp.price,
+    vp.min_qty
+
+FROM products p
+
+LEFT JOIN product_variants v 
+    ON v.product_id = p.id
+
+LEFT JOIN product_variant_prices vp 
+    ON vp.variant_id = v.id
+
+WHERE 
+    p.subcategory_id = :subcategory_id
+    AND p.is_active = TRUE
+    AND p.is_deleted = FALSE
+
+ORDER BY p.created_at DESC;
+"""
+
+
+get_by_subcategory_minimal = """
+SELECT 
+    p.id,
+    p.name
+FROM products p
+WHERE 
+    p.subcategory_id = :subcategory_id
+    AND p.is_active = TRUE
+    AND p.is_deleted = FALSE
+ORDER BY p.created_at DESC;
+"""

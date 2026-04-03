@@ -242,3 +242,93 @@ async def get_product_list_minimal():
         })
 
     return result
+
+
+async def get_products_by_subcategory(subcategory_id: str):
+    rows = await query_all(
+        queries["product"]["get_by_subcategory"],
+        {"subcategory_id": subcategory_id}
+    )
+
+    products_map = {}
+
+    for row in rows:
+        pid = row["product_id"]
+
+        if pid not in products_map:
+            # ✅ parse images safely
+            images = row["images"]
+            related_images = row["related_images"]
+
+            if isinstance(images, str):
+                images = json.loads(images)
+
+            if isinstance(related_images, str):
+                related_images = json.loads(related_images)
+
+            images = images or []
+            related_images = related_images or []
+
+            products_map[pid] = {
+                "id": pid,
+                "name": row["product_name"],
+                "description": row["description"],
+                "category_id": row["category_id"],
+                "subcategory_id": row["subcategory_id"],
+
+                # ✅ images
+                "image": images[0] if images else None,
+                "images": images,
+                "related_images": related_images,
+
+                "variants": []
+            }
+
+        product = products_map[pid]
+
+        # ✅ variants
+        if row["variant_id"]:
+            variants = product["variants"]
+
+            variant = next(
+                (v for v in variants if v["id"] == row["variant_id"]),
+                None
+            )
+
+            if not variant:
+                variant = {
+                    "id": row["variant_id"],
+                    "size_id": row["size_id"],
+                    "paper_type_id": row["paper_type_id"],
+                    "print_type_id": row["print_type_id"],
+                    "cut_type_id": row["cut_type_id"],
+                    "sides": row["sides"],
+                    "orientation": row["orientation"],
+                    "prices": []
+                }
+                variants.append(variant)
+
+            # ✅ prices
+            if row["variant_price_id"]:
+                variant["prices"].append({
+                    "id": row["variant_price_id"],
+                    "price": row["price"],
+                    "min_qty": row["min_qty"]
+                })
+
+    return list(products_map.values())
+
+
+async def get_products_by_subcategory_minimal(subcategory_id: str):
+    rows = await query_all(
+        queries["product"]["get_by_subcategory_minimal"],
+        {"subcategory_id": subcategory_id}
+    )
+
+    return [
+        {
+            "id": row["id"],
+            "name": row["name"]
+        }
+        for row in rows
+    ]

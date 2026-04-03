@@ -43,7 +43,7 @@ from app.routes.bank import qr_statement_routes
 from app.routes.bank import oauth_routes
 from app.routes import review_routes
 from app.routes import faq_router
-
+from app.routes import design_request_routes
 from app.routes import customer_erp
 
 
@@ -233,6 +233,8 @@ api_router.include_router(qr_statement_routes.router, prefix="/bank", tags=["Ban
 api_router.include_router(oauth_routes.router, prefix="/bank", tags=["Bank OAuth"])
 api_router.include_router(review_routes.router, prefix="/review", tags=["review"])
 api_router.include_router(faq_router.router, prefix="/faq", tags=["faq"])
+api_router.include_router(design_request_routes.router, prefix="/design_request", tags=["design_request"])
+
 
 # Include ERP customer routes
 api_router.include_router(customer_erp.router, prefix="", tags=["Customer ERP"])
