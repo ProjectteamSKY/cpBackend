@@ -1,0 +1,53 @@
+[design_request]
+
+create = """
+INSERT INTO design_requests (
+    id, user_id, name, phone, email,
+    product_id, product_name,
+    variant_id, product_variant_price_id,
+    design_notes,
+    logo_images,
+    designed_images,
+    status, is_approved, design_price,
+    created_at, updated_at
+)
+VALUES (
+    :id, :user_id, :name, :phone, :email,
+    :product_id, :product_name,
+    :variant_id, :product_variant_price_id,
+    :design_notes,
+    :logo_images,
+    :designed_images,
+    :status, :is_approved, :design_price,
+    :created_at, :updated_at
+);
+"""
+
+get_all = """
+SELECT * FROM design_requests
+ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT * FROM design_requests
+WHERE id = :id;
+"""
+
+get_by_user = """
+SELECT *
+FROM design_requests
+WHERE user_id = :user_id
+ORDER BY created_at DESC;
+"""
+
+update = """
+UPDATE design_requests
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+delete = """
+DELETE FROM design_requests
+WHERE id = :id;
+"""
