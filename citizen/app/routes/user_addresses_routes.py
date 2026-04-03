@@ -78,7 +78,7 @@ async def get_address(id: str):
 
 
 # UPDATE
-@router.put("/{id}")
+@router.put("/update/{id}")
 async def update_address(id: str, payload: UserAddressUpdate):
     updates = payload.model_dump(exclude_unset=True)
 
@@ -94,7 +94,7 @@ async def update_address(id: str, payload: UserAddressUpdate):
 
 
 # DELETE
-@router.delete("/{id}")
+@router.delete("/delete/{id}")
 async def delete_address(id: str):
     result = await delete_user_address(id)
 

@@ -1,47 +1,41 @@
-from fastapi import APIRouter, Depends, HTTPException, Form
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import get_session
+from fastapi import APIRouter, Form, HTTPException
 from app.domain.user_role_domain import UserRole
-from app.services import user_role_service
+from app.services.user_role_service import (
+    assign_role_service,
+    get_roles_by_user_service,
+    remove_role_service,
+    get_all_users_with_roles_service
+)
 
 router = APIRouter(prefix="/user-roles", tags=["User Roles"])
 
-
 @router.post("/assign")
 async def assign_role(
-    user_id: str = Form(...),
-    role_id: str = Form(...),
-    assigned_by: str = Form(None),
-    session: AsyncSession = Depends(get_session),
+    user_id: int = Form(...),
+    role_id: int = Form(...),
+    assigned_by: str | None = Form(None),
 ):
-    user_role = UserRole(
-        user_id=user_id,
-        role_id=role_id,
-        assigned_by=assigned_by,
-    )
-
-    return await user_role_service.assign_role(user_role, session)
+    assigned_by_int = int(assigned_by) if assigned_by not in (None, "", "null") else None
+    ur = UserRole(user_id, role_id, assigned_by_int)
+    return await assign_role_service(ur)
 
 
-@router.get("/user/{user_id}")
-async def get_roles(user_id: str, session: AsyncSession = Depends(get_session)):
-    return await user_role_service.get_roles_by_user(user_id, session)
+@router.get("/users-withroles")
+async def get_all_users_with_roles():
+    return await get_all_users_with_roles_service()
 
 
-@router.get("/role/{role_id}")
-async def get_users(role_id: str, session: AsyncSession = Depends(get_session)):
-    return await user_role_service.get_users_by_role(role_id, session)
+@router.get("/{user_id}")
+async def get_roles(user_id: int):
+    return await get_roles_by_user_service(user_id)
 
 
 @router.delete("/remove")
-async def remove(
-    user_id: str = Form(...),
-    role_id: str = Form(...),
-    session: AsyncSession = Depends(get_session),
+async def remove_role(
+    user_id: int = Form(...),
+    role_id: int = Form(...),
 ):
-    removed = await user_role_service.remove_role(user_id, role_id, session)
-
+    removed = await remove_role_service(user_id, role_id)
     if not removed:
-        raise HTTPException(status_code=404, detail="Mapping not found")
-
-    return {"message": "Role removed from user"}
+        raise HTTPException(status_code=404, detail="Role not assigned")
+    return {"message": "Role removed"}
