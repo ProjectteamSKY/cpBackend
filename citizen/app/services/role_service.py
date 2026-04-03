@@ -1,51 +1,26 @@
 from app.domain.role_domain import Role
 from app.utils.query_loader import load_queries
-from app.core.database import execute, query, query_all
+from app.core.database import query, execute
 
 queries = load_queries()
 
 
-async def create_role(role: Role):
-    await execute(
+async def create_role(r: Role):
+    return await execute(
         queries["role"]["create_role"],
-        {
-            "id": role.id,
-            "name": role.name,
-            "description": role.description,
-        },
-    )
-
-    return {
-        "id": role.id,
-        "name": role.name,
-        "description": role.description,
-    }
-
-
-async def get_role_by_name(name: str):
-    return await query(
-        queries["role"]["get_by_name"],
-        {"name": name},
-    )
-
-
-async def get_role_by_id(role_id: str):
-    return await query(
-        queries["role"]["get_by_id"],
-        {"role_id": role_id},
+        [r.name, r.description],
+        fetch_row=True,
     )
 
 
 async def get_all_roles():
-    return await query_all(
-        queries["role"]["get_all"]
-    )
+    return await query(queries["role"]["get_all_roles"], fetch_all=True)
 
 
-async def delete_role(role_id: str):
-    result = await execute(
+async def delete_role(role_id: int):
+    row = await execute(
         queries["role"]["delete_role"],
-        {"role_id": role_id},
+        [role_id],
+        fetch_row=True,
     )
-
-    return result > 0
+    return bool(row)

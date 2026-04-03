@@ -23,7 +23,6 @@ CREATE TABLE design_requests (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    -- ✅ UNIQUE FK NAMES
     CONSTRAINT fk_design_requests_user
         FOREIGN KEY (user_id)
         REFERENCES users(id)

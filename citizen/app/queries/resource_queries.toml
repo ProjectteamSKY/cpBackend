@@ -1,29 +1,38 @@
 [resource]
-
 create_resource = """
-INSERT INTO resources (id, name, description)
-VALUES (:id, :name, :description);
+INSERT INTO resource (name, description)
+VALUES ($1, $2)
+RETURNING id, name, description;
 """
 
-get_by_name = """
+get_all_resources = """
 SELECT id, name, description
-FROM resources
-WHERE name = :name;
+FROM resource
+ORDER BY id DESC;
 """
 
-get_by_id = """
+get_resource_by_id = """
 SELECT id, name, description
-FROM resources
-WHERE id = :resource_id;
+FROM resource
+WHERE id = $1;
 """
 
-get_all = """
+get_resource_by_name = """
 SELECT id, name, description
-FROM resources
-ORDER BY created_at DESC;
+FROM resource
+WHERE name = $1;
+"""
+
+update_resource = """
+UPDATE resource
+SET name = $1,
+    description = $2
+WHERE id = $3
+RETURNING id, name, description;
 """
 
 delete_resource = """
-DELETE FROM resources
-WHERE id = :resource_id;
+DELETE FROM resource
+WHERE id = $1
+RETURNING id;
 """
