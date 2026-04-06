@@ -235,8 +235,9 @@ def custom_openapi():
         "/api/design_request/{id}",
         "/api/design_request/{id}",
         "/api/design_request/user/{user_id}",
-
-
+        "/api/product/search",
+        "/api/product/category/search",
+        "/api/product/subcategory/search",
         # Customer Api - ERP system
         "/api/customers/search",
         "/api/customers/{customer_code}",
