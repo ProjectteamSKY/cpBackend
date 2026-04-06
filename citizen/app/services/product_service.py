@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from typing import Dict, List, Optional
 from app.domain.product_domain import Product
 from app.utils.query_loader import load_queries
 from app.core.database import execute, query, query_all
@@ -332,3 +333,85 @@ async def get_products_by_subcategory_minimal(subcategory_id: str):
         }
         for row in rows
     ]
+
+async def search_products_service(query_str: str) -> List[Dict]:
+    """
+    Search products by partial match (name, sku, description),
+    including category and subcategory info, images, and variants.
+    Multi-word queries are supported.
+    """
+    query_str = query_str.strip().lower()
+    if not query_str:
+        return []
+
+    words = query_str.split()
+    print(f"Searching products with query: {query_str} > words: {words} - product_service.py:348")
+
+    # Base SQL with JOINs to category and subcategory
+    sql = """
+    SELECT 
+        p.id AS product_id,
+        p.name AS product_name,
+        p.sku,
+        p.description,
+        p.category_id,
+        c.name AS category_name,
+        p.subcategory_id,
+        s.name AS subcategory_name,
+        p.images,
+        p.related_images,
+        p.is_active
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    LEFT JOIN subcategories s ON p.subcategory_id = s.id
+    WHERE p.is_deleted = FALSE
+    """
+    
+    # Add LIKE filters for each word
+    params = {}
+    for i, word in enumerate(words):
+        sql += f" AND (LOWER(p.name) LIKE :word{i} OR LOWER(p.sku) LIKE :word{i} OR LOWER(p.description) LIKE :word{i})"
+        params[f"word{i}"] = f"%{word}%"
+
+    sql += " ORDER BY p.created_at DESC;"
+
+    # Execute query
+    rows = await query_all(sql, params)
+    print(f"Found {len(rows)} products matching query: {query_str} - product_service.py:380")
+
+    # Build response
+    products = []
+    for row in rows:
+        images, related_images = [], []
+
+        if row.get("images"):
+            try:
+                images = json.loads(row["images"])
+            except:
+                images = []
+
+        if row.get("related_images"):
+            try:
+                related_images = json.loads(row["related_images"])
+            except:
+                related_images = []
+
+        products.append({
+            "id": row["product_id"],
+            "name": row["product_name"],
+            "sku": row.get("sku"),
+            "description": row.get("description"),
+            "category": {
+                "id": row.get("category_id"),
+                "name": row.get("category_name")
+            },
+            "subcategory": {
+                "id": row.get("subcategory_id"),
+                "name": row.get("subcategory_name")
+            },
+            "images": images,
+            "related_images": related_images,
+            "is_active": row.get("is_active")
+        })
+
+    return products

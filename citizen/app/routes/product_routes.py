@@ -17,7 +17,8 @@ from app.services.product_service import (
     get_all_products_active,
     get_product_list_minimal,
     get_products_by_subcategory,
-    get_products_by_subcategory_minimal
+    get_products_by_subcategory_minimal,
+    search_products_service
 )
 from app.utils.sku_generator import generate_sku
 
@@ -54,9 +55,9 @@ async def create_product_endpoint(
     # 🔥 FIX: Convert empty string → None
     category_id = category_id or None
     subcategory_id = subcategory_id or None
-    print("NAME: - product_routes.py:57", name)
-    print("CATEGORY: - product_routes.py:58", category_id)
-    print("subcategory_id: - product_routes.py:59", subcategory_id)
+    print("NAME: - product_routes.py:58", name)
+    print("CATEGORY: - product_routes.py:59", category_id)
+    print("subcategory_id: - product_routes.py:60", subcategory_id)
 
     # Generate SKU
     sku = await generate_sku(name)
@@ -97,6 +98,17 @@ async def list_products():
 async def list_active_products():
     return {"products": await get_all_products_active()}
 
+@router.get("/search")
+async def search_products(q: str):
+    """
+    Partial search for products. Returns empty list if no match.
+    """
+    if not q.strip():
+        return {"products": []}
+
+    results = await search_products_service(q.strip())
+    
+    return {"products": results}  
 
 # ------------------------
 # GET BY ID
@@ -227,3 +239,9 @@ async def list_products_by_subcategory(subcategory_id: str):
 async def minimal_products_by_subcategory(subcategory_id: str):
     products = await get_products_by_subcategory_minimal(subcategory_id)
     return {"products": products}
+
+
+# ------------------------
+# PARTIAL SEARCH
+# ------------------------
+# never raise 404 here
