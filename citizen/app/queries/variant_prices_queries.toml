@@ -1,0 +1,44 @@
+[variant_prices]
+
+create = """
+INSERT INTO variant_prices (
+    id, variant_id, min_qty, max_qty, price,
+    is_active, is_deleted,
+    created_at, updated_at
+)
+VALUES (
+    :id, :variant_id, :min_qty, :max_qty, :price,
+    :is_active, FALSE,
+    :created_at, :updated_at
+);
+"""
+
+get_by_variant = """
+SELECT *
+FROM variant_prices
+WHERE variant_id = :variant_id
+AND is_deleted = FALSE
+ORDER BY min_qty ASC;
+"""
+
+get_by_id = """
+SELECT *
+FROM variant_prices
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+update = """
+UPDATE variant_prices
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+delete = """
+UPDATE variant_prices
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id;
+"""

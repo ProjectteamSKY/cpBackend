@@ -24,6 +24,17 @@ from app.routes import product_discount_routes
 from app.routes import product_variant_price_routes
 from app.routes import productsetup_routes
 
+
+from app.routes import attribute_router
+from app.routes import attribute_value_router
+from app.routes import product_attribute_router
+from app.routes import product_variant_combinations_routes
+from app.routes import variant_attribute_value_router
+from app.routes import variant_price_router
+
+
+
+
 from app.routes import cart_routes
 from app.routes import cart_item_routes
 from app.routes import user_addresses_routes
@@ -71,7 +82,7 @@ app = FastAPI(
 # @app.on_event("startup")
 # async def on_startup():
 #     await init_db()
-#     print("🟢 Database initialized on startup - main.py:74")
+#     print("🟢 Database initialized on startup - main.py:85")
 
 # # -------------------------
 # CORS middleware
@@ -238,6 +249,52 @@ def custom_openapi():
         "/api/product/search",
         "/api/product/category/search",
         "/api/product/subcategory/search",
+
+        # attribute and attribute value and related endpoints
+        "/api/attribute/create",
+        "/api/attribute/list",
+        "/api/attribute/{id}",
+        "/api/attribute/{id}",
+        "/api/attribute/{id}/activate",
+        "/api/attribute/{id}/deactivate",
+        "/api/attribute_value/create",
+        "/api/attribute_value/list",
+        "/api/attribute_value/attribute/{attribute_id}",
+        "/api/attribute_value/{id}",
+        "/api/attribute_value/{id}",
+        "/api/attribute_value/{id}/activate",
+        "/api/attribute_value/{id}/deactivate",
+        #product attribute and variant attribute value endpoints
+        "/api/product_attribute/create",
+        "/api/product_attribute/list",
+        "/api/product_attribute/product/{product_id}",
+        "/api/product_attribute/{id}",
+        "/api/product_attribute/{id}",
+        "/api/product_variant_combinations/create",
+        "/api/product_variant_combinations/list",
+        "/api/product_variant_combinations/product/{product_id}",
+        "/api/product_variant_combinations/{id}",
+        "/api/product_variant_combinations/{id}",
+        "/api/product_variant_combinations/{id}/activate",
+        "/api/product_variant_combinations/{id}/deactivate",
+        "/api/variant_attribute_value/create",
+        "/api/variant_attribute_value/list",
+        "/api/variant_attribute_value/variant/{variant_id}",
+        "/api/variant_attribute_value/{id}",
+        "/api/variant_attribute_value/{id}",
+        "/api/variant_attribute_value/{id}/activate",
+        "/api/variant_attribute_value/{id}/deactivate",
+        "/api/variant_price/create",
+        "/api/variant_price/list",
+        "/api/variant_price/variant/{variant_id}",
+        "/api/variant_price/{id}",
+        "/api/variant_price/{id}",
+        "/api/variant_price/{id}/activate",
+        "/api/variant_price/{id}/deactivate",
+
+
+
+
         # Customer Api - ERP system
         "/api/customers/search",
         "/api/customers/{customer_code}",
@@ -295,18 +352,23 @@ api_router.include_router(subcategory_routes.router, prefix="/subcategory", tags
 api_router.include_router(product_routes.router, prefix="/product", tags=["product"])
 api_router.include_router(product_variant_routes.router, prefix="/product_variant", tags=["product_variant"])
 api_router.include_router(product_discount_routes.router, prefix="/product_discount", tags=["product_discount_routes"])
-
-
 api_router.include_router(product_variant_price_routes.router, prefix="/product_variant_price", tags=["Product Variant Prices"])
-
 api_router.include_router(productsetup_routes.router, prefix="/productsetup", tags=["product setup"])
-
 api_router.include_router(paper_type_routes.router, prefix="/paper_type", tags=["paper_type"])
 api_router.include_router(print_type_routes.router, prefix="/print_type", tags=["print_type"])
-
 api_router.include_router(cut_type_routes.router, prefix="/cut_type", tags=["cut_type"])
 api_router.include_router(cut_type_routes.router, prefix="/cut_type", tags=["cut_type"])
 api_router.include_router(size_routes.router, prefix="/size", tags=["size"])
+
+api_router.include_router(attribute_router.router, prefix="/attribute", tags=["attribute"])
+api_router.include_router(attribute_value_router.router, prefix="/attribute_value", tags=["attribute_value"])
+api_router.include_router(product_attribute_router.router, prefix="/product_attribute", tags=["product_attribute"])
+api_router.include_router(product_variant_combinations_routes.router, prefix="/product_variant_combinations", tags=["product_variant_combinations"])
+api_router.include_router(variant_attribute_value_router.router, prefix="/variant_attribute_value", tags=["variant_attribute_value"])
+api_router.include_router(variant_price_router.router, prefix="/variant_price", tags=["variant_price"])
+
+
+
 api_router.include_router(cart_routes.router, prefix="/cart", tags=["cart"])
 api_router.include_router(cart_item_routes.router, prefix="/cartitems", tags=["cartitems"])
 

@@ -50,7 +50,7 @@ WHERE id = :id;
 soft_delete = """
 UPDATE cut_types
 SET
-    is_active = FALSE,
+    is_deleted = TRUE,
     updated_at = NOW()
 WHERE id = :id;
 """
