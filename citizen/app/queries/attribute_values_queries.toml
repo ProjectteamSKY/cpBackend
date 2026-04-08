@@ -1,0 +1,86 @@
+[attribute_values]
+
+create = """
+INSERT INTO attribute_values (id, attribute_id, value, is_active, is_deleted, created_at, updated_at)
+VALUES (:id, :attribute_id, :value, :is_active, FALSE, :created_at, :updated_at)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    is_active = VALUES(is_active),
+    updated_at = NOW();
+"""
+
+get_all = """
+SELECT 
+    av.id,
+    av.attribute_id,
+    a.name AS attribute_name,   
+    av.value,
+    av.is_active,
+    av.is_deleted,
+    av.created_at,
+    av.updated_at
+FROM attribute_values av
+JOIN attributes a 
+    ON av.attribute_id = a.id
+WHERE av.is_deleted = FALSE
+ORDER BY av.created_at DESC;
+"""
+
+get_by_id = """
+SELECT *
+FROM attribute_values
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+get_by_attribute = """
+SELECT *
+FROM attribute_values
+WHERE attribute_id = :attribute_id
+AND is_deleted = FALSE;
+"""
+
+update = """
+UPDATE attribute_values
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+delete = """
+UPDATE attribute_values
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+activate = """
+UPDATE attribute_values
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+deactivate = """
+UPDATE attribute_values
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+restore = """
+UPDATE attribute_values
+SET is_deleted = FALSE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+get_all_with_deleted = """
+SELECT *
+FROM attribute_values
+ORDER BY created_at DESC;
+"""

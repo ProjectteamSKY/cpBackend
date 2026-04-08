@@ -27,6 +27,8 @@ INSERT INTO sizes (
 get_all = """
 SELECT *
 FROM sizes
+WHERE sizes.is_active = TRUE
+AND is_deleted=FALSE
 ORDER BY created_at DESC;
 """
 
@@ -34,6 +36,7 @@ get_all_active = """
 SELECT *
 FROM sizes
 WHERE sizes.is_active = TRUE
+AND is_deleted=FALSE
 ORDER BY created_at DESC;
 """
 
@@ -58,7 +61,7 @@ WHERE id = :id;
 soft_delete = """
 UPDATE sizes
 SET
-    is_active = FALSE,
+    is_deleted = TRUE,
     updated_at = NOW()
 WHERE id = :id;
 """

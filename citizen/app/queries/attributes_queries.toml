@@ -1,7 +1,7 @@
-[category]
+[attributes]
 
 create = """
-INSERT INTO categories (id, name, description, is_active, is_deleted, created_at, updated_at)
+INSERT INTO attributes (id, name, description, is_active, is_deleted, created_at, updated_at)
 VALUES (:id, :name, :description, :is_active, FALSE, :created_at, :updated_at)
 ON DUPLICATE KEY UPDATE
     is_deleted = FALSE,
@@ -12,29 +12,28 @@ ON DUPLICATE KEY UPDATE
 
 get_all = """
 SELECT *
-FROM categories
+FROM attributes
 WHERE is_deleted = FALSE
 ORDER BY created_at DESC;
 """
 
 get_by_id = """
 SELECT *
-FROM categories
+FROM attributes
 WHERE id = :id
 AND is_deleted = FALSE;
 """
 
 update = """
-UPDATE categories
+UPDATE attributes
 SET {set_clause},
     updated_at = NOW()
 WHERE id = :id
 AND is_deleted = FALSE;
 """
 
-# ✅ SOFT DELETE
 delete = """
-UPDATE categories
+UPDATE attributes
 SET is_deleted = TRUE,
     updated_at = NOW()
 WHERE id = :id
@@ -42,7 +41,7 @@ AND is_deleted = FALSE;
 """
 
 activate = """
-UPDATE categories
+UPDATE attributes
 SET is_active = TRUE,
     updated_at = NOW()
 WHERE id = :id
@@ -50,7 +49,7 @@ AND is_deleted = FALSE;
 """
 
 deactivate = """
-UPDATE categories
+UPDATE attributes
 SET is_active = FALSE,
     updated_at = NOW()
 WHERE id = :id
@@ -58,30 +57,14 @@ AND is_deleted = FALSE;
 """
 
 restore = """
-UPDATE categories
+UPDATE attributes
 SET is_deleted = FALSE,
     updated_at = NOW()
 WHERE id = :id;
 """
 
-# ✅ Admin use only
 get_all_with_deleted = """
 SELECT *
-FROM categories
+FROM attributes
 ORDER BY created_at DESC;
-"""
-
-
-check_subcategories = """
-SELECT id FROM subcategories
-WHERE category_id = :id
-AND is_deleted = FALSE
-LIMIT 1;
-"""
-
-check_products_by_category = """
-SELECT id FROM products
-WHERE category_id = :id
-AND is_deleted = FALSE
-LIMIT 1;
 """

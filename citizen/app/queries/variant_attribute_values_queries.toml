@@ -1,0 +1,62 @@
+[variant_attribute_values]
+
+create = """
+INSERT INTO variant_attribute_values (
+    id, variant_id, attribute_id, attribute_value_id,
+    is_active, is_deleted,
+    created_at, updated_at
+)
+VALUES (
+    :id, :variant_id, :attribute_id, :attribute_value_id,
+    :is_active, FALSE,
+    :created_at, :updated_at
+)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    is_active = VALUES(is_active),
+    updated_at = NOW();
+"""
+
+get_by_variant = """
+SELECT *
+FROM variant_attribute_values
+WHERE variant_id = :variant_id
+AND is_deleted = FALSE;
+"""
+
+get_by_id = """
+SELECT *
+FROM variant_attribute_values
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+update = """
+UPDATE variant_attribute_values
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+delete = """
+UPDATE variant_attribute_values
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+activate = """
+UPDATE variant_attribute_values
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id AND is_deleted = FALSE;
+"""
+
+deactivate = """
+UPDATE variant_attribute_values
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id AND is_deleted = FALSE;
+"""
