@@ -70,13 +70,32 @@ async def update_category(id: str, updates: dict):
 # DELETE (soft delete)
 # -------------------------
 async def delete_category(id: str):
-    """
-    Soft-delete a category by ID
-    """
+    # Check category exists
     existing = await query(queries["category"]["get_by_id"], {"id": id})
     if not existing:
         return None
 
+    # ❌ Check subcategories
+    subcategories = await query(
+        queries["category"]["check_subcategories"], {"id": id}
+    )
+    if subcategories:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete: Category is assigned to subcategories"
+        )
+
+    # ❌ Check products
+    products = await query(
+        queries["category"]["check_products_by_category"], {"id": id}
+    )
+    if products:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete: Category is assigned to products"
+        )
+
+    # ✅ Safe to delete
     await execute(queries["category"]["delete"], {"id": id})
     return {"id": id}
 

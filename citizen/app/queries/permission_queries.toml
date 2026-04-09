@@ -1,19 +1,73 @@
 [permission]
 
-create_permission = """
-INSERT INTO permission (resource_id, action, method, path, description)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, resource_id, action, method, path, description;
+create = """
+INSERT INTO permissions (id, resource_id, action, method, path, description, is_active, is_deleted, created_at, updated_at)
+VALUES (:id, :resource_id, :action, :method, :path, :description, :is_active, FALSE, :created_at, :updated_at)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    description = VALUES(description),
+    is_active = VALUES(is_active),
+    path = VALUES(path),
+    method = VALUES(method),
+    resource_id = VALUES(resource_id),
+    updated_at = NOW();
 """
 
-get_all_permissions = """
-SELECT id, resource_id, action, description
-FROM Permission
-ORDER BY id DESC;
+get_all = """
+SELECT *
+FROM permissions
+WHERE is_deleted = FALSE
+ORDER BY created_at DESC;
 """
 
-delete_permission = """
-DELETE FROM Permission
-WHERE id = $1
-RETURNING id;
+get_by_id = """
+SELECT *
+FROM permissions
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+update = """
+UPDATE permissions
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+delete = """
+UPDATE permissions
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+activate = """
+UPDATE permissions
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+deactivate = """
+UPDATE permissions
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+restore = """
+UPDATE permissions
+SET is_deleted = FALSE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+get_all_with_deleted = """
+SELECT *
+FROM permissions
+ORDER BY created_at DESC;
 """

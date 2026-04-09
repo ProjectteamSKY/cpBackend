@@ -79,3 +79,10 @@ UPDATE subcategories
 SET is_active = FALSE, updated_at = NOW()
 WHERE id = :id;
 """
+
+check_products_by_subcategory = """
+SELECT id FROM products
+WHERE subcategory_id = :id
+AND is_deleted = FALSE
+LIMIT 1;
+"""

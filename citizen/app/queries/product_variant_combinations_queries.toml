@@ -1,0 +1,62 @@
+[product_variant_combinations]
+
+create = """
+INSERT INTO product_variant_combinations (
+    id, product_id, sku,
+    is_active, is_deleted,
+    created_at, updated_at
+)
+VALUES (
+    :id, :product_id, :sku,
+    :is_active, FALSE,
+    :created_at, :updated_at
+)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    is_active = VALUES(is_active),
+    updated_at = NOW();
+"""
+
+get_by_product = """
+SELECT *
+FROM product_variant_combinations
+WHERE product_id = :product_id
+AND is_deleted = FALSE;
+"""
+
+get_by_id = """
+SELECT *
+FROM product_variant_combinations
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+update = """
+UPDATE product_variant_combinations
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+delete = """
+UPDATE product_variant_combinations
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+activate = """
+UPDATE product_variant_combinations
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id AND is_deleted = FALSE;
+"""
+
+deactivate = """
+UPDATE product_variant_combinations
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id AND is_deleted = FALSE;
+"""

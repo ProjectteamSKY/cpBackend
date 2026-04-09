@@ -1,0 +1,70 @@
+[attributes]
+
+create = """
+INSERT INTO attributes (id, name, description, is_active, is_deleted, created_at, updated_at)
+VALUES (:id, :name, :description, :is_active, FALSE, :created_at, :updated_at)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    description = VALUES(description),
+    is_active = VALUES(is_active),
+    updated_at = NOW();
+"""
+
+get_all = """
+SELECT *
+FROM attributes
+WHERE is_deleted = FALSE
+ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT *
+FROM attributes
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+update = """
+UPDATE attributes
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+delete = """
+UPDATE attributes
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+activate = """
+UPDATE attributes
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+deactivate = """
+UPDATE attributes
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+restore = """
+UPDATE attributes
+SET is_deleted = FALSE,
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+get_all_with_deleted = """
+SELECT *
+FROM attributes
+ORDER BY created_at DESC;
+"""

@@ -56,25 +56,96 @@
 #         yield conn
 
 # app/core/database.py
+# import os
+# from dotenv import load_dotenv
+# from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+# from sqlalchemy.orm import sessionmaker, DeclarativeBase
+# from sqlalchemy import text
+
+# load_dotenv()
+
+# DATABASE_URL = os.getenv("DATABASE_URL")
+
+# if not DATABASE_URL:
+#     raise ValueError("DATABASE_URL is not set")
+
+
+# # -------------------------
+# # Engine
+# # -------------------------
+# engine = create_async_engine(DATABASE_URL, echo=True)
+
+# AsyncSessionLocal = sessionmaker(
+#     bind=engine,
+#     class_=AsyncSession,
+#     expire_on_commit=False
+# )
+
+
+# class Base(DeclarativeBase):
+#     pass
+
+
+# # -------------------------
+# # Dependency
+# # -------------------------
+# async def get_session():
+#     async with AsyncSessionLocal() as session:
+#         yield session
+
+
+# # -------------------------
+# # Helpers
+# # -------------------------
+# async def execute(sql: str, params: dict = {}):
+#     async with AsyncSessionLocal() as session:
+#         result = await session.execute(text(sql), params)
+#         await session.commit()
+#         return result.rowcount
+
+
+# async def query(sql: str, params: dict = {}):
+#     async with AsyncSessionLocal() as session:
+#         result = await session.execute(text(sql), params)
+#         row = result.fetchone()
+#         return dict(row._mapping) if row else None
+
+
+# async def query_all(sql: str, params: dict = {}):
+#     async with AsyncSessionLocal() as session:
+#         result = await session.execute(text(sql), params)
+#         rows = result.fetchall()
+#         return [dict(r._mapping) for r in rows]
+
+
 import os
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from sqlalchemy import MetaData, text
+from sqlalchemy import text
 
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set")
 
-# -------------------------
-# 1. Async engine
-# -------------------------
-engine = create_async_engine(DATABASE_URL, echo=True)
 
 # -------------------------
-# 2. Async session factory
+# Engine (Optimized)
+# -------------------------
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=True,  # 🔁 set False in production
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20
+)
+
+
+# -------------------------
+# Session Factory
 # -------------------------
 AsyncSessionLocal = sessionmaker(
     bind=engine,
@@ -82,16 +153,16 @@ AsyncSessionLocal = sessionmaker(
     expire_on_commit=False
 )
 
+
 # -------------------------
-# 3. Declarative Base for ORM models
+# Base Model
 # -------------------------
 class Base(DeclarativeBase):
     pass
 
-metadata = MetaData()
 
 # -------------------------
-# Async session dependency for FastAPI
+# Dependency (FastAPI)
 # -------------------------
 async def get_session():
     async with AsyncSessionLocal() as session:
@@ -100,40 +171,53 @@ async def get_session():
         finally:
             await session.close()
 
-# -------------------------
-# Optional raw connection
-# -------------------------
-async def get_connection():
-    async with engine.connect() as conn:
-        yield conn
 
 # -------------------------
-# Helper functions
+# Core Helpers
 # -------------------------
 
 async def execute(sql: str, params: dict = {}):
     """
-    Execute an INSERT, UPDATE, or DELETE query.
-    Returns None (or optionally affected row count).
+    For INSERT / UPDATE / DELETE
     """
     async with AsyncSessionLocal() as session:
-        result = await session.execute(text(sql), params)
-        await session.commit()
-        # Don't call fetchone() for non-SELECT queries
-        return result.rowcount  # optional: number of affected rows
+        try:
+            result = await session.execute(text(sql), params)
+            await session.commit()
+            return result.rowcount
+        except Exception as e:
+            await session.rollback()
+            raise e
+
+
+async def execute_returning(sql: str, params: dict = {}):
+    """
+    Insert + return inserted row (if DB supports)
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            result = await session.execute(text(sql), params)
+            await session.commit()
+            row = result.fetchone()
+            return dict(row._mapping) if row else None
+        except Exception as e:
+            await session.rollback()
+            raise e
+
 
 async def query(sql: str, params: dict = {}):
     """
-    Execute a SELECT query and return the first row as a dict.
+    Fetch single row
     """
     async with AsyncSessionLocal() as session:
         result = await session.execute(text(sql), params)
         row = result.fetchone()
         return dict(row._mapping) if row else None
 
+
 async def query_all(sql: str, params: dict = {}):
     """
-    Execute a SELECT query and return all rows as list of dicts.
+    Fetch multiple rows
     """
     async with AsyncSessionLocal() as session:
         result = await session.execute(text(sql), params)
@@ -141,6 +225,40 @@ async def query_all(sql: str, params: dict = {}):
         return [dict(r._mapping) for r in rows]
 
 
+async def scalar(sql: str, params: dict = {}):
+    """
+    Fetch single scalar value
+    """
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(text(sql), params)
+        return result.scalar()
 
 
+# -------------------------
+# Transaction Helper
+# -------------------------
+async def run_in_transaction(func):
+    """
+    Run multiple DB operations safely in one transaction
+    """
 
+    async with AsyncSessionLocal() as session:
+        try:
+            result = await func(session)
+            await session.commit()
+            return result
+        except Exception as e:
+            await session.rollback()
+            raise e
+
+
+# -------------------------
+# Health Check (useful)
+# -------------------------
+async def check_db():
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False

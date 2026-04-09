@@ -122,12 +122,22 @@ async def update_subcategory(id: str, updates: dict):
 # -------------------------
 async def delete_subcategory(id: str):
     existing = await query(queries["subcategory"]["get_by_id"], {"id": id})
-
     if not existing:
         return None
 
-    await execute(queries["subcategory"]["delete"], {"id": id})
+    # ❌ Check products
+    products = await query(
+        queries["subcategory"]["check_products_by_subcategory"], {"id": id}
+    )
 
+    if products:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete: Subcategory is assigned to products"
+        )
+
+    # ✅ Safe delete
+    await execute(queries["subcategory"]["delete"], {"id": id})
     return {"id": id}
 
 

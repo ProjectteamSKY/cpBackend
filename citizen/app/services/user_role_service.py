@@ -1,56 +1,60 @@
+from fastapi import HTTPException
+from app.domain.user_role_domain import UserRole
 from app.utils.query_loader import load_queries
-from app.core.database import query, execute
+from app.core.database import execute, query, query_all
 
 queries = load_queries()
 
-
-async def assign_role_service(ur):
-    return await execute(
-        queries["user_role"]["assign_role"],
-        [ur.user_id, ur.role_id, ur.assigned_by],
-        fetch_row=True,
+# ------------------------- #
+# CREATE / ASSIGN ROLE
+# ------------------------- #
+async def create_user_role(user_role: UserRole):
+    existing = await query(
+        "SELECT * FROM user_roles WHERE user_id = :user_id AND role_id = :role_id",
+        {"user_id": user_role.user_id, "role_id": user_role.role_id},
     )
+    if existing:
+        raise HTTPException(status_code=400, detail="User already has this role assigned")
 
+    await execute(queries["user_role"]["create"], user_role.to_dict())
+    created = await query(queries["user_role"]["get_by_id"], {"id": user_role.id})
+    return created
 
-async def get_roles_by_user_service(user_id: int):
-    return await query(
-        queries["user_role"]["get_roles_by_user"],
-        [user_id],
-        fetch_all=True,
-    )
+# ------------------------- #
+# GET ALL USER ROLES
+# ------------------------- #
+async def get_all_user_roles():
+    return await query_all(queries["user_role"]["get_all"])
 
+# ------------------------- #
+# GET BY ID
+# ------------------------- #
+async def get_user_role_by_id(id: str):
+    return await query(queries["user_role"]["get_by_id"], {"id": id})
 
-async def remove_role_service(user_id: int, role_id: int):
-    row = await execute(
-        queries["user_role"]["remove_role"],
-        [user_id, role_id],
-        fetch_row=True,
-    )
-    return bool(row)
+# ------------------------- #
+# GET BY USER ID
+# ------------------------- #
+async def get_user_roles_by_user(user_id: str):
+    return await query_all(queries["user_role"]["get_by_user_id"], {"user_id": user_id})
 
+# ------------------------- #
+# UPDATE
+# ------------------------- #
+async def update_user_role(id: str, updates: dict):
+    if not updates:
+        return await get_user_role_by_id(id)
+    set_clause = ", ".join(f"{key} = :{key}" for key in updates.keys())
+    sql = queries["user_role"]["update"].format(set_clause=set_clause)
+    await execute(sql, {"id": id, **updates})
+    return await get_user_role_by_id(id)
 
-async def get_all_users_with_roles_service():
-    rows = await query(
-        queries["user_role"]["get_all_users_with_roles"],
-        fetch_all=True,
-    )
-
-    users_dict = {}
-    for row in rows:
-        user_id = row["id"]
-        if user_id not in users_dict:
-            users_dict[user_id] = {
-                "user_id": user_id,
-                "full_name": row["full_name"],
-                "email": row["email"],
-                "roles": [],
-            }
-        users_dict[user_id]["roles"].append({
-            "role_id": row["role_id"],
-            "role_name": row["role_name"],
-            "assigned_by": row["assigned_by"],
-            "assigned_by_name": row["assigned_by_name"],
-            "assigned_at": str(row["assigned_at"]) if row["assigned_at"] else None,
-        })
-
-    return list(users_dict.values())
+# ------------------------- #
+# DELETE
+# ------------------------- #
+async def delete_user_role(id: str):
+    existing = await query(queries["user_role"]["get_by_id"], {"id": id})
+    if not existing:
+        return None
+    await execute(queries["user_role"]["delete"], {"id": id})
+    return {"id": id}

@@ -1,41 +1,88 @@
-from fastapi import APIRouter, Form, HTTPException
+from typing import Optional
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from app.domain.user_role_domain import UserRole
 from app.services.user_role_service import (
-    assign_role_service,
-    get_roles_by_user_service,
-    remove_role_service,
-    get_all_users_with_roles_service
+    create_user_role,
+    get_all_user_roles,
+    get_user_role_by_id,
+    get_user_roles_by_user,
+    update_user_role,
+    delete_user_role,
 )
 
-router = APIRouter(prefix="/user-roles", tags=["User Roles"])
+router = APIRouter()
 
+# -------------------------- #
+# Pydantic Models
+# -------------------------- #
+class UserRoleCreate(BaseModel):
+    user_id: str
+    role_id: str
+    assigned_by: Optional[str] = None
+
+class UserRoleUpdate(BaseModel):
+    role_id: Optional[str] = None
+    assigned_by: Optional[str] = None
+
+# -------------------------- #
+# CREATE / ASSIGN
+# -------------------------- #
 @router.post("/assign")
-async def assign_role(
-    user_id: int = Form(...),
-    role_id: int = Form(...),
-    assigned_by: str | None = Form(None),
-):
-    assigned_by_int = int(assigned_by) if assigned_by not in (None, "", "null") else None
-    ur = UserRole(user_id, role_id, assigned_by_int)
-    return await assign_role_service(ur)
+async def assign_user_role(payload: UserRoleCreate):
+    user_role = UserRole(
+        user_id=payload.user_id,
+        role_id=payload.role_id,
+        assigned_by=payload.assigned_by,
+    )
+    created = await create_user_role(user_role)
+    return {"status": "success", "data": created}
 
+# -------------------------- #
+# LIST ALL
+# -------------------------- #
+@router.get("/list")
+async def list_user_roles():
+    roles = await get_all_user_roles()
+    return {"status": "success", "user_roles": roles}
 
-@router.get("/users-withroles")
-async def get_all_users_with_roles():
-    return await get_all_users_with_roles_service()
+# -------------------------- #
+# GET BY ID
+# -------------------------- #
+@router.get("/{id}")
+async def get_user_role_endpoint(id: str):
+    role = await get_user_role_by_id(id)
+    if not role:
+        raise HTTPException(status_code=404, detail="User role not found")
+    return {"status": "success", "data": role}
 
+# -------------------------- #
+# GET BY USER
+# -------------------------- #
+@router.get("/user/{user_id}")
+async def get_user_roles_for_user(user_id: str):
+    roles = await get_user_roles_by_user(user_id)
+    return {"status": "success", "data": roles}
 
-@router.get("/{user_id}")
-async def get_roles(user_id: int):
-    return await get_roles_by_user_service(user_id)
+# -------------------------- #
+# UPDATE
+# -------------------------- #
+@router.put("/{id}")
+async def update_user_role_endpoint(id: str, payload: UserRoleUpdate):
+    update_data = payload.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    role = await update_user_role(id, update_data)
+    if not role:
+        raise HTTPException(status_code=404, detail="User role not found")
+    return {"status": "success", "data": role}
 
-
-@router.delete("/remove")
-async def remove_role(
-    user_id: int = Form(...),
-    role_id: int = Form(...),
-):
-    removed = await remove_role_service(user_id, role_id)
-    if not removed:
-        raise HTTPException(status_code=404, detail="Role not assigned")
-    return {"message": "Role removed"}
+# -------------------------- #
+# DELETE
+# -------------------------- #
+@router.delete("/{id}")
+async def delete_user_role_endpoint(id: str):
+    result = await delete_user_role(id)
+    if not result:
+        raise HTTPException(status_code=404, detail="User role not found")
+    return {"status": "success", "deleted_id": id}
