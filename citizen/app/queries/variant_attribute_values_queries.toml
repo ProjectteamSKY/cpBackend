@@ -18,25 +18,39 @@ ON DUPLICATE KEY UPDATE
 """
 
 get_by_variant = """
-SELECT *
-FROM variant_attribute_values
-WHERE variant_id = :variant_id
-AND is_deleted = FALSE;
+SELECT 
+    vav.id,
+    vav.variant_id,
+    vav.attribute_id,
+    vav.attribute_value_id,
+    a.name AS attribute_name,
+    av.value AS attribute_value_name,
+    vav.is_active,
+    vav.created_at,
+    vav.updated_at
+FROM variant_attribute_values vav
+JOIN attributes a ON vav.attribute_id = a.id
+JOIN attribute_values av ON vav.attribute_value_id = av.id
+WHERE vav.variant_id = :variant_id
+AND vav.is_deleted = FALSE;
 """
 
 get_by_id = """
-SELECT *
-FROM variant_attribute_values
-WHERE id = :id
-AND is_deleted = FALSE;
-"""
-
-update = """
-UPDATE variant_attribute_values
-SET {set_clause},
-    updated_at = NOW()
-WHERE id = :id
-AND is_deleted = FALSE;
+SELECT 
+    vav.id,
+    vav.variant_id,
+    vav.attribute_id,
+    vav.attribute_value_id,
+    COALESCE(a.name, '') AS attribute_name,
+    COALESCE(av.value, '') AS attribute_value_name,
+    vav.is_active,
+    vav.created_at,
+    vav.updated_at
+FROM variant_attribute_values vav
+LEFT JOIN attributes a ON vav.attribute_id = a.id
+LEFT JOIN attribute_values av ON vav.attribute_value_id = av.id
+WHERE vav.id = :id
+AND vav.is_deleted = FALSE;
 """
 
 delete = """
@@ -45,18 +59,4 @@ SET is_deleted = TRUE,
     updated_at = NOW()
 WHERE id = :id
 AND is_deleted = FALSE;
-"""
-
-activate = """
-UPDATE variant_attribute_values
-SET is_active = TRUE,
-    updated_at = NOW()
-WHERE id = :id AND is_deleted = FALSE;
-"""
-
-deactivate = """
-UPDATE variant_attribute_values
-SET is_active = FALSE,
-    updated_at = NOW()
-WHERE id = :id AND is_deleted = FALSE;
 """

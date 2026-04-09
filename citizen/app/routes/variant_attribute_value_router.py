@@ -1,43 +1,51 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
-from app.domain.variant_attribute_value_domain import VariantAttributeValue
-from app.services.variant_attribute_values_service import *
+from app.services.variant_attribute_values_service import (
+    create_multiple_variant_attribute_values,
+    get_values_by_variant,
+    delete_variant_attribute_value,
+    update_variant_attribute_values
+)
+
 router = APIRouter()
 
+
+from pydantic import BaseModel
+from typing import List
 
 class CreateModel(BaseModel):
     variant_id: str
     attribute_id: str
-    attribute_value_id: str
+    attribute_value_ids: List[str]
 
-
+class UpdateModel(BaseModel):
+    variant_id: str
+    attribute_id: str
+    attribute_value_ids: List[str]
 # --------------------------
-# CREATE
+# CREATE MULTIPLE
 # --------------------------
 @router.post("/create")
 async def create_endpoint(payload: CreateModel):
-    obj = VariantAttributeValue(**payload.model_dump())
-    return {"status": "success", "data": await create_variant_attribute_value(obj)}
+    data = await create_multiple_variant_attribute_values(payload)
+    return {"status": "success", "data": data}
 
 
-# --------------------------
-# GET BY VARIANT
-# --------------------------
 @router.get("/variant/{variant_id}")
 async def get_by_variant(variant_id: str):
-    return {
-        "status": "success",
-        "data": await get_values_by_variant(variant_id)
-    }
+    data = await get_values_by_variant(variant_id)
+    return {"status": "success", "data": data}
 
 
-# --------------------------
-# DELETE
-# --------------------------
+@router.put("/update")
+async def update_endpoint(payload: UpdateModel):
+    data = await update_variant_attribute_values(payload)
+    return {"status": "success", "data": data}
+
 @router.delete("/{id}")
 async def delete_endpoint(id: str):
     result = await delete_variant_attribute_value(id)
+
     if not result:
         raise HTTPException(status_code=404, detail="Not found")
 
