@@ -1,0 +1,79 @@
+[product_attributes]
+
+create = """
+INSERT INTO product_attributes (
+    id, product_id, attribute_id,
+    is_required, sort_order,
+    is_active, is_deleted,
+    created_at, updated_at
+)
+VALUES (
+    :id, :product_id, :attribute_id,
+    :is_required, :sort_order,
+    :is_active, FALSE,
+    :created_at, :updated_at
+)
+ON DUPLICATE KEY UPDATE
+    is_deleted = FALSE,
+    is_required = VALUES(is_required),
+    sort_order = VALUES(sort_order),
+    is_active = VALUES(is_active),
+    updated_at = NOW();
+"""
+
+get_by_product = """
+SELECT *
+FROM product_attributes
+WHERE product_id = :product_id
+AND is_deleted = FALSE
+ORDER BY sort_order ASC;
+"""
+
+get_all = """
+SELECT 
+    pa.*,
+    p.name AS product_name,
+    a.name AS attribute_name
+FROM product_attributes pa
+JOIN products p ON pa.product_id = p.id
+JOIN attributes a ON pa.attribute_id = a.id
+WHERE pa.is_deleted = FALSE
+ORDER BY pa.created_at DESC;
+"""
+
+get_by_id = """
+SELECT *
+FROM product_attributes
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+update = """
+UPDATE product_attributes
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+delete = """
+UPDATE product_attributes
+SET is_deleted = TRUE,
+    updated_at = NOW()
+WHERE id = :id
+AND is_deleted = FALSE;
+"""
+
+activate = """
+UPDATE product_attributes
+SET is_active = TRUE,
+    updated_at = NOW()
+WHERE id = :id AND is_deleted = FALSE;
+"""
+
+deactivate = """
+UPDATE product_attributes
+SET is_active = FALSE,
+    updated_at = NOW()
+WHERE id = :id AND is_deleted = FALSE;
+"""

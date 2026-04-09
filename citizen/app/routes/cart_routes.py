@@ -12,7 +12,7 @@ from app.services.cart_service import (
     get_cart_by_user_id
 )
 
-router = APIRouter(prefix="/carts", tags=["Carts"])
+router = APIRouter()
 
 
 # ---------------- SCHEMAS ----------------

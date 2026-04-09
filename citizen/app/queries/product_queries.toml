@@ -206,3 +206,11 @@ WHERE
     AND p.is_deleted = FALSE
 ORDER BY p.created_at DESC;
 """
+
+search_partial = """
+SELECT *
+FROM products
+WHERE (name LIKE :q OR sku LIKE :q OR description LIKE :q)
+AND is_deleted = FALSE
+ORDER BY created_at DESC;
+"""

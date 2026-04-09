@@ -70,3 +70,18 @@ SELECT *
 FROM categories
 ORDER BY created_at DESC;
 """
+
+
+check_subcategories = """
+SELECT id FROM subcategories
+WHERE category_id = :id
+AND is_deleted = FALSE
+LIMIT 1;
+"""
+
+check_products_by_category = """
+SELECT id FROM products
+WHERE category_id = :id
+AND is_deleted = FALSE
+LIMIT 1;
+"""

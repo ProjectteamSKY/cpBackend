@@ -13,7 +13,7 @@ from app.services.cart_item_service import (
     delete_cart_item
 )
 
-router = APIRouter(prefix="/cart-items", tags=["CartItems"])
+router = APIRouter()
 
 
 # --------------------------
