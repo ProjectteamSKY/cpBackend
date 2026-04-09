@@ -280,6 +280,7 @@ def custom_openapi():
         "/api/variant_attribute_value/create",
         "/api/variant_attribute_value/list",
         "/api/variant_attribute_value/variant/{variant_id}",
+        "/api/variant_attribute_value/update",
         "/api/variant_attribute_value/{id}",
         "/api/variant_attribute_value/{id}",
         "/api/variant_attribute_value/{id}/activate",
