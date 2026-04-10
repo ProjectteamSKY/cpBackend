@@ -123,35 +123,60 @@ def custom_openapi():
         "/",
         
         # User Management
+        "/api/users/register",
+        "/api/users/verify-otp",
         "/api/users/login",
-        "/api/users/",                  # Create user
-        "/api/users/{user_id}",         # Get/Delete user
+        "/api/users/google-login",                  # Create user
+        "/api/users/",
+        "/api/users/",
+        "/api/users/{user_id}",
+        "/api/users/{user_id}",       # Get/Delete user
         
         # Role Management
         "/api/roles/create",
-        "/api/roles/",                  # List roles
-        "/api/roles/delete",
+        "/api/role/list",                  # List roles
+        "/api/role/{id}",
+        "/api/role/{id}",
+        "/api/role/{id}"
+        "//api/role/{id}/activate",
+        "/api/role/{id}/deactivate",
         
         # User-Role Assignment
-        "/api/user-roles/assign",
-        "/api/user-roles/{user_id}",    # Get user roles
-        "/api/user-roles/remove",
-        "/api/user-roles/users-withroles",
+        "/api/user_role/assign",
+        "/api/user_role/list",    # Get user roles
+        "/api/user_role/{id}",
+        "/api/user_role/{id}",
+        "/api/user_role/user/{user_id}",
         
         
         # Resource Management
-        "/api/resources/",              # Create/List resources
-        "/api/resources/{resource_id}", # Get/Update/Delete resource
+        "/api/resource/create",              # Create/List resources
+        "/api/resource/list", # Get/Update/Delete resource
+        "/api/resource/{id}",
+        "/api/resource/{id}",
+        "/api/resource/{id}",
+        "/api/resource/{id}/activate",
+        "/api/resource/{id}/deactivate",
+
         
         # Permission Management
-        "/api/permissions/create",
-        "/api/permissions/",            # List permissions
-        "/api/permissions/delete",
+        "/api/permission/create",
+        "/api/permission/list",            # List permissions
+        "/api/permission/{id}",
+        "/api/permission/{id}",
+        "/api/permission/{id}",
+        "/api/permission/{id}/activate",
+        "/api/permission/{id}/deactivate",
         
         # Role-Permission Assignment
-        "/api/role-permissions/assign",
-        "/api/role-permissions/{role_id}", 
-        "/api/role-permissions/remove",
+        "/api/role_permission/assign",
+        "/api/role_permission/list", 
+        "/api/role_permission/{id}",
+        "/api/role_permission/{id}",
+        "/api/role_permission/{role_id}",
+        "/api/role_permission/role/{role_id}",
+        "/api/role_permission/permission/{permission_id}",
+
         "/api/category/list",
         "/api/category/{id}",
         "/api/subcategory/list",
@@ -285,6 +310,7 @@ def custom_openapi():
         "/api/variant_attribute_value/{id}",
         "/api/variant_attribute_value/{id}/activate",
         "/api/variant_attribute_value/{id}/deactivate",
+        "/api/variant_attribute_value/product/{product_id}/full-details",
         "/api/variant_price/create",
         "/api/variant_price/list",
         "/api/variant_price/variant/{variant_id}",

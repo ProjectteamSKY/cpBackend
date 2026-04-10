@@ -3,6 +3,7 @@ from app.utils.query_loader import load_queries
 from app.core.database import execute, query, query_all
 import uuid
 from datetime import datetime
+from collections import defaultdict
 
 queries = load_queries()
 
@@ -149,3 +150,121 @@ async def delete_variant_attribute_value(id: str):
     )
 
     return {"id": id}
+
+
+async def get_full_product_details(product_id: str):
+
+    # -------------------------
+    # 1. Get Variants
+    # -------------------------
+    variants = await query_all(
+        """
+        SELECT id
+        FROM product_variant_combinations
+        WHERE product_id = :product_id
+        """,
+        {"product_id": product_id}
+    )
+
+    if not variants:
+        return {"product_id": product_id, "variants": []}
+
+    variant_ids = [v["id"] for v in variants]
+
+    # -------------------------
+    # ⚠️ Fix for MySQL IN clause
+    # -------------------------
+    format_ids = ",".join([f"'{vid}'" for vid in variant_ids])
+
+    # -------------------------
+    # 2. Get Attributes
+    # -------------------------
+    attribute_rows = await query_all(f"""
+        SELECT 
+            vav.variant_id,
+            vav.attribute_id,
+            a.name AS attribute_name,
+            vav.attribute_value_id,
+            av.value AS attribute_value_name
+        FROM variant_attribute_values vav
+        JOIN attributes a ON vav.attribute_id = a.id
+        JOIN attribute_values av ON vav.attribute_value_id = av.id
+        WHERE vav.variant_id IN ({format_ids})
+        AND vav.is_deleted = FALSE
+    """)
+
+    # -------------------------
+    # 3. Get Prices
+    # -------------------------
+    price_rows = await query_all(f"""
+        SELECT variant_id, min_qty, max_qty, price
+        FROM variant_prices
+        WHERE variant_id IN ({format_ids})
+        AND is_deleted = FALSE
+        ORDER BY min_qty ASC
+    """)
+
+    # -------------------------
+    # 4. Initialize Variant Map
+    # -------------------------
+    variant_map = {
+        vid: {
+            "variant_id": vid,
+            "attributes": [],
+            "prices": []
+        }
+        for vid in variant_ids
+    }
+
+    # -------------------------
+    # 5. Group Attributes (🔥 FIX)
+    # -------------------------
+    grouped_attrs = defaultdict(lambda: defaultdict(lambda: {
+        "attribute_id": "",
+        "attribute_name": "",
+        "values": []
+    }))
+
+    for row in attribute_rows:
+        vid = row["variant_id"]
+        aid = row["attribute_id"]
+
+        group = grouped_attrs[vid][aid]
+
+        group["attribute_id"] = aid
+        group["attribute_name"] = row["attribute_name"]
+
+        group["values"].append({
+            "attribute_value_id": row["attribute_value_id"],
+            "attribute_value_name": row["attribute_value_name"]
+        })
+
+    # Assign grouped attributes
+    for vid, attrs in grouped_attrs.items():
+        variant_map[vid]["attributes"] = list(attrs.values())
+
+    # -------------------------
+    # 6. Map Prices
+    # -------------------------
+    for row in price_rows:
+        variant_map[row["variant_id"]]["prices"].append({
+            "min_qty": row["min_qty"],
+            "max_qty": row["max_qty"],
+            "price": float(row["price"])
+        })
+
+    # -------------------------
+    # 7. Remove Empty Variants (🔥 CLEAN)
+    # -------------------------
+    final_variants = [
+        v for v in variant_map.values()
+        if v["attributes"] or v["prices"]
+    ]
+
+    # -------------------------
+    # 8. Final Response
+    # -------------------------
+    return {
+        "product_id": product_id,
+        "variants": final_variants
+    }
