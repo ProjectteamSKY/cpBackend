@@ -4,7 +4,8 @@ from app.services.variant_attribute_values_service import (
     create_multiple_variant_attribute_values,
     get_values_by_variant,
     delete_variant_attribute_value,
-    update_variant_attribute_values
+    update_variant_attribute_values,
+    get_full_product_details
 )
 
 router = APIRouter()
@@ -36,6 +37,10 @@ async def get_by_variant(variant_id: str):
     data = await get_values_by_variant(variant_id)
     return {"status": "success", "data": data}
 
+@router.get("/product/{product_id}/full-details")
+async def full_details(product_id: str):
+    data = await get_full_product_details(product_id)
+    return {"status": "success", "data": data}
 
 @router.put("/update")
 async def update_endpoint(payload: UpdateModel):
@@ -50,3 +55,4 @@ async def delete_endpoint(id: str):
         raise HTTPException(status_code=404, detail="Not found")
 
     return {"status": "success", "deleted_id": id}
+
