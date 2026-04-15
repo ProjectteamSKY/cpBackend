@@ -316,7 +316,7 @@ extTransactionId = (
 )[:35]
 
 async def generate_qr(amount: str) -> Dict:
-    print("serive qr serive !!!!!!!!!!!!!!!!!! - vpa_service.py:319")
+    print("serive qr serive !!!!!!!!!!!!!!!!!! - vpa_service.py:319",amount)
     access_token = await get_valid_access_token()
 
     print("access_token - vpa_service.py:322",access_token)

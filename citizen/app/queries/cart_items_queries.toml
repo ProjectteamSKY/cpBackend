@@ -6,13 +6,12 @@ INSERT INTO cart_items (
     cart_id,
     product_id,
     variant_id,
-    product_variant_price_id,      
-    customize_qty,                  
+    variant_price_id,
     quantity,
     unit_price,
-    discount_id,
     total_price,
-    selected_options,
+    selected_attributes,
+    discount_id,
     created_at,
     updated_at
 ) VALUES (
@@ -20,13 +19,12 @@ INSERT INTO cart_items (
     :cart_id,
     :product_id,
     :variant_id,
-    :product_variant_price_id,     
-    :customize_qty,                
+    :variant_price_id,
     :quantity,
     :unit_price,
-    :discount_id,
     :total_price,
-    :selected_options,
+    :selected_attributes,
+    :discount_id,
     :created_at,
     :updated_at
 );
@@ -63,10 +61,12 @@ WHERE id = :id;
 
 variant_price_lookup = """
 SELECT *
-FROM product_variant_prices
+FROM variant_prices
 WHERE variant_id = :variant_id
 AND is_active = 1
+AND is_deleted = 0
 AND :quantity >= min_qty
+AND (max_qty IS NULL OR :quantity <= max_qty)
 ORDER BY min_qty DESC
 LIMIT 1
 """
