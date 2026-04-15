@@ -14,7 +14,7 @@ VALUES (
 """
 
 get_by_variant = """
-SELECT *
+SELECT *    
 FROM variant_prices
 WHERE variant_id = :variant_id
 AND is_deleted = FALSE

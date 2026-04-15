@@ -119,12 +119,14 @@ ORDER BY MONTH(created_at);
 get_top_products = """
 SELECT
     p.name,
-    COUNT(oi.id) AS orders,
-    SUM(oi.total) AS revenue
+    COUNT(DISTINCT oi.order_id) AS total_orders,
+    SUM(oi.quantity) AS total_units_sold,
+    SUM(oi.total_price) AS revenue,
+    AVG(oi.unit_price) AS avg_selling_price
 FROM order_items oi
 JOIN products p ON p.id = oi.product_id
-GROUP BY p.name
-ORDER BY orders DESC
+GROUP BY p.id, p.name
+ORDER BY total_units_sold DESC
 LIMIT 5;
 """
 

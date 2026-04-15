@@ -31,7 +31,7 @@ def search_customers(q: str = Query(default="", min_length=0)):
     Search customers by name (partial match).
     Returns: list of { customer_code, customer_name, mobile_no }
     """
-    conn = get_connection()
+    conn = get_connection()     
     cursor = conn.cursor(dictionary=True)
     like_q = f"%{q}%"
     cursor.execute(
