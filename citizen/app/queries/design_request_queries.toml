@@ -4,7 +4,8 @@ create = """
 INSERT INTO design_requests (
     id, user_id, name, phone, email,
     product_id, product_name,
-    variant_id, product_variant_price_id,
+    variant_id, variant_price_id,
+    selected_attributes,
     design_notes,
     logo_images,
     designed_images,
@@ -14,7 +15,8 @@ INSERT INTO design_requests (
 VALUES (
     :id, :user_id, :name, :phone, :email,
     :product_id, :product_name,
-    :variant_id, :product_variant_price_id,
+    :variant_id, :variant_price_id,
+    :selected_attributes,
     :design_notes,
     :logo_images,
     :designed_images,

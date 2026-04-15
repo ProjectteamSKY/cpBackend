@@ -48,14 +48,15 @@ async def create_design_request_endpoint(
     product_name: Optional[str] = Form(None),
 
     variant_id: Optional[str] = Form(None),
-    product_variant_price_id: Optional[str] = Form(None),
+    variant_price_id: Optional[str] = Form(None),
+
+    selected_attributes: Optional[str] = Form("{}"),
 
     design_notes: Optional[str] = Form(None),
     design_price: Optional[float] = Form(None),
 
     logo_files: List[UploadFile] = File([])
 ):
-    # Upload logos
     logo_images = upload_images(logo_files, LOGO_UPLOAD_FOLDER)
 
     data = {
@@ -68,10 +69,13 @@ async def create_design_request_endpoint(
         "product_name": product_name,
 
         "variant_id": variant_id,
-        "product_variant_price_id": product_variant_price_id,
+        "variant_price_id": variant_price_id,
+
+        "selected_attributes": selected_attributes,
 
         "design_notes": design_notes,
         "design_price": design_price or 0.0,
+
         "logo_images": json.dumps(logo_images),
         "designed_images": json.dumps([])
     }
@@ -121,7 +125,8 @@ async def update_design_request_endpoint(
         "product_id": product_id or existing.get("product_id"),
         "product_name": product_name or existing.get("product_name"),
         "variant_id": variant_id or existing.get("variant_id"),
-        "product_variant_price_id": product_variant_price_id or existing.get("product_variant_price_id"),
+        "variant_price_id": variant_price_id or existing.get("variant_price_id"),
+        "selected_attributes": selected_attributes or existing.get("selected_attributes"),
         "design_notes": design_notes or existing.get("design_notes"),
         "design_price": design_price if design_price is not None else existing.get("design_price"),
         "logo_images": json.dumps(logo_images),
@@ -206,6 +211,7 @@ async def approve_design(id: str):
     )
 
     # 6️⃣ Prepare payload
+    # 6️⃣ Prepare payload
     class Payload:
         pass
 
@@ -216,7 +222,9 @@ async def approve_design(id: str):
     payload.quantity = quantity
     payload.product_variant_price_id = price_id
     payload.customize_qty = quantity
-    payload.selected_options = design.get("selected_options") or {}
+
+    # ✅ FIXED LINE
+    payload.selected_options = json.loads(design.get("selected_attributes") or "{}")
 
     payload.front_file = None
     payload.back_file = None
@@ -261,8 +269,8 @@ async def approve_design(id: str):
         back = back.replace("\\", "/")
 
     # Debug (optional)
-    print("FINAL FRONT: - design_request_routes.py:264", front)
-    print("FINAL BACK: - design_request_routes.py:265", back)
+    print("FINAL FRONT: - design_request_routes.py:272", front)
+    print("FINAL BACK: - design_request_routes.py:273", back)
 
     # 9️⃣ Insert cart item files
     if cart_item and "id" in cart_item:

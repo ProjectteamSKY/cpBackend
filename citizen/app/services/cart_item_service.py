@@ -47,14 +47,9 @@ async def recalculate_cart(cart_id: str):
     )
 
 async def create_cart_item(payload: Any):
-    #  NO CHECKS - DIRECT INSERT FROM FRONTEND
-    product_variant_price_id = getattr(payload, 'product_variant_price_id', None)
-    customize_qty = getattr(payload, 'customize_qty', payload.quantity)
-    
-    # Use variant lookup ONLY for price value (not ID)
+
     price = await get_variant_price(payload.variant_id, payload.quantity)
-    
-    # Check existing (simple cart+variant match)
+
     existing = await query(
         queries["cart_items"]["find_existing_item"],
         {
@@ -64,8 +59,8 @@ async def create_cart_item(payload: Any):
     )
 
     if existing:
-        # MERGE
         new_qty = existing["quantity"] + payload.quantity
+
         await execute(
             queries["cart_items"]["merge_update"],
             {
@@ -74,64 +69,73 @@ async def create_cart_item(payload: Any):
                 "unit_price": price["price"],
                 "total_price": price["price"] * new_qty,
                 "discount_id": price.get("discount_id"),
-                "product_variant_price_id": product_variant_price_id,  
-                "customize_qty": customize_qty,                        
             },
         )
+
         await recalculate_cart(payload.cart_id)
-        return {"message": "Item merged"}
-    
-    # CREATE - DIRECT INSERT
+        return {"message": "Item merged", "id": existing["id"]}
+
+    # CREATE NEW
     item_id = str(uuid.uuid4())
-    await execute(  
+
+    await execute(
         queries["cart_items"]["create"],
         {
             "id": item_id,
             "cart_id": payload.cart_id,
             "product_id": payload.product_id,
             "variant_id": payload.variant_id,
-            "product_variant_price_id": product_variant_price_id,     
-            "customize_qty": customize_qty,                           
+            "variant_price_id": price["id"],  # ✅ correct
             "quantity": payload.quantity,
             "unit_price": price["price"],
-            "discount_id": price.get("discount_id"),
             "total_price": price["price"] * payload.quantity,
-            "selected_options": json.dumps(getattr(payload, 'selected_options', {})),
+            "discount_id": price.get("discount_id"),
+            "selected_attributes": json.dumps(
+                getattr(payload, 'selected_attributes', {})
+            ),
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
         },
     )
+
     await recalculate_cart(payload.cart_id)
+
     return {"message": "Item added", "id": item_id}
 
 async def create_cart_item_with_files(
     cart_id, product_id, variant_id, quantity,
-    product_variant_price_id, customize_qty, selected_options,
+    selected_attributes,
     front_file, back_file
 ):
     class Payload: pass
+
     payload = Payload()
-    payload.cart_id, payload.product_id, payload.variant_id = cart_id, product_id, variant_id
+    payload.cart_id = cart_id
+    payload.product_id = product_id
+    payload.variant_id = variant_id
     payload.quantity = quantity
-    payload.product_variant_price_id = product_variant_price_id  # ✅ DIRECT PASS
-    payload.customize_qty = customize_qty                       # ✅ DIRECT PASS
-    payload.selected_options = json.loads(selected_options or "{}")
+    payload.selected_attributes = json.loads(selected_attributes or "{}")
 
     result = await create_cart_item(payload)
-    
-    # Files (unchanged)
+
     if "id" in result and (front_file or back_file):
         item_id = result["id"]
-        front_url = save_upload(front_file) if front_file and front_file.file else None
-        back_url = save_upload(back_file) if back_file and back_file.file else None
-        if front_url or back_url:
-            await execute(queries["cart_items"]["insert_cart_files"], {
-                "id": str(uuid.uuid4()), "cart_item_id": item_id,
-                "front_side_url": front_url, "back_side_url": back_url,
+
+        front_url = save_upload(front_file) if front_file else None
+        back_url = save_upload(back_file) if back_file else None
+
+        await execute(
+            queries["cart_items"]["insert_cart_files"],
+            {
+                "id": str(uuid.uuid4()),
+                "cart_item_id": item_id,
+                "front_side_url": front_url,
+                "back_side_url": back_url,
                 "front_original_name": front_file.filename if front_file else None,
                 "back_original_name": back_file.filename if back_file else None,
-            })
-    
+            }
+        )
+
     return result
 
 async def create_cart_item_with_out_files(

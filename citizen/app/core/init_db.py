@@ -95,8 +95,8 @@ SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "db", "schema")
 
 # ✅ Explicit execution order to respect foreign key dependencies
 SQL_FILES_ORDER = [
-    "new.sql",  # Main schema with all tables
-    # "design_request.sql",
+    # "new.sql",  # Main schema with all tables
+    "design_request.sql",
     # "transactions.sql",
     # "bank_oauth.sql",
     # "faq.sql",
