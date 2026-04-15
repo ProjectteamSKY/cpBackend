@@ -63,7 +63,7 @@ async def update_design_request(id: str, updates: dict):
         "product_id",
         "product_name",
         "variant_id",
-        "product_variant_price_id",
+        "variant_price_id", 
         "design_notes",
         "updated_at"
     }

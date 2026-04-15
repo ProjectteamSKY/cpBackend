@@ -318,7 +318,7 @@ def custom_openapi():
         "/api/variant_price/{id}",
         "/api/variant_price/{id}/activate",
         "/api/variant_price/{id}/deactivate",
-
+        "/api/variant_attribute_value/total",
 
 
 

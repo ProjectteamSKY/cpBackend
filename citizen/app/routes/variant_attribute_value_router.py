@@ -5,8 +5,10 @@ from app.services.variant_attribute_values_service import (
     get_values_by_variant,
     delete_variant_attribute_value,
     update_variant_attribute_values,
-    get_full_product_details
+    get_full_product_details,
+    calculate_total_weight
 )
+from app.services.variant_price_service import get_prices_by_variant
 
 router = APIRouter()
 
@@ -56,3 +58,30 @@ async def delete_endpoint(id: str):
 
     return {"status": "success", "deleted_id": id}
 
+class WeightRequest(BaseModel):
+    variant_id: str
+
+
+@router.post("/total")
+async def get_total_weight(payload: WeightRequest):
+
+    price_tiers = await get_prices_by_variant(payload.variant_id)
+
+    if not price_tiers:
+        raise HTTPException(status_code=400, detail="No price tiers found")
+
+    # ✅ take maximum max_qty
+    quantity = max(item["max_qty"] for item in price_tiers)
+
+    data = await calculate_total_weight(
+        payload.variant_id,
+        quantity
+    )
+
+    if "error" in data:
+        raise HTTPException(status_code=400, detail=data["error"])
+
+    return {
+        "status": "success",
+        "data": data
+    }

@@ -4,6 +4,8 @@ from app.core.database import execute, query, query_all
 import uuid
 from datetime import datetime
 from collections import defaultdict
+import re
+
 
 queries = load_queries()
 
@@ -197,7 +199,7 @@ async def get_full_product_details(product_id: str):
     # 3. Get Prices
     # -------------------------
     price_rows = await query_all(f"""
-        SELECT variant_id, min_qty, max_qty, price
+        SELECT id, variant_id, min_qty, max_qty, price
         FROM variant_prices
         WHERE variant_id IN ({format_ids})
         AND is_deleted = FALSE
@@ -248,6 +250,7 @@ async def get_full_product_details(product_id: str):
     # -------------------------
     for row in price_rows:
         variant_map[row["variant_id"]]["prices"].append({
+            "id": row["id"],
             "min_qty": row["min_qty"],
             "max_qty": row["max_qty"],
             "price": float(row["price"])
@@ -267,4 +270,83 @@ async def get_full_product_details(product_id: str):
     return {
         "product_id": product_id,
         "variants": final_variants
+    }
+
+
+def extract_number(value: str):
+    """
+    Extract first numeric value from any string.
+    Examples:
+        "200 gsm" → 200
+        "300GSM" → 300
+        "8.9 cm" → 8.9
+        "Size 12.5" → 12.5
+    """
+
+    if value is None:
+        return None
+
+    match = re.search(r"\d+\.?\d*", str(value))
+    
+    if match:
+        return float(match.group())
+
+    return None
+
+
+async def calculate_total_weight(variant_id: str, quantity: int):
+    """
+    Calculate total weight based on variant attributes and quantity
+    """
+
+    query = """
+    SELECT 
+        a.name AS attribute_name,
+        av.value AS attribute_value
+    FROM variant_attribute_values vav
+    JOIN attributes a ON a.id = vav.attribute_id
+    JOIN attribute_values av ON av.id = vav.attribute_value_id
+    WHERE vav.variant_id = :variant_id
+      AND vav.is_deleted = FALSE
+    """
+
+    rows = await query_all(query, {"variant_id": variant_id})
+
+    width = None
+    height = None
+    gsm = None
+
+    for r in rows:
+        name = r["attribute_name"].lower()
+        value = r["attribute_value"]
+
+        if name == "width":
+            width = extract_number(value)
+
+        elif name == "height":
+            height = extract_number(value)
+
+        elif name == "gsm":
+            gsm = extract_number(value)
+
+    if not width or not height or not gsm:
+        return {
+            "error": "Missing width, height or gsm"
+        }
+
+    # cm → m conversion
+    area_m2 = (width / 100) * (height / 100)
+
+    weight_per_piece = area_m2 * gsm
+    total_weight = weight_per_piece * quantity
+
+    return {
+        "variant_id": variant_id,
+        "width_cm": width,
+        "height_cm": height,
+        "gsm": gsm,
+        "quantity": quantity,
+        "weight_per_piece_grams": round(weight_per_piece, 3),
+        "total_weight_grams": round(total_weight, 3),
+        "total_weight_kg": round(total_weight / 1000, 4)
     }

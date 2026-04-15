@@ -54,21 +54,19 @@ async def create_cart_item_with_files_endpoint(
     product_id: str = Form(...),
     variant_id: str = Form(...),
     quantity: int = Form(...),
-    product_variant_price_id: Optional[str] = Form(None),  # ✅ NEW
-    customize_qty: Optional[int] = Form(None),              # ✅ NEW  
-    selected_options: str = Form("{}"),                     # Position FIXED
+    selected_attributes: str = Form("{}"),
     front_file: UploadFile | None = File(None),
     back_file: UploadFile | None = File(None),
 ):
-    if quantity <= 0:
-        raise HTTPException(400, "Quantity must be greater than zero")
-    
-    result = await create_cart_item_with_files(
-        cart_id, product_id, variant_id, quantity,
-        product_variant_price_id, customize_qty, selected_options,
-        front_file, back_file
+    return await create_cart_item_with_files(
+        cart_id,
+        product_id,
+        variant_id,
+        quantity,
+        selected_attributes,
+        front_file,
+        back_file
     )
-    return {"status": "success", "data": result}
 
 
 
