@@ -87,8 +87,11 @@ async def create_order_service(order_id: str):
     payload = build_shiprocket_payload(order)
 
     try:
+        print("🚀 PAYLOAD:", payload)
         response = shiprocket.create_order(payload)
+        print("✅ SHIPROCKET RESPONSE:", response)
     except Exception as e:
+        print("❌ SHIPROCKET ERROR:", str(e))
         raise HTTPException(500, f"Shiprocket API call failed: {str(e)}")
 
     shipment_id = response.get("shipment_id")
