@@ -9,6 +9,33 @@ queries = load_queries()
 # CREATE / ASSIGN ROLE
 # ------------------------- #
 async def create_user_role(user_role: UserRole):
+
+    # ✅ Check user exists
+    user = await query(
+        "SELECT id FROM users WHERE id = :id",
+        {"id": user_role.user_id},
+    )
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid user_id")
+
+    # ✅ Check role exists
+    role = await query(
+        "SELECT id FROM roles WHERE id = :id",
+        {"id": user_role.role_id},
+    )
+    if not role:
+        raise HTTPException(status_code=400, detail="Invalid role_id")
+
+    # ✅ Check assigned_by (optional)
+    if user_role.assigned_by:
+        assigned_by = await query(
+            "SELECT id FROM users WHERE id = :id",
+            {"id": user_role.assigned_by},
+        )
+        if not assigned_by:
+            raise HTTPException(status_code=400, detail="Invalid assigned_by")
+
+    # ✅ Duplicate check
     existing = await query(
         "SELECT * FROM user_roles WHERE user_id = :user_id AND role_id = :role_id",
         {"user_id": user_role.user_id, "role_id": user_role.role_id},
@@ -16,8 +43,14 @@ async def create_user_role(user_role: UserRole):
     if existing:
         raise HTTPException(status_code=400, detail="User already has this role assigned")
 
+    # ✅ Insert
     await execute(queries["user_role"]["create"], user_role.to_dict())
-    created = await query(queries["user_role"]["get_by_id"], {"id": user_role.id})
+
+    created = await query(
+        queries["user_role"]["get_by_id"],
+        {"id": user_role.id}
+    )
+
     return created
 
 # ------------------------- #
