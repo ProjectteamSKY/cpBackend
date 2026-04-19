@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Form
+from fastapi import APIRouter, HTTPException, Form, UploadFile, File
 from datetime import date
 
 from app.domain.user_profile_domain import UserProfile
