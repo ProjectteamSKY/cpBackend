@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post("/")
 async def create_profile(
     user_id: str = Form(...),
-    profile_picture: UploadFile = File(None)
+    profile_picture: UploadFile = File(None),
     phone_number: str = Form(None),
     gender: str = Form("Not Specified"),
     address: str = Form(None),
