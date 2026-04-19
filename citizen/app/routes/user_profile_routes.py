@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post("/")
 async def create_profile(
     user_id: str = Form(...),
-    profile_picture: str = Form(None),
+    profile_picture: UploadFile = File(None)
     phone_number: str = Form(None),
     gender: str = Form("Not Specified"),
     address: str = Form(None),
@@ -20,7 +20,9 @@ async def create_profile(
     state: str = Form(None),
     country: str = Form(None),
     postal_code: str = Form(None),
-    date_of_birth: date = Form(None),
+    date_of_birth: str = Form(None)
+
+
 ):
     profile = UserProfile(
         user_id=user_id,
@@ -34,7 +36,11 @@ async def create_profile(
         postal_code=postal_code,
         date_of_birth=date_of_birth,
     )
-
+print("Incoming form:", {
+    "user_id": user_id,
+    "phone_number": phone_number,
+    "date_of_birth": date_of_birth
+})
     return await user_profile_service.create_profile(profile)
 
 
