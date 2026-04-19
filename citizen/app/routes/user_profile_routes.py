@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post("/")
 async def create_profile(
     user_id: str = Form(...),
-    profile_picture: UploadFile = File(None),
+    profile_picture: str = Form(None),
     phone_number: str = Form(None),
     gender: str = Form("Not Specified"),
     address: str = Form(None),
@@ -20,10 +20,17 @@ async def create_profile(
     state: str = Form(None),
     country: str = Form(None),
     postal_code: str = Form(None),
-    date_of_birth: str = Form(None)
-
-
+    date_of_birth: str = Form(None),
 ):
+    from datetime import datetime
+
+    dob = None
+    if date_of_birth:
+        try:
+            dob = datetime.strptime(date_of_birth, "%Y-%m-%d").date()
+        except:
+            raise HTTPException(400, "Invalid date format")
+
     profile = UserProfile(
         user_id=user_id,
         profile_picture=profile_picture,
@@ -34,10 +41,16 @@ async def create_profile(
         state=state,
         country=country,
         postal_code=postal_code,
-        date_of_birth=date_of_birth,
+        date_of_birth=dob,
     )
 
-    return await user_profile_service.create_profile(profile)
+    # 🔥 KEY FIX HERE
+    existing = await user_profile_service.get_profile(user_id)
+
+    if existing:
+        return await user_profile_service.update_profile(profile)
+    else:
+        return await user_profile_service.create_profile(profile)
 
 
 # ✅ GET PROFILE (AUTO CREATE FIX)
