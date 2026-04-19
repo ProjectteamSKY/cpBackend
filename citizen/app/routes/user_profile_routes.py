@@ -36,11 +36,7 @@ async def create_profile(
         postal_code=postal_code,
         date_of_birth=date_of_birth,
     )
-print("Incoming form:", {
-    "user_id": user_id,
-    "phone_number": phone_number,
-    "date_of_birth": date_of_birth
-})
+
     return await user_profile_service.create_profile(profile)
 
 
