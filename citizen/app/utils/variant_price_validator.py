@@ -19,10 +19,15 @@ def is_overlap(e_min, e_max, n_min, n_max):
     return not (n_max < e_min or n_min > e_max)
 
 
-async def validate_no_overlap(rows, min_qty, max_qty):
-    for r in rows:
-        if is_overlap(r["min_qty"], r["max_qty"], min_qty, max_qty):
-            raise HTTPException(
-                400,
-                f"Overlapping with existing range {r['min_qty']} - {r['max_qty']}"
+async def validate_no_overlap(rows, new_min, new_max):
+    new_max_val = new_max if new_max is not None else float("inf")
+
+    for row in rows:
+        existing_min = row["min_qty"]
+        existing_max = row["max_qty"] if row["max_qty"] is not None else float("inf")
+
+        # Proper overlap check
+        if not (new_max_val < existing_min or new_min > existing_max):
+            raise Exception(
+                f"Overlap with existing slab {existing_min}-{row['max_qty']}"
             )

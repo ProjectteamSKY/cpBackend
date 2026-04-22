@@ -7,6 +7,7 @@ CREATE TABLE user_addresses (
     first_name VARCHAR(100),
     last_name VARCHAR(100),
     address TEXT NOT NULL,
+    address_type VARCHAR(50),
     landmark VARCHAR(255),
     city VARCHAR(100),
     state VARCHAR(100),

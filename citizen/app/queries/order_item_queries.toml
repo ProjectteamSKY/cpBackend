@@ -21,3 +21,14 @@ delete_by_order = """
 DELETE FROM order_items
 WHERE order_id = :order_id;
 """
+
+get_all_order_item = """
+SELECT 
+    p.name AS product_name,
+    SUM(oi.quantity) AS units,           -- ✅ total units
+    SUM(oi.total_price) AS total_price   -- ✅ total price
+FROM order_items oi
+JOIN products p ON p.id = oi.product_id
+WHERE oi.order_id = :order_id
+GROUP BY p.name;
+"""

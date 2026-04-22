@@ -13,64 +13,177 @@ shiprocket = ShiprocketClient()
 # ---------------------------------------------------------
 # Build Shiprocket Payload
 # ---------------------------------------------------------
-def build_shiprocket_payload(order: dict):
-    full_name = order.get("username", "Sriram Pandidurai")
-    names = full_name.strip().split(" ", 1)
-    first_name = names[0]
-    last_name = names[1] if len(names) > 1 else "NA"
+# def build_shiprocket_payload(order: dict):
+#     full_name = order.get("username", "Sriram Pandidurai")
+#     names = full_name.strip().split(" ", 1)
+#     first_name = names[0]
+#     last_name = names[1] if len(names) > 1 else "NA"
 
-    # ✅ Get valid pickup location from Shiprocket
-    pickup_location_name = "Home"  # <-- replace with your real pickup location
+#     # ✅ Get valid pickup location from Shiprocket
+#     pickup_location_name = "Home"  # <-- replace with your real pickup location
 
 
+#     return {
+#         "order_id": order.get("id"),
+#         "order_date": str(order.get("created_at").date()),
+#         "pickup_location": pickup_location_name,  # use the valid pickup location
+
+#         # Billing info
+#         "billing_customer_name": "Sriram Pandidurai",
+#         "billing_first_name": "Sriram",
+#         "billing_last_name": "Pandidurai",
+#         "billing_address": "35, Indra Nagar, Itteri Road",
+#         "billing_city": "Palani",
+#         "billing_state": "Tamil Nadu",
+#         "billing_country": "India",
+#         "billing_pincode": "624601",
+#         "billing_email": "crazykidsri@email.com",
+#         "billing_phone": "7708012145",
+
+#         # Shipping info (same as billing)
+#         "shipping_customer_name": "Sriram Pandidurai",
+#         "shipping_first_name": "Sriram",
+#         "shipping_last_name": "Pandidurai",
+#         "shipping_address": "35, Indra Nagar, Itteri Road",
+#         "shipping_city": "Palani",
+#         "shipping_state": "Tamil Nadu",
+#         "shipping_country": "India",
+#         "shipping_pincode": "624601",
+#         "shipping_email": "crazykidsri@email.com",
+#         "shipping_phone": "7708012145",
+#         "shipping_is_billing": True,
+
+#         # Order items
+#         "order_items": [
+#             {
+#                 "name": "CitizenPrints Order",
+#                 "sku": "CP-001",
+#                 "units": 1,
+#                 "selling_price": float(order.get("total_amount", 0))
+#             }
+#         ],
+
+#         "payment_method": "COD",
+#         "sub_total": float(order.get("total_amount", 0)),
+#         "length": 10,
+#         "breadth": 10,
+#         "height": 5,
+#         "weight": 0.5
+#     }
+def build_shiprocket_payload(order: dict, order_items: list):
+
+    # =========================
+    # NAME (NOW CORRECT)
+    # =========================
+    first_name = order.get("first_name") or "Customer"
+    last_name = order.get("last_name") or ""
+
+    full_name = f"{first_name} {last_name}".strip()
+
+    # =========================
+    # CLEAN DATA
+    # =========================
+    state = (order.get("state") or "").replace("\xa0", " ").strip()
+
+    address_line = order.get("address_line") or ""
+    city = order.get("city") or ""
+    country = order.get("country") or "India"
+    postal_code = order.get("postal_code") or ""
+
+    email = order.get("email") 
+    phone = order.get("phone") 
+
+    # =========================
+    # ORDER ITEMS (FIXED LOGIC)
+    # =========================
+    items_payload = []
+
+    for item in order_items:
+
+        product_name = (item.get("product_name") or "").strip()
+
+        # ✅ IMPORTANT FIX
+        units = int(item.get("units") or 1)
+
+        # unit price (not total confusion)
+        unit_price = float(item.get("unit_price") or 0)
+
+        # fallback: if only total_price exists
+        if unit_price == 0 and item.get("total_price"):
+            unit_price = float(item["total_price"]) / units
+
+        items_payload.append({
+            "name": product_name,
+            "sku": product_name.replace(" ", "_")[:40],
+            "units": units,                       # ✅ FIXED (NOT 1)
+            "selling_price": unit_price           # ✅ PER UNIT PRICE
+        })
+
+    # fallback
+    if not items_payload:
+        items_payload = [{
+            "name": "Order Item",
+            "sku": "CP-001",
+            "units": 1,
+            "selling_price": float(order.get("total_amount", 0))
+        }]
+
+    # =========================
+    # FINAL PAYLOAD
+    # =========================
     return {
         "order_id": order.get("id"),
         "order_date": str(order.get("created_at").date()),
-        "pickup_location": pickup_location_name,  # use the valid pickup location
+        "pickup_location": "Home",
 
-        # Billing info
-        "billing_customer_name": "Sriram Pandidurai",
-        "billing_first_name": "Sriram",
-        "billing_last_name": "Pandidurai",
-        "billing_address": "35, Indra Nagar, Itteri Road",
-        "billing_city": "Palani",
-        "billing_state": "Tamil Nadu",
-        "billing_country": "India",
-        "billing_pincode": "624601",
-        "billing_email": "crazykidsri@email.com",
-        "billing_phone": "7708012145",
+        # =========================
+        # BILLING
+        # =========================
+        "billing_customer_name": full_name,
+        "billing_first_name": first_name,
+        "billing_last_name": last_name,
+        "billing_address": address_line,
+        "billing_city": city,
+        "billing_state": state,
+        "billing_country": country,
+        "billing_pincode": postal_code,
+        "billing_email": email,
+        "billing_phone": phone,
 
-        # Shipping info (same as billing)
-        "shipping_customer_name": "Sriram Pandidurai",
-        "shipping_first_name": "Sriram",
-        "shipping_last_name": "Pandidurai",
-        "shipping_address": "35, Indra Nagar, Itteri Road",
-        "shipping_city": "Palani",
-        "shipping_state": "Tamil Nadu",
-        "shipping_country": "India",
-        "shipping_pincode": "624601",
-        "shipping_email": "crazykidsri@email.com",
-        "shipping_phone": "7708012145",
+        # =========================
+        # SHIPPING
+        # =========================
+        "shipping_customer_name": full_name,
+        "shipping_first_name": first_name,
+        "shipping_last_name": last_name,
+        "shipping_address": address_line,
+        "shipping_city": city,
+        "shipping_state": state,
+        "shipping_country": country,
+        "shipping_pincode": postal_code,
+        "shipping_email": email,
+        "shipping_phone": phone,
         "shipping_is_billing": True,
 
-        # Order items
-        "order_items": [
-            {
-                "name": "CitizenPrints Order",
-                "sku": "CP-001",
-                "units": 1,
-                "selling_price": float(order.get("total_amount", 0))
-            }
-        ],
+        # =========================
+        # ITEMS
+        # =========================
+        "order_items": items_payload,
 
+        # =========================
+        # PAYMENT
+        # =========================
         "payment_method": "COD",
         "sub_total": float(order.get("total_amount", 0)),
+
+        # =========================
+        # PACKAGE
+        # =========================
         "length": 10,
         "breadth": 10,
         "height": 5,
         "weight": 0.5
     }
-
 # ---------------------------------------------------------
 # Create Shipment
 # ---------------------------------------------------------
@@ -80,27 +193,39 @@ async def create_order_service(order_id: str):
         queries["shipping"]["get_order_details"],
         {"id": order_id}
     )
-
+    print("🚀 Order details fetched: - shipping_service.py:196", order)
     if not order:
         raise HTTPException(404, "Order not found")
+    
+    order_items = await query_all(
+        queries["order_item"]["get_all_order_item"],
+        {"order_id": order_id}
+    )
 
-    payload = build_shiprocket_payload(order)
+    print("🛒 Order items fetched: - shipping_service.py:205", order_items)
 
-    try:
-        print("🚀 PAYLOAD:", payload)
-        response = shiprocket.create_order(payload)
-        print("✅ SHIPROCKET RESPONSE:", response)
-    except Exception as e:
-        print("❌ SHIPROCKET ERROR:", str(e))
-        raise HTTPException(500, f"Shiprocket API call failed: {str(e)}")
+    
+    payload = build_shiprocket_payload(order , order_items)
+    print("🚀 Built Shiprocket Payload: - shipping_service.py:209", payload)
+    # try:
+        # print("🚀 PAYLOAD: - shipping_service.py:90", payload)
+        # response = shiprocket.create_order(payload)
+        # print("✅ SHIPROCKET RESPONSE: - shipping_service.py:92", response)
+    # except Exception as e:
+        # print("❌ SHIPROCKET ERROR: - shipping_service.py:94", str(e))
+        # raise HTTPException(500, f"Shiprocket API call failed: {str(e)}")
 
-    shipment_id = response.get("shipment_id")
+    # shipment_id = response.get("shipment_id")
 
-    if not shipment_id:
-        raise HTTPException(
-            500,
-            f"Shiprocket did not return shipment_id. Response: {response}"
-        )
+    # if not shipment_id:
+    #     raise HTTPException(
+    #         500,
+    #         f"Shiprocket did not return shipment_id. Response: {response}"
+    #     )
+
+    # ✅ FIX HERE
+    # awb_code = response.get("awb_code") or None
+    # courier_name = response.get("courier_name") or None
 
     shipment_uuid = str(uuid.uuid4())
 
@@ -109,12 +234,12 @@ async def create_order_service(order_id: str):
         {
             "id": shipment_uuid,
             "order_id": order_id,
-            "shiprocket_order_id": response.get("order_id"),
-            "shipment_id": shipment_id,
-            "awb_code": response.get("awb_code"),
-            "courier_name": response.get("courier_name"),
-            "tracking_url": None,
-            "current_status": response.get("status"),
+            # "shiprocket_order_id": response.get("order_id"),
+            # "shipment_id": shipment_id,
+            # "awb_code": awb_code,          # ✅ now NULL instead of ''
+            # "courier_name": courier_name,  # ✅ now NULL instead of ''
+            # "tracking_url": None,
+            # "current_status": response.get("status"),
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
@@ -122,10 +247,10 @@ async def create_order_service(order_id: str):
 
     return {
         "status": "success",
-        "shipment_id": shipment_id,
-        "shiprocket_order_id": response.get("order_id"),
-        "awb_code": response.get("awb_code"),
-        "courier_name": response.get("courier_name")
+        # "shipment_id": shipment_id,
+        # "shiprocket_order_id": response.get("order_id"),
+        # "awb_code": awb_code,
+        # "courier_name": courier_name
     }
 
 
@@ -371,7 +496,7 @@ async def couriers_service(
     1. Full filtered courier list
     2. Single best courier based on lowest total cost
     """
-    print("API triggers for courier availability - shipping_service.py:371")
+    print("API triggers for courier availability - shipping_service.py:499")
     
     # Call Shiprocket API
     response = shiprocket.get_couriers_by_address(

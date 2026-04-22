@@ -3,6 +3,7 @@ class UserAddress:
         self,
         user_id: str,
         address: str,
+        address_type: str = None,
         first_name: str = None,
         last_name: str = None,
         landmark: str = None,
@@ -22,6 +23,7 @@ class UserAddress:
         self.first_name = first_name
         self.last_name = last_name
         self.address = address
+        self.address_type = address_type  
         self.landmark = landmark
         self.city = city
         self.state = state

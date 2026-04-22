@@ -102,76 +102,76 @@ class ShiprocketClient:
         if courier_id is not None:
             payload["courier_id"] = courier_id  # include courier_id if provided
 
-        # response = requests.post(
-        #     f"{BASE_URL}/courier/assign/awb",
-        #     headers={**self.headers(), "Content-Type": "application/json"},
-        #     json=payload
-        # )
+        response = requests.post(
+            f"{BASE_URL}/courier/assign/awb",
+            headers={**self.headers(), "Content-Type": "application/json"},
+            json=payload
+        )
 
-        # data = response.json()
-        data = {
-            "awb_assign_status": 1,
-            "response": {
-                "data": {
-                    "courier_company_id": 54,
-                    "awb_code": "SRSP2269025472",
-                    "cod": 0,
-                    "order_id": 1216226902,
-                    "shipment_id": 1212533805,
-                    "awb_code_status": 1,
-                    "assigned_date_time": {
-                        "date": "2026-03-05 13:03:42.000000",
-                        "timezone_type": 3,
-                        "timezone": "Asia/Kolkata"
-                    },
-                    "applied_weight": 0.5,
-                    "company_id": 9421320,
-                    "courier_name": "Ekart Logistics Surface",
-                    "child_courier_name": None,
-                    "freight_charges": 57,
-                    "routing_code": "", 
-                    "rto_routing_code": None,
-                    "invoice_no": "Retail00002",
-                    "transporter_id": "",
-                    "transporter_name": "",
-                    "shipped_by": {
-                        "shipper_company_name": "rajesh",
-                        "shipper_address_1": "s1, 2nd floor, sai akash apt",
-                        "shipper_address_2": "near om sakthi temple",
-                        "shipper_city": "Kanchipuram",
-                        "shipper_state": "Tamil Nadu",
-                        "shipper_country": "India",
-                        "shipper_postcode": "600100",
-                        "shipper_first_mile_activated": 0,
-                        "shipper_phone": "9600296812",
-                        "lat": "12.9171412",
-                        "long": "80.1940972",
-                        "shipper_email": "saravana.kumar@skylimitdigital.com",
-                        "extra_info": {
-                            "role": "Warehouse Manager",
-                            "source": 1,
-                            "open_time": "12:00 AM",
-                            "close_time": "7:30 PM",
-                            "select_days": '["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]',
-                            "alternate_name": "harish",
-                            "alternate_role": "Warehouse Manager",
-                            "alternate_email": "crazykidsri@gmail.com"
-                        },
-                        "rto_company_name": "rajesh",
-                        "rto_address_1": "s1, 2nd floor, sai akash apt",
-                        "rto_address_2": "near om sakthi temple",
-                        "rto_city": "Kanchipuram",
-                        "rto_state": "Tamil Nadu",
-                        "rto_country": "India",
-                        "rto_postcode": "600100",
-                        "rto_phone": "9600296812",
-                        "rto_email": "saravana.kumar@skylimitdigital.com"
-                    }
-                }
-            },
-            "no_pickup_popup": 0,
-            "quick_pick": 0
-        }
+        data = response.json()
+        # data = {
+        #     "awb_assign_status": 1,
+        #     "response": {
+        #         "data": {
+        #             "courier_company_id": 54,
+        #             "awb_code": "SRSP2269025472",
+        #             "cod": 0,
+        #             "order_id": 1216226902,
+        #             "shipment_id": 1212533805,
+        #             "awb_code_status": 1,
+        #             "assigned_date_time": {
+        #                 "date": "2026-03-05 13:03:42.000000",
+        #                 "timezone_type": 3,
+        #                 "timezone": "Asia/Kolkata"
+        #             },
+        #             "applied_weight": 0.5,
+        #             "company_id": 9421320,
+        #             "courier_name": "Ekart Logistics Surface",
+        #             "child_courier_name": None,
+        #             "freight_charges": 57,
+        #             "routing_code": "", 
+        #             "rto_routing_code": None,
+        #             "invoice_no": "Retail00002",
+        #             "transporter_id": "",
+        #             "transporter_name": "",
+        #             "shipped_by": {
+        #                 "shipper_company_name": "rajesh",
+        #                 "shipper_address_1": "s1, 2nd floor, sai akash apt",
+        #                 "shipper_address_2": "near om sakthi temple",
+        #                 "shipper_city": "Kanchipuram",
+        #                 "shipper_state": "Tamil Nadu",
+        #                 "shipper_country": "India",
+        #                 "shipper_postcode": "600100",
+        #                 "shipper_first_mile_activated": 0,
+        #                 "shipper_phone": "9600296812",
+        #                 "lat": "12.9171412",
+        #                 "long": "80.1940972",
+        #                 "shipper_email": "saravana.kumar@skylimitdigital.com",
+        #                 "extra_info": {
+        #                     "role": "Warehouse Manager",
+        #                     "source": 1,
+        #                     "open_time": "12:00 AM",
+        #                     "close_time": "7:30 PM",
+        #                     "select_days": '["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]',
+        #                     "alternate_name": "harish",
+        #                     "alternate_role": "Warehouse Manager",
+        #                     "alternate_email": "crazykidsri@gmail.com"
+        #                 },
+        #                 "rto_company_name": "rajesh",
+        #                 "rto_address_1": "s1, 2nd floor, sai akash apt",
+        #                 "rto_address_2": "near om sakthi temple",
+        #                 "rto_city": "Kanchipuram",
+        #                 "rto_state": "Tamil Nadu",
+        #                 "rto_country": "India",
+        #                 "rto_postcode": "600100",
+        #                 "rto_phone": "9600296812",
+        #                 "rto_email": "saravana.kumar@skylimitdigital.com"
+        #             }
+        #         }
+        #     },
+        #     "no_pickup_popup": 0,
+        #     "quick_pick": 0
+        # }
         print("Shiprocket assign courier response: - shiprocket_client.py:175", data)
 
         # Check if AWB was actually assigned
