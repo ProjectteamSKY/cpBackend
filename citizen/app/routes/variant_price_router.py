@@ -17,6 +17,7 @@ class CreateModel(BaseModel):
 
 @router.post("/create")
 async def create_price(payload: CreateModel):
+    print("api triggers!!!!!!!!!!!!!!!!!!!!! - variant_price_router.py:20")
     obj = VariantPrice(**payload.model_dump())
     return {
         "status": "success",

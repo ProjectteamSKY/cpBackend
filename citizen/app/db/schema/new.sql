@@ -48,7 +48,7 @@ CREATE TABLE product_attributes (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     -- ✅ Prevent duplicate active mappings
-    UNIQUE(product_id, attribute_id, is_deleted),
+    UNIQUE(product_id, attribute_id, is_deleted),   
 
     CONSTRAINT fk_pa_product
         FOREIGN KEY (product_id)
@@ -144,5 +144,4 @@ CREATE TABLE variant_prices (
         REFERENCES product_variant_combinations(id)
         ON DELETE CASCADE,
 
-    CONSTRAINT uq_variant_qty UNIQUE (variant_id, min_qty)
 );

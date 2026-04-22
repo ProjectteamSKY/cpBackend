@@ -3,16 +3,21 @@
 get_order_details = """
 SELECT 
     o.*,
-    u.full_name AS username,
-    u.email,
-    u.contact AS user_phone,
+
+    a.first_name AS first_name,
+    a.last_name AS last_name,
+    a.phone AS phone,
+    a.email AS email,
+
     a.address AS address_line,
+    a.address_type,
+    a.landmark,
     a.city,
     a.state,
     a.country,
     a.postal_code
+
 FROM orders o
-JOIN users u ON u.id = o.user_id
 LEFT JOIN user_addresses a ON a.id = o.address_id
 WHERE o.id = :id
 """
