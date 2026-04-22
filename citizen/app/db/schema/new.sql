@@ -132,7 +132,7 @@ CREATE TABLE variant_prices (
     max_qty INT,
 
     price DECIMAL(10,2) NOT NULL,
-
+    weight DECIMAL(10,3) DEFAULT 0.0;
     is_active BOOLEAN DEFAULT TRUE,
     is_deleted BOOLEAN DEFAULT FALSE,
 
