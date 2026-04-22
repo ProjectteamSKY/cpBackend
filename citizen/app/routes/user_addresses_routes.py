@@ -21,6 +21,7 @@ class UserAddressCreate(BaseModel):
     last_name: Optional[str] = None
 
     address: str
+    address_type: Optional[str] = None 
     landmark: Optional[str] = None
 
     city: Optional[str] = None
@@ -39,6 +40,7 @@ class UserAddressUpdate(BaseModel):
     last_name: Optional[str] = None
 
     address: Optional[str] = None
+    address_type: Optional[str] = None
     landmark: Optional[str] = None
 
     city: Optional[str] = None
