@@ -73,11 +73,10 @@ shiprocket = ShiprocketClient()
 def build_shiprocket_payload(order: dict, order_items: list):
 
     # =========================
-    # NAME (NOW CORRECT)
+    # NAME
     # =========================
     first_name = order.get("first_name") or "Customer"
     last_name = order.get("last_name") or ""
-
     full_name = f"{first_name} {last_name}".strip()
 
     # =========================
@@ -90,36 +89,40 @@ def build_shiprocket_payload(order: dict, order_items: list):
     country = order.get("country") or "India"
     postal_code = order.get("postal_code") or ""
 
-    email = order.get("email") 
-    phone = order.get("phone") 
+    email = order.get("email")
+    phone = order.get("phone")
 
     # =========================
-    # ORDER ITEMS (FIXED LOGIC)
+    # ITEMS + WEIGHT
     # =========================
     items_payload = []
+    total_weight = 0.0  # ✅ final shipment weight
 
     for item in order_items:
 
         product_name = (item.get("product_name") or "").strip()
-
-        # ✅ IMPORTANT FIX
         units = int(item.get("units") or 1)
 
-        # unit price (not total confusion)
+        # price handling
         unit_price = float(item.get("unit_price") or 0)
-
-        # fallback: if only total_price exists
         if unit_price == 0 and item.get("total_price"):
             unit_price = float(item["total_price"]) / units
+
+        # ✅ IMPORTANT: weight is already TOTAL for this item
+        item_weight = float(item.get("weight") or 0)
+
+        total_weight += item_weight  # ✅ correct logic
 
         items_payload.append({
             "name": product_name,
             "sku": product_name.replace(" ", "_")[:40],
-            "units": units,                       # ✅ FIXED (NOT 1)
-            "selling_price": unit_price           # ✅ PER UNIT PRICE
+            "units": units,
+            "selling_price": round(unit_price, 2)
         })
 
-    # fallback
+    # =========================
+    # FALLBACK (NO ITEMS)
+    # =========================
     if not items_payload:
         items_payload = [{
             "name": "Order Item",
@@ -127,6 +130,15 @@ def build_shiprocket_payload(order: dict, order_items: list):
             "units": 1,
             "selling_price": float(order.get("total_amount", 0))
         }]
+        total_weight = 0.5  # safe fallback
+
+    # =========================
+    # SAFETY CHECK
+    # =========================
+    if total_weight <= 0:
+        total_weight = 0.5
+
+    total_weight = round(total_weight, 2)
 
     # =========================
     # FINAL PAYLOAD
@@ -136,9 +148,7 @@ def build_shiprocket_payload(order: dict, order_items: list):
         "order_date": str(order.get("created_at").date()),
         "pickup_location": "Home",
 
-        # =========================
         # BILLING
-        # =========================
         "billing_customer_name": full_name,
         "billing_first_name": first_name,
         "billing_last_name": last_name,
@@ -150,9 +160,7 @@ def build_shiprocket_payload(order: dict, order_items: list):
         "billing_email": email,
         "billing_phone": phone,
 
-        # =========================
         # SHIPPING
-        # =========================
         "shipping_customer_name": full_name,
         "shipping_first_name": first_name,
         "shipping_last_name": last_name,
@@ -165,24 +173,20 @@ def build_shiprocket_payload(order: dict, order_items: list):
         "shipping_phone": phone,
         "shipping_is_billing": True,
 
-        # =========================
         # ITEMS
-        # =========================
         "order_items": items_payload,
 
-        # =========================
         # PAYMENT
-        # =========================
         "payment_method": "COD",
         "sub_total": float(order.get("total_amount", 0)),
 
-        # =========================
         # PACKAGE
-        # =========================
         "length": 10,
         "breadth": 10,
         "height": 5,
-        "weight": 0.5
+
+        # ✅ FINAL CORRECT WEIGHT
+        "weight": total_weight
     }
 # ---------------------------------------------------------
 # Create Shipment
@@ -193,7 +197,7 @@ async def create_order_service(order_id: str):
         queries["shipping"]["get_order_details"],
         {"id": order_id}
     )
-    print("🚀 Order details fetched: - shipping_service.py:196", order)
+    print("🚀 Order details fetched: - shipping_service.py:200", order)
     if not order:
         raise HTTPException(404, "Order not found")
     
@@ -202,30 +206,30 @@ async def create_order_service(order_id: str):
         {"order_id": order_id}
     )
 
-    print("🛒 Order items fetched: - shipping_service.py:205", order_items)
+    print("🛒 Order items fetched: - shipping_service.py:209", order_items)
 
     
     payload = build_shiprocket_payload(order , order_items)
-    print("🚀 Built Shiprocket Payload: - shipping_service.py:209", payload)
-    # try:
-        # print("🚀 PAYLOAD: - shipping_service.py:90", payload)
-        # response = shiprocket.create_order(payload)
-        # print("✅ SHIPROCKET RESPONSE: - shipping_service.py:92", response)
-    # except Exception as e:
-        # print("❌ SHIPROCKET ERROR: - shipping_service.py:94", str(e))
-        # raise HTTPException(500, f"Shiprocket API call failed: {str(e)}")
+    print("🚀 Built Shiprocket Payload: - shipping_service.py:213", payload)
+    try:
+        print("🚀 PAYLOAD: - shipping_service.py:215", payload)
+        response = shiprocket.create_order(payload)
+        print("✅ SHIPROCKET RESPONSE: - shipping_service.py:217", response)
+    except Exception as e:
+        print("❌ SHIPROCKET ERROR: - shipping_service.py:219", str(e))
+        raise HTTPException(500, f"Shiprocket API call failed: {str(e)}")
 
-    # shipment_id = response.get("shipment_id")
+    shipment_id = response.get("shipment_id")
 
-    # if not shipment_id:
-    #     raise HTTPException(
-    #         500,
-    #         f"Shiprocket did not return shipment_id. Response: {response}"
-    #     )
+    if not shipment_id:
+        raise HTTPException(
+            500,
+            f"Shiprocket did not return shipment_id. Response: {response}"
+        )
 
     # ✅ FIX HERE
-    # awb_code = response.get("awb_code") or None
-    # courier_name = response.get("courier_name") or None
+    awb_code = response.get("awb_code") or None
+    courier_name = response.get("courier_name") or None
 
     shipment_uuid = str(uuid.uuid4())
 
@@ -234,12 +238,12 @@ async def create_order_service(order_id: str):
         {
             "id": shipment_uuid,
             "order_id": order_id,
-            # "shiprocket_order_id": response.get("order_id"),
-            # "shipment_id": shipment_id,
-            # "awb_code": awb_code,          # ✅ now NULL instead of ''
-            # "courier_name": courier_name,  # ✅ now NULL instead of ''
-            # "tracking_url": None,
-            # "current_status": response.get("status"),
+            "shiprocket_order_id": response.get("order_id"),
+            "shipment_id": shipment_id,
+            "awb_code": awb_code,          # ✅ now NULL instead of ''
+            "courier_name": courier_name,  # ✅ now NULL instead of ''
+            "tracking_url": None,
+            "current_status": response.get("status"),
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
@@ -247,10 +251,10 @@ async def create_order_service(order_id: str):
 
     return {
         "status": "success",
-        # "shipment_id": shipment_id,
-        # "shiprocket_order_id": response.get("order_id"),
-        # "awb_code": awb_code,
-        # "courier_name": courier_name
+        "shipment_id": shipment_id,
+        "shiprocket_order_id": response.get("order_id"),
+        "awb_code": awb_code,
+        "courier_name": courier_name
     }
 
 
@@ -268,7 +272,20 @@ async def get_available_couriers_service(order_id: str):
         raise HTTPException(404, "Shipment not found")
 
     shiprocket_order_id = shipment["shiprocket_order_id"]
+    shipment_id = shipment["shipment_id"]
 
+    # ✅ Prevent duplicate assignment
+    if shipment.get("awb_code"):
+        return {
+            "status": "success",
+            "message": "Courier already assigned",
+            "awb_code": shipment.get("awb_code"),
+            "courier_name": shipment.get("courier_name")
+        }
+
+    # ---------------------------------------------------------
+    # ✅ Get courier list
+    # ---------------------------------------------------------
     try:
         courier_response = shiprocket.get_courier_rates(shiprocket_order_id)
     except Exception as e:
@@ -276,19 +293,99 @@ async def get_available_couriers_service(order_id: str):
 
     couriers = courier_response.get("data", {}).get("available_courier_companies", [])
 
-    cleaned = [
-        {
-            "courier_id": c["courier_company_id"],
-            "courier_name": c["courier_name"],
-            "rate": c.get("rate"),
-            "estimated_days": c.get("estimated_delivery_days"),
-            "rating": c.get("rating"),
+    if not couriers:
+        return {
+            "status": "success",
+            "best_courier": None
         }
-        for c in couriers
-    ]
 
-    return {"status": "success", "couriers": cleaned}
+    # ---------------------------------------------------------
+    # ✅ Find best courier
+    # ---------------------------------------------------------
+    best_courier = None
+    best_score = float("inf")
 
+    for c in couriers:
+        freight = float(c.get("freight_charge") or c.get("rate") or 0)
+        cod = float(c.get("cod_charges") or 0)
+        other = float(c.get("other_charges") or 0)
+
+        total_cost = freight + cod + other
+
+        days = int(c.get("estimated_delivery_days") or 7)
+        rating = float(c.get("rating") or 0)
+
+        score = (total_cost * 0.7) + (days * 0.2) - (rating * 0.1)
+
+        if score < best_score:
+            best_score = score
+            best_courier = {
+                "courier_id": c.get("courier_company_id"),
+                "courier_name": c.get("courier_name"),
+                "total_cost": round(total_cost, 2),
+                "estimated_days": days,
+                "rating": rating,
+                "etd": c.get("etd")
+            }
+
+    if not best_courier:
+        raise HTTPException(400, "No suitable courier found")
+
+    # ---------------------------------------------------------
+    # ✅ Assign courier (AWB)
+    # ---------------------------------------------------------
+    assign_response = shiprocket.assign_courier(
+        shipment_id,
+        best_courier["courier_id"]
+    )
+
+    if not assign_response:
+        raise HTTPException(500, "Courier assignment failed")
+
+    freight_charges = float(assign_response.get("freight_charges") or 0)
+
+    # ---------------------------------------------------------
+    # ✅ Save shipment data
+    # ---------------------------------------------------------
+    await execute(
+        queries["shipping"]["assign_courier"],
+        {
+            "courier_id": best_courier["courier_id"],
+            "courier_name": assign_response.get("courier_name"),
+            "awb_code": assign_response.get("awb_code"),
+            "freight_charges": freight_charges,
+            "shipment_id": shipment_id
+        }
+    )
+
+    # ---------------------------------------------------------
+    # ✅ UPDATE ORDER STATUS → shipment
+    # ---------------------------------------------------------
+    await execute(
+        queries["orders"]["update_order_status"],
+        {
+            "order_id": order_id,
+            "status": "shipment"
+        }
+    )
+
+    # ---------------------------------------------------------
+    # ✅ ADD FREIGHT TO TOTAL PRICE
+    # ---------------------------------------------------------
+    await execute(
+        queries["orders"]["add_freight_to_total"],
+        {
+            "order_id": order_id,
+            "freight": freight_charges
+        }
+    )
+
+    return {
+        "status": "success",
+        "message": "Courier auto-assigned successfully",
+        "best_courier": best_courier,
+        "assignment": assign_response
+    }
 
 # ---------------------------------------------------------
 # Assign Courier
@@ -496,7 +593,7 @@ async def couriers_service(
     1. Full filtered courier list
     2. Single best courier based on lowest total cost
     """
-    print("API triggers for courier availability - shipping_service.py:499")
+    print("API triggers for courier availability - shipping_service.py:596")
     
     # Call Shiprocket API
     response = shiprocket.get_couriers_by_address(

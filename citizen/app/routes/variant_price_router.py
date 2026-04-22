@@ -13,11 +13,11 @@ class CreateModel(BaseModel):
     min_qty: int
     max_qty: Optional[int]
     price: float
+    weight: float   # ✅ NEW
 
 
 @router.post("/create")
 async def create_price(payload: CreateModel):
-    print("api triggers!!!!!!!!!!!!!!!!!!!!! - variant_price_router.py:20")
     obj = VariantPrice(**payload.model_dump())
     return {
         "status": "success",
@@ -30,6 +30,14 @@ async def get_prices(variant_id: str):
     return {
         "status": "success",
         "data": await get_prices_by_variant(variant_id)
+    }
+
+
+@router.put("/{id}")   # ✅ ADD UPDATE API
+async def update_price(id: str, payload: dict):
+    return {
+        "status": "success",
+        "data": await update_variant_price(id, payload)
     }
 
 

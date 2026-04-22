@@ -24,11 +24,36 @@ WHERE order_id = :order_id;
 
 get_all_order_item = """
 SELECT 
-    p.name AS product_name,
-    SUM(oi.quantity) AS units,           -- ✅ total units
-    SUM(oi.total_price) AS total_price   -- ✅ total price
-FROM order_items oi
-JOIN products p ON p.id = oi.product_id
-WHERE oi.order_id = :order_id
-GROUP BY p.name;
+    t.variant_id,
+    t.product_name,
+    t.units,
+    t.total_price,
+    t.unit_price,
+    vp.weight
+
+FROM (
+    SELECT 
+        oi.variant_id,
+        p.name AS product_name,
+
+        SUM(oi.quantity) AS units,
+        SUM(oi.total_price) AS total_price,
+        AVG(oi.unit_price) AS unit_price
+
+    FROM order_items oi
+    JOIN products p ON p.id = oi.product_id
+
+    WHERE oi.order_id = :order_id
+
+    GROUP BY oi.variant_id, p.name
+) t
+
+LEFT JOIN variant_prices vp
+    ON vp.variant_id = t.variant_id
+    AND vp.is_deleted = FALSE
+    AND vp.is_active = TRUE
+    AND t.units >= vp.min_qty
+    AND (t.units <= vp.max_qty OR vp.max_qty IS NULL)
+
+ORDER BY t.units ASC;
 """
