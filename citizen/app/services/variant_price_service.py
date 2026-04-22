@@ -15,8 +15,11 @@ queries = load_queries()
 # -------------------------
 async def create_variant_price(obj: VariantPrice):
 
-    # Basic validation
+    # ✅ Validate
     validate_basic(obj.min_qty, obj.max_qty, obj.price)
+
+    if obj.weight < 0:
+        raise HTTPException(400, "Weight cannot be negative")
 
     # Fetch existing slabs
     rows = await query_all(
@@ -29,11 +32,13 @@ async def create_variant_price(obj: VariantPrice):
         {"variant_id": obj.variant_id}
     )
 
-    # Overlap validation
     await validate_no_overlap(rows, obj.min_qty, obj.max_qty)
 
     # Insert
-    await execute(queries["variant_prices"]["create"], obj.to_dict())
+    await execute(
+        queries["variant_prices"]["create"],
+        obj.to_dict()
+    )
 
     return await query(
         queries["variant_prices"]["get_by_id"],
@@ -64,11 +69,18 @@ async def update_variant_price(id: str, updates: dict):
     if not existing:
         raise HTTPException(404, "Price not found")
 
+    if not updates:
+        raise HTTPException(400, "No fields to update")
+
     new_min = updates.get("min_qty", existing["min_qty"])
     new_max = updates.get("max_qty", existing["max_qty"])
     new_price = updates.get("price", existing["price"])
+    new_weight = updates.get("weight", existing.get("weight", 0))
 
     validate_basic(new_min, new_max, new_price)
+
+    if new_weight < 0:
+        raise HTTPException(400, "Weight cannot be negative")
 
     rows = await query_all(
         """
@@ -86,7 +98,7 @@ async def update_variant_price(id: str, updates: dict):
 
     await validate_no_overlap(rows, new_min, new_max)
 
-    set_clause = ", ".join(f"{k} = :{k}" for k in updates)
+    set_clause = ", ".join(f"{k} = :{k}" for k in updates.keys())
     sql = queries["variant_prices"]["update"].format(set_clause=set_clause)
 
     await execute(sql, {"id": id, **updates})
@@ -101,5 +113,8 @@ async def update_variant_price(id: str, updates: dict):
 # DELETE (SOFT)
 # -------------------------
 async def delete_variant_price(id: str):
-    await execute(queries["variant_prices"]["delete"], {"id": id})
+    await execute(
+        queries["variant_prices"]["delete"],
+        {"id": id}
+    )
     return {"id": id}

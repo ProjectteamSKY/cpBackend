@@ -2,14 +2,14 @@
 
 create = """
 INSERT INTO variant_prices (
-    id, variant_id, min_qty, max_qty, price,
+    id, variant_id, min_qty, max_qty, price, weight,
     is_active, is_deleted,
     created_at, updated_at
 )
 VALUES (
-    :id, :variant_id, :min_qty, :max_qty, :price,
+    :id, :variant_id, :min_qty, :max_qty, :price, :weight,
     :is_active, FALSE,
-    :created_at, :updated_at
+    NOW(), NOW()
 );
 """
 
