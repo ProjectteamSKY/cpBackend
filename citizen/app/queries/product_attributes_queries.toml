@@ -22,11 +22,19 @@ ON DUPLICATE KEY UPDATE
 """
 
 get_by_product = """
-SELECT *
-FROM product_attributes
-WHERE product_id = :product_id
-AND is_deleted = FALSE
-ORDER BY sort_order ASC;
+SELECT 
+    a.id,
+    a.name,
+    a.description,
+    a.is_active,
+    a.is_deleted,
+    a.created_at,
+    a.updated_at
+FROM product_attributes pa
+JOIN attributes a ON pa.attribute_id = a.id
+WHERE pa.product_id = :product_id
+AND pa.is_deleted = FALSE
+ORDER BY pa.sort_order ASC;
 """
 
 get_all = """

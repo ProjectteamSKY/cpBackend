@@ -10,7 +10,9 @@ from app.services.shipping_service import (
     download_label_service,
     cancel_order_service,
     refund_order_service,
-    couriers_service
+    couriers_service,
+    hyperlocal_couriers_service,
+    is_chennai_surrounding
 )
 from app.integrations.shiprocket_client import ShiprocketClient
 
@@ -91,15 +93,41 @@ async def track_awb(awb_code: str):
 async def get_available_couriers(
     pickup_postcode: str,
     delivery_postcode: str,
-    weight: float = 0.5,
-    cod: int = 0,
-    declared_value: float = 500
+    weight: float,
+    length: float,
+    breadth: float,   # 👈 accept breadth
+    height: float,
+    declared_value: float,
+    cod: int,
 ):
-    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:98")
+    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:103")
+
     return await couriers_service(
         pickup_postcode,
         delivery_postcode,
         weight,
         cod,
-        declared_value
+        declared_value,
+        length,
+        breadth,
+        height
     )
+
+
+@router.get("/hyperlocal/serviceability")
+async def get_hyperlocal_couriers(
+    pickup_postcode: str,
+    delivery_postcode: str,
+    cod: int,
+):
+    print("🔥 HYPERLOCAL SERVICEABILITY API CALLED - shipping_router.py:123")
+
+    return await hyperlocal_couriers_service(
+        pickup_postcode=pickup_postcode,
+        delivery_postcode=delivery_postcode,
+        cod=cod
+    )
+
+@router.get("/hyperlocal/check")
+async def check_chennai_area(pincode: str):
+    return await is_chennai_surrounding(pincode)    

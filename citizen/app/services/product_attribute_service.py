@@ -11,6 +11,7 @@ queries = load_queries()
 # -------------------------
 async def create_product_attribute(obj: ProductAttribute):
 
+    # ❌ Check duplicate attribute
     existing = await query(
         """
         SELECT * FROM product_attributes
@@ -27,8 +28,30 @@ async def create_product_attribute(obj: ProductAttribute):
     if existing:
         raise HTTPException(status_code=400, detail="Attribute already assigned")
 
+    # ❌ NEW: Check duplicate sort_order for same product
+    existing_sort = await query(
+        """
+        SELECT * FROM product_attributes
+        WHERE product_id = :product_id
+        AND sort_order = :sort_order
+        AND is_deleted = FALSE
+        """,
+        {
+            "product_id": obj.product_id,
+            "sort_order": obj.sort_order
+        }
+    )
+
+    if existing_sort:
+        raise HTTPException(status_code=400, detail="Sort order already exists")
+
+    # ✅ Insert
     await execute(queries["product_attributes"]["create"], obj.to_dict())
-    return await query(queries["product_attributes"]["get_by_id"], {"id": obj.id})
+
+    return await query(
+        queries["product_attributes"]["get_by_id"],
+        {"id": obj.id}
+    )
 
 async def get_all_product_attributes():
     return await query_all(
@@ -48,27 +71,47 @@ async def get_product_attributes(product_id: str):
 # UPDATE
 # -------------------------
 async def update_product_attribute(id: str, updates: dict):
+
+    existing = await query(
+        queries["product_attributes"]["get_by_id"],
+        {"id": id}
+    )
+
+    if not existing:
+        return None
+
+    # ❌ If updating sort_order → validate
+    if "sort_order" in updates:
+        existing_sort = await query(
+            """
+            SELECT * FROM product_attributes
+            WHERE product_id = :product_id
+            AND sort_order = :sort_order
+            AND id != :id
+            AND is_deleted = FALSE
+            """,
+            {
+                "product_id": existing["product_id"],
+                "sort_order": updates["sort_order"],
+                "id": id
+            }
+        )
+
+        if existing_sort:
+            raise HTTPException(status_code=400, detail="Sort order already exists")
+
     if not updates:
-        return await query(queries["product_attributes"]["get_by_id"], {"id": id})
+        return existing
 
     set_clause = ", ".join(f"{k} = :{k}" for k in updates.keys())
     sql = queries["product_attributes"]["update"].format(set_clause=set_clause)
 
     await execute(sql, {"id": id, **updates})
-    return await query(queries["product_attributes"]["get_by_id"], {"id": id})
 
-
-# -------------------------
-# DELETE
-# -------------------------
-async def delete_product_attribute(id: str):
-    existing = await query(queries["product_attributes"]["get_by_id"], {"id": id})
-    if not existing:
-        return None
-
-    await execute(queries["product_attributes"]["delete"], {"id": id})
-    return {"id": id}
-
+    return await query(
+        queries["product_attributes"]["get_by_id"],
+        {"id": id}
+    )
 
 # -------------------------
 # ACTIVATE

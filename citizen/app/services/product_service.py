@@ -245,9 +245,20 @@ async def get_product_list_minimal():
     return result
 
 
+def safe_json(value):
+    if not value:
+        return []
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except:
+            return []
+    return value
+
+
 async def get_products_by_subcategory(subcategory_id: str):
     rows = await query_all(
-        queries["product"]["get_by_subcategory"],
+        queries["product"]["get_by_sub_category"],
         {"subcategory_id": subcategory_id}
     )
 
@@ -256,19 +267,12 @@ async def get_products_by_subcategory(subcategory_id: str):
     for row in rows:
         pid = row["product_id"]
 
+        # -------------------------
+        # INIT PRODUCT (RUN ONCE ONLY)
+        # -------------------------
         if pid not in products_map:
-            # ✅ parse images safely
-            images = row["images"]
-            related_images = row["related_images"]
-
-            if isinstance(images, str):
-                images = json.loads(images)
-
-            if isinstance(related_images, str):
-                related_images = json.loads(related_images)
-
-            images = images or []
-            related_images = related_images or []
+            images = safe_json(row["images"])
+            related_images = safe_json(row["related_images"])
 
             products_map[pid] = {
                 "id": pid,
@@ -277,45 +281,55 @@ async def get_products_by_subcategory(subcategory_id: str):
                 "category_id": row["category_id"],
                 "subcategory_id": row["subcategory_id"],
 
-                # ✅ images
-                "image": images[0] if images else None,
+                "thumbnail": images[0] if images else None,  # ✔ rename it properly
                 "images": images,
                 "related_images": related_images,
 
-                "variants": []
+                "combinations": [],
+                "combo_map": {}
             }
 
         product = products_map[pid]
 
-        # ✅ variants
-        if row["variant_id"]:
-            variants = product["variants"]
+        # -------------------------
+        # COMBINATION
+        # -------------------------
+        cid = row.get("combination_id")
 
-            variant = next(
-                (v for v in variants if v["id"] == row["variant_id"]),
-                None
-            )
-
-            if not variant:
-                variant = {
-                    "id": row["variant_id"],
-                    "size_id": row["size_id"],
-                    "paper_type_id": row["paper_type_id"],
-                    "print_type_id": row["print_type_id"],
-                    "cut_type_id": row["cut_type_id"],
-                    "sides": row["sides"],
-                    "orientation": row["orientation"],
-                    "prices": []
+        if cid:
+            if cid not in product["combo_map"]:
+                combo = {
+                    "id": cid,
+                    "sku": row["sku"],
+                    "is_active": row["combination_is_active"],
+                    "prices": [],
+                    "price_map": {}
                 }
-                variants.append(variant)
+                product["combinations"].append(combo)
+                product["combo_map"][cid] = combo
 
-            # ✅ prices
-            if row["variant_price_id"]:
-                variant["prices"].append({
-                    "id": row["variant_price_id"],
+            combo = product["combo_map"][cid]
+
+            # -------------------------
+            # PRICES
+            # -------------------------
+            price_id = row.get("price_id")
+
+            if price_id and price_id not in combo["price_map"]:
+                combo["prices"].append({
+                    "id": price_id,
                     "price": row["price"],
-                    "min_qty": row["min_qty"]
+                    "min_qty": row["min_qty"],
+                    "max_qty": row["max_qty"],
+                    "weight": row["weight"]
                 })
+                combo["price_map"][price_id] = True
+
+    # remove helper maps (clean API response)
+    for p in products_map.values():
+        p.pop("combo_map", None)
+        for c in p["combinations"]:
+            c.pop("price_map", None)
 
     return list(products_map.values())
 
@@ -345,7 +359,7 @@ async def search_products_service(query_str: str) -> List[Dict]:
         return []
 
     words = query_str.split()
-    print(f"Searching products with query: {query_str} > words: {words} - product_service.py:348")
+    print(f"Searching products with query: {query_str} > words: {words} - product_service.py:362")
 
     # Base SQL with JOINs to category and subcategory
     sql = """
@@ -377,7 +391,7 @@ async def search_products_service(query_str: str) -> List[Dict]:
 
     # Execute query
     rows = await query_all(sql, params)
-    print(f"Found {len(rows)} products matching query: {query_str} - product_service.py:380")
+    print(f"Found {len(rows)} products matching query: {query_str} - product_service.py:394")
 
     # Build response
     products = []

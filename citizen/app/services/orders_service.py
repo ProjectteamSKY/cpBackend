@@ -627,7 +627,17 @@ def save_upload(file) -> str:
         shutil.copyfileobj(file.file, f)
     return path.replace("\\", "/")
 
-async def checkout(user_id: str, cart_id: str, cart_items: list, address_id: str):
+async def checkout(
+    user_id: str,
+    cart_id: str,
+    cart_items: list,
+    address_id: str,
+    payment_method: str = "COD",
+    delivery_type: str = "normal",
+    courier_id: str = None,
+    courier_name: str = None,
+    delivery_charge: float = 0
+):
     if not cart_items:
         raise Exception("No cart items provided")
 
@@ -635,9 +645,11 @@ async def checkout(user_id: str, cart_id: str, cart_items: list, address_id: str
     order_id = str(uuid.uuid4())
     order_number = await generate_order_number()
 
+    # ---------------------------------------------------------
+    # LOCK CART ITEMS
+    # ---------------------------------------------------------
     cart_item_ids = [item["cart_item_id"] for item in cart_items]
 
-    # 1️⃣ Fetch cart items
     placeholders = ", ".join(f":id{i}" for i in range(len(cart_item_ids)))
     params = {"cart_id": cart_id}
     params.update({f"id{i}": cid for i, cid in enumerate(cart_item_ids)})
@@ -653,124 +665,124 @@ async def checkout(user_id: str, cart_id: str, cart_items: list, address_id: str
     if len(rows) != len(cart_item_ids):
         raise Exception("Some cart items not found")
 
-    # merge request data
-    for row in rows:
-        req = next((i for i in cart_items if i["cart_item_id"] == row["id"]), {})
-        row["customize_qty"] = req.get("customize_qty")
-        row["variant_price_id"] = req.get("product_variant_price_id")
-
-    # 2️⃣ calculate total
     order_total = sum(float(r["total_price"]) for r in rows)
 
-    # 3️⃣ create order
+    # ---------------------------------------------------------
+    # CREATE ORDER
+    # ---------------------------------------------------------
     await execute("""
         INSERT INTO orders (
-            id, user_id, order_number, cart_id,
-            address_id, status, total_amount,
-            created_at, updated_at
+            id, order_number, user_id, cart_id, address_id,
+            delivery_charge, courier_id, courier_name,
+            delivery_type, payment_method, payment_status,
+            status, total_amount, created_at, updated_at
         )
         VALUES (
-            :id, :user_id, :order_number, :cart_id,
-            :address_id, 'pending', :total_amount,
-            :created_at, :updated_at
+            :id, :order_number, :user_id, :cart_id, :address_id,
+            :delivery_charge, :courier_id, :courier_name,
+            :delivery_type, :payment_method, 'pending',
+            'pending', :total_amount, :created_at, :updated_at
         )
     """, {
         "id": order_id,
-        "user_id": user_id,
         "order_number": order_number,
+        "user_id": user_id,
         "cart_id": cart_id,
         "address_id": address_id,
+        "delivery_charge": delivery_charge,
+        "courier_id": courier_id,
+        "courier_name": courier_name,
+        "delivery_type": delivery_type,
+        "payment_method": payment_method,
         "total_amount": order_total,
         "created_at": now,
         "updated_at": now
     })
 
-    # 4️⃣ insert order items + files
+    # ---------------------------------------------------------
+    # 🔥 INSERT ORDER ITEMS (CRITICAL FIX)
+    # ---------------------------------------------------------
     for item in rows:
         order_item_id = str(uuid.uuid4())
 
-        # ✅ FIXED INSERT (MATCHES DB)
         await execute("""
             INSERT INTO order_items (
-                id, order_id, cart_item_id,
-                product_id, variant_id, variant_price_id,
-                customize_qty,
+                id, order_id, product_id, variant_id,
+                variant_price_id, customize_qty,
                 quantity, unit_price, total_price,
                 selected_attributes, discount_id,
                 status, created_at, updated_at
             )
             VALUES (
-                :id, :order_id, :cart_item_id,
-                :product_id, :variant_id, :variant_price_id,
-                :customize_qty,
+                :id, :order_id, :product_id, :variant_id,
+                :variant_price_id, :customize_qty,
                 :quantity, :unit_price, :total_price,
                 :selected_attributes, :discount_id,
-                'active', :created_at, :updated_at
+                'pending', :created_at, :updated_at
             )
         """, {
             "id": order_item_id,
             "order_id": order_id,
-            "cart_item_id": item["id"],
             "product_id": item["product_id"],
             "variant_id": item["variant_id"],
-            "variant_price_id": item.get("variant_price_id"),
+            "variant_price_id": item["variant_price_id"],
             "customize_qty": item.get("customize_qty"),
             "quantity": item["quantity"],
             "unit_price": item["unit_price"],
             "total_price": item["total_price"],
-            "selected_attributes": item["selected_attributes"],
+            "selected_attributes": item.get("selected_attributes"),
             "discount_id": item.get("discount_id"),
             "created_at": now,
-            "updated_at": now,
+            "updated_at": now
         })
 
-        # copy files
-        cart_files = await query_all(
-            "SELECT * FROM cart_item_files WHERE cart_item_id = :id",
-            {"id": item["id"]}
+        # ---------------------------------------------------------
+        # 🔥 COPY FILES (if exist)
+        # ---------------------------------------------------------
+        files = await query_all(
+            """
+            SELECT * FROM cart_item_files
+            WHERE cart_item_id = :cart_item_id
+            """,
+            {"cart_item_id": item["id"]}
         )
 
-        for f in cart_files:
-            new_front, new_back = None, None
-
-            if f.get("front_side_url"):
-                filename = os.path.basename(f["front_side_url"])
-                new_front = os.path.join(UPLOAD_FOLDER, filename)
-                shutil.copy(f["front_side_url"], new_front)
-                new_front = new_front.replace("\\", "/")
-
-            if f.get("back_side_url"):
-                filename = os.path.basename(f["back_side_url"])
-                new_back = os.path.join(UPLOAD_FOLDER, filename)
-                shutil.copy(f["back_side_url"], new_back)
-                new_back = new_back.replace("\\", "/")
-
+        for f in files:
             await execute("""
                 INSERT INTO order_item_files (
                     id, order_item_id,
                     front_side_url, back_side_url,
-                    front_original_name, back_original_name,
-                    created_at
+                    front_original_name, back_original_name
                 )
                 VALUES (
                     :id, :order_item_id,
-                    :front, :back,
-                    :front_name, :back_name,
-                    :created_at
+                    :front_side_url, :back_side_url,
+                    :front_original_name, :back_original_name
                 )
             """, {
                 "id": str(uuid.uuid4()),
                 "order_item_id": order_item_id,
-                "front": new_front,
-                "back": new_back,
-                "front_name": f["front_original_name"],
-                "back_name": f["back_original_name"],
-                "created_at": now,
+                "front_side_url": f.get("front_side_url"),
+                "back_side_url": f.get("back_side_url"),
+                "front_original_name": f.get("front_original_name"),
+                "back_original_name": f.get("back_original_name"),
             })
 
+    # ---------------------------------------------------------
+    # OPTIONAL: CLEAR CART
+    # ---------------------------------------------------------
+    await execute(
+        "DELETE FROM cart_items WHERE cart_id = :cart_id",
+        {"cart_id": cart_id}
+    )
+
+    # ---------------------------------------------------------
+    # FINAL RESPONSE
+    # ---------------------------------------------------------
     return {
         "status": "success",
         "order_id": order_id,
+        "order_number": order_number,
         "total_amount": order_total
     }
 

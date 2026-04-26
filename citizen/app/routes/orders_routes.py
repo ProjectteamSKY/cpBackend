@@ -98,7 +98,12 @@ class CheckoutRequest(BaseModel):
     cart_id: str
     cart_items: List[CartItemPayload]
     address_id: str
-    payment_method: Optional[str] = None
+
+    payment_method: Optional[str] = "COD"
+    delivery_type: Optional[str] = "normal"
+    courier_id: Optional[str] = None
+    courier_name: Optional[str] = None
+    delivery_charge: Optional[float] = 0
 
 
 class OrderStatusUpdate(BaseModel):
@@ -116,12 +121,17 @@ async def checkout_endpoint(payload: CheckoutRequest):
             cart_id=payload.cart_id,
             cart_items=cart_items_dicts,
             address_id=payload.address_id,
-        )   
+
+            payment_method=payload.payment_method,
+            delivery_type=payload.delivery_type,
+            courier_id=payload.courier_id,
+            courier_name=payload.courier_name,
+            delivery_charge=payload.delivery_charge
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# TRACKING / ADMIN VIEW
 # TRACKING / ADMIN VIEW
 @router.get("/tracking", response_model=List[OrderTrackingResponse])
 async def track_orders():
@@ -129,7 +139,7 @@ async def track_orders():
     response = []
 
     for o in orders:
-        # ✅ Correct JOIN query
+        # Correct JOIN query
         items_with_files = await query_all("""
             SELECT 
                 oi.*, 
@@ -144,7 +154,7 @@ async def track_orders():
             ORDER BY oi.id
         """, {"order_id": o["id"]})
 
-        # ✅ Group items
+        # Group items
         items_dict = {}
 
         for item in items_with_files:
@@ -157,14 +167,14 @@ async def track_orders():
                     "variant_id": item["variant_id"],
                     "quantity": item["quantity"],
 
-                    # ✅ FIXED COLUMN NAMES
+                    # FIXED COLUMN NAMES
                     "unit_price": float(item["unit_price"]),
                     "total_price": float(item["total_price"]),
 
                     "files": []
                 }
 
-            # ✅ Safe file handling
+            #  Safe file handling
             if item.get("front_side_url") or item.get("back_side_url"):
                 items_dict[item_id]["files"].append({
                     "front_side_url": item.get("front_side_url"),
@@ -175,7 +185,7 @@ async def track_orders():
 
         items_list = list(items_dict.values())
 
-        # ✅ Final response
+        # Final response
         response.append({
             "id": o["id"],
             "status": o["status"],
