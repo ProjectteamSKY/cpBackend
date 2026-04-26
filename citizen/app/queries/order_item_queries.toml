@@ -29,7 +29,11 @@ SELECT
     t.units,
     t.total_price,
     t.unit_price,
-    vp.weight
+
+    vp.weight,
+    vp.length,
+    vp.breadth,
+    vp.height
 
 FROM (
     SELECT 

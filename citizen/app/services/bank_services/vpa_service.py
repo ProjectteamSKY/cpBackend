@@ -23,21 +23,24 @@ from io import BytesIO
 from app.services.bank_services.oauth_service import get_valid_access_token
 
 
-API_URL = "https://api.canarauat.bank.in/v1/upi/vpa-creation"  #  FROM YOUR LOG
-VPA_ENQUIRY_URL = "https://api.canarauat.bank.in/v1/upi/vpa-creation-enq"
-QR_GENERATION_URL = "https://api.canarauat.bank.in/v1/upi/qr-generation"
+API_URL = "https://api.canara.bank.in/v1/upi/vpa-creation"  #  FROM YOUR LOG
+VPA_ENQUIRY_URL = "https://api.canara.bank.in/v1/upi/vpa-creation-enq"
+QR_GENERATION_URL = "https://api.canara.bank.in/v1/upi/qr-generation"
 
-CLIENT_ID = "AUx27zglhuuiRxahKUTmpAVEVKuJ3rsr"
-CLIENT_SECRET =  b"B7WgKfGeURXYkEgRA1ZASYRFtUG64SEn"
+CLIENT_ID = "HlpU92cKxh4Aq3wwOMttGsyKddgneAl2"
+CLIENT_SECRET =  b"vh8LSH58ZuVCFSNMcAnOxf9lpGth1aNg"
 
 # PUBLIC_KEY = "MIIDvzCCAqcCFAVhG9nlbXeEi19I2ad0MPUbYhsRMA0GCSqGSIb3DQEBCwUAMIGbMQswCQYDVQQGEwJJTjESMBAGA1UECAwJVGFtaWxuYWR1MRAwDgYDVQQHDAdDaGVubmFpMRYwFAYDVQQKDA1DaXRpemVucHJpbnRzMQswCQYDVQQLDAJJVDEZMBcGA1UEAwwQY2l0aXplbnByaW50ei5pbjEmMCQGCSqGSIb3DQEJARYXY2l0aXplbnByaW50c0BnbWFpbC5jb20wHhcNMjYwMzEwMTE0MDIwWhcNMjcwMzEwMTE0MDIwWjCBmzELMAkGA1UEBhMCSU4xEjAQBgNVBAgMCVRhbWlsbmFkdTEQMA4GA1UEBwwHQ2hlbm5haTEWMBQGA1UECgwNQ2l0aXplbnByaW50czELMAkGA1UECwwCSVQxGTAXBgNVBAMMEGNpdGl6ZW5wcmludHouaW4xJjAkBgkqhkiG9w0BCQEWF2NpdGl6ZW5wcmludHNAZ21haWwuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqppbQSbJSsvHfY1XFc52LyzfD6TOpdlkR/Gr41RNNtKQSgosMrUk249EINxfs81/NQUtCzXl3fdI1ZJXwqWVoJ/cwSnToHAGnX0WyqKnBomXl+yD4tMt2m9KYXkGIx2sKrvQiN9OTebOJGDiE/lk6jsFLGfD1v22egpK1o2Myx5JZTVhVWQgurEelLlig1TWFnk+oBrYsr4q8Ur749eoLNP1e00tqeArIStRqDAVJDr/H8K7Esng6g0XeadblIw+crx6Qcb0CuoLE4oweTDIAreZWnsc3xV3AbwFTPLSc0CwSFnt7f8g3qqV+r6GJl/kI7Gvb8vN/3HnooFtT/0oyQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQCl8DuzsNM/lRm7zKBPRCScO/bj3MicSqIkN7KxDg1JxfTWBE1L2SyyxH5+eP4t1GBrZOFxZ6l167dc/HQub4SYP3eb/XvjZJJ2MEYWAWiHVf9rD6uFZdXuDvryLyDgWomz5kaULRHuhIjQqxypuMnMAjf5Gq8bIRgHSsP0TKQxeZeoXrtx9aZxrBS4gpnt41v6KqeZGnLdOJY7uNE8mDrFZnOeWDIh2chs/z5zPFLEHkK46TqXmnyKIH7S6/oSmTo0zHSPFWk0XwjhgQMqYRd4ydGesL6hnakiK41nassgOIpZWt1AysqIzH3kNhOo43LL0PA5qD/g1C4boZpW1AS4"
-PUBLIC_KEY = "MIIDvzCCAqcCFAVhG9nlbXeEi19I2ad0MPUbYhsRMA0GCSqGSIb3DQEBCwUAMIGbMQswCQYDVQQGEwJJTjESMBAGA1UECAwJVGFtaWxuYWR1MRAwDgYDVQQHDAdDaGVubmFpMRYwFAYDVQQKDA1DaXRpemVucHJpbnRzMQswCQYDVQQLDAJJVDEZMBcGA1UEAwwQY2l0aXplbnByaW50ei5pbjEmMCQGCSqGSIb3DQEJARYXY2l0aXplbnByaW50c0BnbWFpbC5jb20wHhcNMjYwMzEwMTE0MDIwWhcNMjcwMzEwMTE0MDIwWjCBmzELMAkGA1UEBhMCSU4xEjAQBgNVBAgMCVRhbWlsbmFkdTEQMA4GA1UEBwwHQ2hlbm5haTEWMBQGA1UECgwNQ2l0aXplbnByaW50czELMAkGA1UECwwCSVQxGTAXBgNVBAMMEGNpdGl6ZW5wcmludHouaW4xJjAkBgkqhkiG9w0BCQEWF2NpdGl6ZW5wcmludHNAZ21haWwuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqppbQSbJSsvHfY1XFc52LyzfD6TOpdlkR/Gr41RNNtKQSgosMrUk249EINxfs81/NQUtCzXl3fdI1ZJXwqWVoJ/cwSnToHAGnX0WyqKnBomXl+yD4tMt2m9KYXkGIx2sKrvQiN9OTebOJGDiE/lk6jsFLGfD1v22egpK1o2Myx5JZTVhVWQgurEelLlig1TWFnk+oBrYsr4q8Ur749eoLNP1e00tqeArIStRqDAVJDr/H8K7Esng6g0XeadblIw+crx6Qcb0CuoLE4oweTDIAreZWnsc3xV3AbwFTPLSc0CwSFnt7f8g3qqV+r6GJl/kI7Gvb8vN/3HnooFtT/0oyQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQCl8DuzsNM/lRm7zKBPRCScO/bj3MicSqIkN7KxDg1JxfTWBE1L2SyyxH5+eP4t1GBrZOFxZ6l167dc/HQub4SYP3eb/XvjZJJ2MEYWAWiHVf9rD6uFZdXuDvryLyDgWomz5kaULRHuhIjQqxypuMnMAjf5Gq8bIRgHSsP0TKQxeZeoXrtx9aZxrBS4gpnt41v6KqeZGnLdOJY7uNE8mDrFZnOeWDIh2chs/z5zPFLEHkK46TqXmnyKIH7S6/oSmTo0zHSPFWk0XwjhgQMqYRd4ydGesL6hnakiK41nassgOIpZWt1AysqIzH3kNhOo43LL0PA5qD/g1C4boZpW1AS4"
+# PUBLIC_KEY = "MIIDvzCCAqcCFAVhG9nlbXeEi19I2ad0MPUbYhsRMA0GCSqGSIb3DQEBCwUAMIGbMQswCQYDVQQGEwJJTjESMBAGA1UECAwJVGFtaWxuYWR1MRAwDgYDVQQHDAdDaGVubmFpMRYwFAYDVQQKDA1DaXRpemVucHJpbnRzMQswCQYDVQQLDAJJVDEZMBcGA1UEAwwQY2l0aXplbnByaW50ei5pbjEmMCQGCSqGSIb3DQEJARYXY2l0aXplbnByaW50c0BnbWFpbC5jb20wHhcNMjYwMzEwMTE0MDIwWhcNMjcwMzEwMTE0MDIwWjCBmzELMAkGA1UEBhMCSU4xEjAQBgNVBAgMCVRhbWlsbmFkdTEQMA4GA1UEBwwHQ2hlbm5haTEWMBQGA1UECgwNQ2l0aXplbnByaW50czELMAkGA1UECwwCSVQxGTAXBgNVBAMMEGNpdGl6ZW5wcmludHouaW4xJjAkBgkqhkiG9w0BCQEWF2NpdGl6ZW5wcmludHNAZ21haWwuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqppbQSbJSsvHfY1XFc52LyzfD6TOpdlkR/Gr41RNNtKQSgosMrUk249EINxfs81/NQUtCzXl3fdI1ZJXwqWVoJ/cwSnToHAGnX0WyqKnBomXl+yD4tMt2m9KYXkGIx2sKrvQiN9OTebOJGDiE/lk6jsFLGfD1v22egpK1o2Myx5JZTVhVWQgurEelLlig1TWFnk+oBrYsr4q8Ur749eoLNP1e00tqeArIStRqDAVJDr/H8K7Esng6g0XeadblIw+crx6Qcb0CuoLE4oweTDIAreZWnsc3xV3AbwFTPLSc0CwSFnt7f8g3qqV+r6GJl/kI7Gvb8vN/3HnooFtT/0oyQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQCl8DuzsNM/lRm7zKBPRCScO/bj3MicSqIkN7KxDg1JxfTWBE1L2SyyxH5+eP4t1GBrZOFxZ6l167dc/HQub4SYP3eb/XvjZJJ2MEYWAWiHVf9rD6uFZdXuDvryLyDgWomz5kaULRHuhIjQqxypuMnMAjf5Gq8bIRgHSsP0TKQxeZeoXrtx9aZxrBS4gpnt41v6KqeZGnLdOJY7uNE8mDrFZnOeWDIh2chs/z5zPFLEHkK46TqXmnyKIH7S6/oSmTo0zHSPFWk0XwjhgQMqYRd4ydGesL6hnakiK41nassgOIpZWt1AysqIzH3kNhOo43LL0PA5qD/g1C4boZpW1AS4"
+
+
+PUBLIC_KEY = "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"
 SYMMETRIC_KEY = bytes.fromhex(
-    "0c5b95196e8e306eff0b6a9e0d37c878806954401620f2a4a30fbd0f031697e8"
+    "4d7a98982739e508985fdd5a3606bee53a27b3dde8850f7f1b65a2ecda996262"
 )
 
 PRIVATE_KEY_PATH = Path(__file__).resolve().parents[3] / "private_key.pem"  # Adjust path as needed
-CLIENT_IP = "54.206.3.97"
+CLIENT_IP = "103.122.53.71"
 
 
 # ================= SIGN FUNCTION =================
@@ -116,21 +119,22 @@ def decrypt_data(jwe_token: str) -> dict:
     return json.loads(decrypted_payload)
 # ================= CREATE VPA =================
 async def create_vpa(access_token: str) -> Dict:
-
+    # MIDCPRIN01 MID WAS PRODUCTION 
+    # 7338
     #STEP 1: RAW DATA
     request_data = {
-        "mid": "RNFMID0001",
+        "mid": "MIDCPRIN01",
         "channel": "API",
-        "account_number": "120003067568",
-        "mobile_number": "9003088363",
-        "terminalId": "TRDCIP0001",
+        "account_number": "60441010001739",
+        "mobile_number": "7010033232",
+        "terminalId": "TRDCPR0001",
         "name": "Dynamicqrcode",
         "bank_name": "Canara Bank",
-        "mcc": "5411",
+        "mcc": "7338",
         "ifsc_code": "CNRF0016044",
         "checksum": "",
         "additionalNo": " ",
-        "sid": "SIDCIP0001"
+        "sid": "SIDCPR0001"
     }
 
     #STEP 2: SIGN PAYLOAD (PLAIN)
@@ -148,14 +152,14 @@ async def create_vpa(access_token: str) -> Dict:
         ensure_ascii=False
     )
 
-    print("SIGN PAYLOAD: - vpa_service.py:151", payload_str_for_sign)
+    print("SIGN PAYLOAD: - vpa_service.py:152", payload_str_for_sign)
 
     signature = sign_payload(payload_str_for_sign)
-    print("SIGNATURE: - vpa_service.py:154", signature)
+    print("SIGNATURE: - vpa_service.py:155", signature)
 
     # 🔹 STEP 3: ENCRYPT ONLY request_data
     encrypted_string = encrypt_data(request_data)
-    print("ENCRYPTED: - vpa_service.py:158", encrypted_string)
+    print("ENCRYPTED: - vpa_service.py:159", encrypted_string)
 
     # 🔹 STEP 4: FINAL PAYLOAD
     final_payload = {
@@ -167,7 +171,7 @@ async def create_vpa(access_token: str) -> Dict:
     }
 
     payload_str = json.dumps(final_payload, separators=(",", ":"))
-    print("FINAL PAYLOAD: - vpa_service.py:170", payload_str)
+    print("FINAL PAYLOAD: - vpa_service.py:171", payload_str)
 
     #STEP 5: HEADERS
     headers = {
@@ -183,7 +187,7 @@ async def create_vpa(access_token: str) -> Dict:
         "x-forwarded-for": CLIENT_IP,
     }
 
-    print("HEADERS: - vpa_service.py:186", headers)
+    print("HEADERS: - vpa_service.py:187", headers)
 
     #STEP 6: API CALL
     async with httpx.AsyncClient(timeout=60) as client:
@@ -194,23 +198,23 @@ async def create_vpa(access_token: str) -> Dict:
         )
 
     # 🔍 DEBUG RESPONSE
-    print("STATUS: - vpa_service.py:197", response.status_code)
-    print("RAW RESPONSE: - vpa_service.py:198", response.text)
+    print("STATUS: - vpa_service.py:198", response.status_code)
+    print("RAW RESPONSE: - vpa_service.py:199", response.text)
 
     try:
         resp_json = response.json()
 
         encrypted_resp = resp_json["Response"]["body"]["encryptData"]
-        print("ENCRYPTED RESPONSE: - vpa_service.py:204", encrypted_resp)
+        print("ENCRYPTED RESPONSE: - vpa_service.py:205", encrypted_resp)
 
         decrypted_resp = decrypt_data(encrypted_resp)
 
-        print("DECRYPTED RESPONSE: - vpa_service.py:208", decrypted_resp)
+        print("DECRYPTED RESPONSE: - vpa_service.py:209", decrypted_resp)
 
         return decrypted_resp
 
     except Exception as e:
-        print("DECRYPT ERROR: - vpa_service.py:213", str(e))
+        print("DECRYPT ERROR: - vpa_service.py:214", str(e))
         return {
             "status": response.status_code,
             "raw": response.text
@@ -221,9 +225,9 @@ async def vpa_inquiry(access_token: str, batch_id: str) -> Dict:
     # 🔹 STEP 1: REQUEST DATA (ONLY CHANGE FROM CREATE API)
     request_data = {
         "channel": "API",
-        "mid": "RNFMID0001",
-        "terminalId": "TRDCIP0001",
-        "sid": "SIDCIP0001",
+        "mid": "MIDCPRIN01",
+        "terminalId": "TRDCPR0001",
+        "sid": "SIDCPR0001",
         "batch_id": batch_id,
         "checksum": ""
     }
@@ -243,14 +247,14 @@ async def vpa_inquiry(access_token: str, batch_id: str) -> Dict:
         ensure_ascii=False
     )
 
-    print("SIGN PAYLOAD (ENQ): - vpa_service.py:246", payload_str_for_sign)
+    print("SIGN PAYLOAD (ENQ): - vpa_service.py:247", payload_str_for_sign)
 
     signature = sign_payload(payload_str_for_sign)
-    print("SIGNATURE (ENQ): - vpa_service.py:249", signature)
+    print("SIGNATURE (ENQ): - vpa_service.py:250", signature)
 
     # 🔹 STEP 3: ENCRYPT ONLY request_data
     encrypted_string = encrypt_data(request_data)
-    print("ENCRYPTED (ENQ): - vpa_service.py:253", encrypted_string)
+    print("ENCRYPTED (ENQ): - vpa_service.py:254", encrypted_string)
 
     # 🔹 STEP 4: FINAL PAYLOAD
     final_payload = {
@@ -262,7 +266,7 @@ async def vpa_inquiry(access_token: str, batch_id: str) -> Dict:
     }
 
     payload_str = json.dumps(final_payload, separators=(",", ":"))
-    print("FINAL PAYLOAD (ENQ): - vpa_service.py:265", payload_str)
+    print("FINAL PAYLOAD (ENQ): - vpa_service.py:266", payload_str)
 
     # 🔹 STEP 5: HEADERS
     headers = {
@@ -278,7 +282,7 @@ async def vpa_inquiry(access_token: str, batch_id: str) -> Dict:
         "x-forwarded-for": CLIENT_IP,
     }
 
-    print("HEADERS (ENQ): - vpa_service.py:281", headers)
+    print("HEADERS (ENQ): - vpa_service.py:282", headers)
 
     # 🔹 STEP 6: API CALL
     async with httpx.AsyncClient(timeout=60) as client:
@@ -288,24 +292,24 @@ async def vpa_inquiry(access_token: str, batch_id: str) -> Dict:
             content=payload_str
         )
 
-    print("STATUS (ENQ): - vpa_service.py:291", response.status_code)
-    print("RAW RESPONSE (ENQ): - vpa_service.py:292", response.text)
+    print("STATUS (ENQ): - vpa_service.py:292", response.status_code)
+    print("RAW RESPONSE (ENQ): - vpa_service.py:293", response.text)
 
     # 🔹 STEP 7: DECRYPT RESPONSE
     try:
         resp_json = response.json()
 
         encrypted_resp = resp_json["Response"]["body"]["encryptData"]
-        print("ENCRYPTED RESPONSE (ENQ): - vpa_service.py:299", encrypted_resp)
+        print("ENCRYPTED RESPONSE (ENQ): - vpa_service.py:300", encrypted_resp)
 
         decrypted_resp = decrypt_data(encrypted_resp)
 
-        print("DECRYPTED RESPONSE (ENQ): - vpa_service.py:303", decrypted_resp)
+        print("DECRYPTED RESPONSE (ENQ): - vpa_service.py:304", decrypted_resp)
 
         return decrypted_resp
 
     except Exception as e:
-        print("DECRYPT ERROR (ENQ): - vpa_service.py:308", str(e))
+        print("DECRYPT ERROR (ENQ): - vpa_service.py:309", str(e))
         return {
             "status": response.status_code,
             "raw": response.text
@@ -316,18 +320,18 @@ extTransactionId = (
 )[:35]
 
 async def generate_qr(amount: str) -> Dict:
-    print("serive qr serive !!!!!!!!!!!!!!!!!! - vpa_service.py:319",amount)
+    print("serive qr serive !!!!!!!!!!!!!!!!!! - vpa_service.py:320",amount)
     access_token = await get_valid_access_token()
 
-    print("access_token - vpa_service.py:322",access_token)
+    print("access_token - vpa_service.py:323",access_token)
     # 🔹 STEP 1: REQUEST DATA
     request_data = {
     "amount": amount,
     "extTransactionId": extTransactionId,
     "channel": "API",
-    "remark": "QR SIT testing",
-    "source": "RNFMID0001",
-    "terminalId": "TRDCIP0001",
+    "remark": "QR SIT",
+    "source": "MIDCPRIN01",
+    "terminalId": "TRDCPR0001",
     "type": "D",
     "sid": "SIDCIP0001",
     "upiId": "rnf.rnfmid0001.sidcip0001.trdcip0001@cnrf",
@@ -351,14 +355,14 @@ async def generate_qr(amount: str) -> Dict:
         ensure_ascii=False
     )
 
-    print("SIGN PAYLOAD (QR): - vpa_service.py:354", payload_str_for_sign)
+    print("SIGN PAYLOAD (QR): - vpa_service.py:355", payload_str_for_sign)
 
     signature = sign_payload(payload_str_for_sign)
-    print("SIGNATURE (QR): - vpa_service.py:357", signature)
+    print("SIGNATURE (QR): - vpa_service.py:358", signature)
 
     # 🔹 STEP 3: ENCRYPT
     encrypted_string = encrypt_data(request_data)
-    print("ENCRYPTED (QR): - vpa_service.py:361", encrypted_string)
+    print("ENCRYPTED (QR): - vpa_service.py:362", encrypted_string)
 
     # 🔹 STEP 4: FINAL PAYLOAD
     final_payload = {
@@ -370,7 +374,7 @@ async def generate_qr(amount: str) -> Dict:
     }
 
     payload_str = json.dumps(final_payload, separators=(",", ":"))
-    print("FINAL PAYLOAD (QR): - vpa_service.py:373", payload_str)
+    print("FINAL PAYLOAD (QR): - vpa_service.py:374", payload_str)
 
     # 🔹 STEP 5: HEADERS
     headers = {
@@ -386,7 +390,7 @@ async def generate_qr(amount: str) -> Dict:
         "x-forwarded-for": CLIENT_IP,
     }
 
-    print("HEADERS (QR): - vpa_service.py:389", headers)
+    print("HEADERS (QR): - vpa_service.py:390", headers)
 
     # 🔹 STEP 6: API CALL
     async with httpx.AsyncClient(timeout=60) as client:
@@ -396,8 +400,8 @@ async def generate_qr(amount: str) -> Dict:
             content=payload_str
         )
 
-    print("STATUS (QR): - vpa_service.py:399", response.status_code)
-    print("RAW RESPONSE (QR): - vpa_service.py:400", response.text)
+    print("STATUS (QR): - vpa_service.py:400", response.status_code)
+    print("RAW RESPONSE (QR): - vpa_service.py:401", response.text)
 
     # 🔹 STEP 7: DECRYPT RESPONSE
     # 7️⃣ Decrypt response
@@ -473,9 +477,9 @@ async def get_qr_status_rrn(access_token: str, rrn: str) -> Dict:
         request_data = {
             "rrn": rrn,
             "channel": "api",
-            "terminalId": "TRDCIP0001",   # keep same as QR generate
-            "mid": "RNFMID0001",
-            "sid": "SIDCIP0001",
+            "terminalId": "TRDCPR0001",   # keep same as QR generate
+            "mid": "MIDCPRIN01",
+            "sid": "SIDCPR0001",
             "checksum": ""
         }
 
@@ -494,14 +498,14 @@ async def get_qr_status_rrn(access_token: str, rrn: str) -> Dict:
             ensure_ascii=False
         )
 
-        print("SIGN PAYLOAD (QR STATUS): - vpa_service.py:497", payload_str_for_sign)
+        print("SIGN PAYLOAD (QR STATUS): - vpa_service.py:498", payload_str_for_sign)
 
         signature = sign_payload(payload_str_for_sign)
-        print("SIGNATURE (QR STATUS): - vpa_service.py:500", signature)
+        print("SIGNATURE (QR STATUS): - vpa_service.py:501", signature)
 
         # 🔹 STEP 3: ENCRYPT REQUEST DATA
         encrypted_string = encrypt_data(request_data)
-        print("ENCRYPTED (QR STATUS): - vpa_service.py:504", encrypted_string)
+        print("ENCRYPTED (QR STATUS): - vpa_service.py:505", encrypted_string)
 
         # 🔹 STEP 4: FINAL PAYLOAD
         final_payload = {
@@ -513,7 +517,7 @@ async def get_qr_status_rrn(access_token: str, rrn: str) -> Dict:
         }
 
         payload_str = json.dumps(final_payload, separators=(",", ":"))
-        print("FINAL PAYLOAD (QR STATUS): - vpa_service.py:516", payload_str)
+        print("FINAL PAYLOAD (QR STATUS): - vpa_service.py:517", payload_str)
 
         # 🔹 STEP 5: HEADERS
         headers = {
@@ -529,54 +533,54 @@ async def get_qr_status_rrn(access_token: str, rrn: str) -> Dict:
             "x-forwarded-for": CLIENT_IP,
         }
 
-        print("HEADERS (QR STATUS): - vpa_service.py:532", headers)
+        print("HEADERS (QR STATUS): - vpa_service.py:533", headers)
 
         # 🔹 STEP 6: API CALL
         async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(
-                "https://api.canarauat.bank.in/v1/upi/qrstatus-rrn",
+                "https://api.canara.bank.in/v1/upi/qrstatus-rrn",
                 headers=headers,
                 content=payload_str
             )
 
-        print("STATUS (QR STATUS): - vpa_service.py:542", response.status_code)
-        print("RAW RESPONSE (QR STATUS): - vpa_service.py:543", response.text)
+        print("STATUS (QR STATUS): - vpa_service.py:543", response.status_code)
+        print("RAW RESPONSE (QR STATUS): - vpa_service.py:544", response.text)
 
         # 🔹 STEP 7: DECRYPT RESPONSE
         try:
             resp_json = response.json()
 
             encrypted_resp = resp_json["Response"]["body"]["encryptData"]
-            print("ENCRYPTED RESPONSE (QR STATUS): - vpa_service.py:550", encrypted_resp)
+            print("ENCRYPTED RESPONSE (QR STATUS): - vpa_service.py:551", encrypted_resp)
 
             decrypted_resp = decrypt_data(encrypted_resp)
 
-            print("DECRYPTED RESPONSE (QR STATUS): - vpa_service.py:554", decrypted_resp)
+            print("DECRYPTED RESPONSE (QR STATUS): - vpa_service.py:555", decrypted_resp)
 
             return decrypted_resp
 
         except Exception as e:
-            print("DECRYPT ERROR (QR STATUS): - vpa_service.py:559", str(e))
+            print("DECRYPT ERROR (QR STATUS): - vpa_service.py:560", str(e))
             return {
                 "status": response.status_code,
                 "raw": response.text
             }
 
     except Exception as e:
-        print("ERROR (QR STATUS): - vpa_service.py:566", str(e))
+        print("ERROR (QR STATUS): - vpa_service.py:567", str(e))
         return {"error": str(e)}
     
-EXT_TRANSACTION_ID_URL = "https://api.canarauat.bank.in/v1/upi/qrstatus-extid"
+EXT_TRANSACTION_ID_URL = "https://api.canara.bank.in/v1/upi/qrstatus-extid"
 
 
 async def get_qr_status_extid(access_token: str, ext_transaction_id: str) -> Dict:
     try:
         # 🔹 STEP 1: REQUEST DATA
         request_data = {
-            "mid": "RNFMID0001",
+            "mid": "MIDCPRIN01",
             "channel": "api",
-            "sid": "SIDCIP0001",
-            "terminalId": "TRDCIP0001",
+            "sid": "SIDCPR0001",
+            "terminalId": "TRDCPR0001",
             "extTransactionId": ext_transaction_id,
             "checksum": ""
         }
@@ -596,14 +600,14 @@ async def get_qr_status_extid(access_token: str, ext_transaction_id: str) -> Dic
             ensure_ascii=False
         )
 
-        print("SIGN PAYLOAD (EXTID): - vpa_service.py:599", payload_str_for_sign)
+        print("SIGN PAYLOAD (EXTID): - vpa_service.py:600", payload_str_for_sign)
 
         signature = sign_payload(payload_str_for_sign)
-        print("SIGNATURE (EXTID): - vpa_service.py:602", signature)
+        print("SIGNATURE (EXTID): - vpa_service.py:603", signature)
 
         # 🔹 STEP 3: ENCRYPT DATA
         encrypted_string = encrypt_data(request_data)
-        print("ENCRYPTED (EXTID): - vpa_service.py:606", encrypted_string)
+        print("ENCRYPTED (EXTID): - vpa_service.py:607", encrypted_string)
 
         # 🔹 STEP 4: FINAL PAYLOAD
         final_payload = {
@@ -615,7 +619,7 @@ async def get_qr_status_extid(access_token: str, ext_transaction_id: str) -> Dic
         }
 
         payload_str = json.dumps(final_payload, separators=(",", ":"))
-        print("FINAL PAYLOAD (EXTID): - vpa_service.py:618", payload_str)
+        print("FINAL PAYLOAD (EXTID): - vpa_service.py:619", payload_str)
 
         # 🔹 STEP 5: FIX CLIENT SECRET TYPE
         client_secret = (
@@ -638,7 +642,7 @@ async def get_qr_status_extid(access_token: str, ext_transaction_id: str) -> Dic
             "x-forwarded-for": CLIENT_IP,
         }
 
-        print("HEADERS (EXTID): - vpa_service.py:641", headers)
+        print("HEADERS (EXTID): - vpa_service.py:642", headers)
 
         # 🔹 STEP 7: API CALL
         async with httpx.AsyncClient(timeout=60) as client:
@@ -648,35 +652,35 @@ async def get_qr_status_extid(access_token: str, ext_transaction_id: str) -> Dic
                 content=payload_str
             )
 
-        print("STATUS (EXTID): - vpa_service.py:651", response.status_code)
-        print("RAW RESPONSE (EXTID): - vpa_service.py:652", response.text)
+        print("STATUS (EXTID): - vpa_service.py:652", response.status_code)
+        print("RAW RESPONSE (EXTID): - vpa_service.py:653", response.text)
 
         # 🔹 STEP 8: DECRYPT RESPONSE
         try:
             resp_json = response.json()
 
             encrypted_resp = resp_json["Response"]["body"]["encryptData"]
-            print("ENCRYPTED RESPONSE (EXTID): - vpa_service.py:659", encrypted_resp)
+            print("ENCRYPTED RESPONSE (EXTID): - vpa_service.py:660", encrypted_resp)
 
             decrypted_resp = decrypt_data(encrypted_resp)
-            print("DECRYPTED RESPONSE (EXTID): - vpa_service.py:662", decrypted_resp)
+            print("DECRYPTED RESPONSE (EXTID): - vpa_service.py:663", decrypted_resp)
 
             return decrypted_resp
 
         except Exception as e:
-            print("DECRYPT ERROR (EXTID): - vpa_service.py:667", str(e))
+            print("DECRYPT ERROR (EXTID): - vpa_service.py:668", str(e))
             return {
                 "status": response.status_code,
                 "raw": response.text
             }
 
     except Exception as e:
-        print("ERROR (EXTID): - vpa_service.py:674", str(e))
+        print("ERROR (EXTID): - vpa_service.py:675", str(e))
         return {"error": str(e)}
     
 
 
-QR_STATEMENT_URL = "https://api.canarauat.bank.in/v1/upi/qrstmt"
+QR_STATEMENT_URL = "https://api.canara.bank.in/v1/upi/qrstmt"
 
 
 async def get_qr_statement(
@@ -689,8 +693,8 @@ async def get_qr_statement(
     try:
         # STEP 1: REQUEST DATA
         request_data = {
-            "mid": "RNFMID0001",
-            "sid": "SIDCIP0001",
+            "mid": "MIDCPRIN01",
+            "sid": "SIDCPR0001",
             "terminalId": "",  # keep empty or same as configured
             "startDate": start_date,
             "endDate": end_date,
@@ -714,14 +718,14 @@ async def get_qr_statement(
             ensure_ascii=False
         )
 
-        print("SIGN PAYLOAD (QR STMT): - vpa_service.py:717", payload_str_for_sign)
+        print("SIGN PAYLOAD (QR STMT): - vpa_service.py:718", payload_str_for_sign)
 
         signature = sign_payload(payload_str_for_sign)
-        print("SIGNATURE (QR STMT): - vpa_service.py:720", signature)
+        print("SIGNATURE (QR STMT): - vpa_service.py:721", signature)
 
         #STEP 3: ENCRYPT
         encrypted_string = encrypt_data(request_data)
-        print("ENCRYPTED (QR STMT): - vpa_service.py:724", encrypted_string)
+        print("ENCRYPTED (QR STMT): - vpa_service.py:725", encrypted_string)
 
         #STEP 4: FINAL PAYLOAD
         final_payload = {
@@ -733,7 +737,7 @@ async def get_qr_statement(
         }
 
         payload_str = json.dumps(final_payload, separators=(",", ":"))
-        print("FINAL PAYLOAD (QR STMT): - vpa_service.py:736", payload_str)
+        print("FINAL PAYLOAD (QR STMT): - vpa_service.py:737", payload_str)
 
         #STEP 5: FIX CLIENT SECRET TYPE
         client_secret = (
@@ -756,7 +760,7 @@ async def get_qr_statement(
             "x-forwarded-for": CLIENT_IP,
         }
 
-        print("HEADERS (QR STMT): - vpa_service.py:759", headers)
+        print("HEADERS (QR STMT): - vpa_service.py:760", headers)
 
         #STEP 7: API CALL
         async with httpx.AsyncClient(timeout=60) as client:
@@ -766,28 +770,28 @@ async def get_qr_statement(
                 content=payload_str
             )
 
-        print("STATUS (QR STMT): - vpa_service.py:769", response.status_code)
-        print("RAW RESPONSE (QR STMT): - vpa_service.py:770", response.text)
+        print("STATUS (QR STMT): - vpa_service.py:770", response.status_code)
+        print("RAW RESPONSE (QR STMT): - vpa_service.py:771", response.text)
 
         #STEP 8: DECRYPT RESPONSE
         try:
             resp_json = response.json()
 
             encrypted_resp = resp_json["Response"]["body"]["encryptData"]
-            print("ENCRYPTED RESPONSE (QR STMT): - vpa_service.py:777", encrypted_resp)
+            print("ENCRYPTED RESPONSE (QR STMT): - vpa_service.py:778", encrypted_resp)
 
             decrypted_resp = decrypt_data(encrypted_resp)
-            print("DECRYPTED RESPONSE (QR STMT): - vpa_service.py:780", decrypted_resp)
+            print("DECRYPTED RESPONSE (QR STMT): - vpa_service.py:781", decrypted_resp)
 
             return decrypted_resp
 
         except Exception as e:
-            print("DECRYPT ERROR (QR STMT): - vpa_service.py:785", str(e))
+            print("DECRYPT ERROR (QR STMT): - vpa_service.py:786", str(e))
             return {
                 "status": response.status_code,
                 "raw": response.text
             }
 
     except Exception as e:
-        print("ERROR (QR STMT): - vpa_service.py:792", str(e))
+        print("ERROR (QR STMT): - vpa_service.py:793", str(e))
         return {"error": str(e)}

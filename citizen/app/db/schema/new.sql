@@ -130,9 +130,12 @@ CREATE TABLE variant_prices (
 
     min_qty INT NOT NULL,
     max_qty INT,
-
+    custom_qty BOOLEAN DEFAULT FALSE,
     price DECIMAL(10,2) NOT NULL,
-    weight DECIMAL(10,3) DEFAULT 0.0;
+    weight DECIMAL(10,3) DEFAULT 0.0,
+    length DECIMAL(10,2) DEFAULT 0,
+    breadth DECIMAL(10,2) DEFAULT 0,
+    height DECIMAL(10,2) DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     is_deleted BOOLEAN DEFAULT FALSE,
 

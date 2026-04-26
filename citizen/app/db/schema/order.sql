@@ -30,6 +30,13 @@ CREATE TABLE orders (
     user_id VARCHAR(36) NOT NULL,
     cart_id VARCHAR(36) NOT NULL,
     address_id VARCHAR(36),
+    delivery_charge DECIMAL(10,2) DEFAULT 0,
+    courier_id VARCHAR(50),
+    courier_name VARCHAR(100),
+    estimated_delivery_date DATE,
+    delivery_type ENUM('hyperlocal', 'normal') NOT NULL DEFAULT 'normal',
+    payment_method ENUM('COD','PREPAID') NOT NULL,
+    payment_status ENUM('pending','paid') DEFAULT 'pending';
     status VARCHAR(50) DEFAULT 'pending',
     total_amount DECIMAL(10,2) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

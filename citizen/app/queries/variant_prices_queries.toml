@@ -1,20 +1,20 @@
-[variant_prices]
-
 create = """
 INSERT INTO variant_prices (
-    id, variant_id, min_qty, max_qty, price, weight,
+    id, variant_id, min_qty, max_qty, custom_qty, price, weight,
+    length, breadth, height,
     is_active, is_deleted,
     created_at, updated_at
 )
 VALUES (
-    :id, :variant_id, :min_qty, :max_qty, :price, :weight,
+    :id, :variant_id, :min_qty, :max_qty, :custom_qty, :price, :weight,
+    :length, :breadth, :height,
     :is_active, FALSE,
     NOW(), NOW()
 );
 """
 
 get_by_variant = """
-SELECT *    
+SELECT *
 FROM variant_prices
 WHERE variant_id = :variant_id
 AND is_deleted = FALSE

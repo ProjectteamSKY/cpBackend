@@ -8,11 +8,11 @@ from app.core.database import execute, query, query_all
 
 queries = load_queries()
 
-CLIENT_ID="AUx27zglhuuiRxahKUTmpAVEVKuJ3rsr"
-CLIENT_SECRET="B7WgKfGeURXYkEgRA1ZASYRFtUG64SEn"
-TOKEN_URL="https://api.canarauat.bank.in/v1/oauth2/token"
-REFRESH_URL="https://api.canarauat.bank.in/v1/oauth2/refresh-token"
-REDIRECT_URI="http://54.206.3.97/api/bank/oauth-callback"
+CLIENT_ID="HlpU92cKxh4Aq3wwOMttGsyKddgneAl2"
+CLIENT_SECRET="vh8LSH58ZuVCFSNMcAnOxf9lpGth1aNg"
+TOKEN_URL="https://api.canara.bank.in/v1/oauth2/token"
+REFRESH_URL="https://api.canara.bank.in/v1/oauth2/refresh-token"
+REDIRECT_URI="https://api.citizenprintz.in/api/bank/oauth-callback"
 DEFAULT_SCOPE="upi"
 # Temporary token storage
 token_storage = {
@@ -112,7 +112,7 @@ async def generate_access_token(code: str):
         "Authorization": basic_auth(),
         "Content-Type": "application/x-www-form-urlencoded"
     }
-
+    print("TOKEN_URL",TOKEN_URL)
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(TOKEN_URL, data=payload, headers=headers)
 
