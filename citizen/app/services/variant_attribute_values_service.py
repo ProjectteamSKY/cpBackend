@@ -174,40 +174,65 @@ async def get_full_product_details(product_id: str):
     variant_ids = [v["id"] for v in variants]
 
     # -------------------------
-    # ⚠️ Fix for MySQL IN clause
+    # 2. SAFE IN clause
     # -------------------------
-    format_ids = ",".join([f"'{vid}'" for vid in variant_ids])
+    placeholders = ",".join([f":id{i}" for i in range(len(variant_ids))])
+    params = {f"id{i}": vid for i, vid in enumerate(variant_ids)}
+    params["product_id"] = product_id
 
     # -------------------------
-    # 2. Get Attributes
+    # 3. Get Attributes
     # -------------------------
     attribute_rows = await query_all(f"""
         SELECT 
-            vav.variant_id,
-            vav.attribute_id,
+            pa.attribute_id,
             a.name AS attribute_name,
+            pa.sort_order,
+            vav.variant_id,
             vav.attribute_value_id,
             av.value AS attribute_value_name
-        FROM variant_attribute_values vav
-        JOIN attributes a ON vav.attribute_id = a.id
-        JOIN attribute_values av ON vav.attribute_value_id = av.id
-        WHERE vav.variant_id IN ({format_ids})
-        AND vav.is_deleted = FALSE
-    """)
+        FROM product_attributes pa
+        JOIN attributes a 
+            ON pa.attribute_id = a.id
+
+        LEFT JOIN variant_attribute_values vav
+            ON vav.attribute_id = pa.attribute_id
+            AND vav.variant_id IN ({placeholders})
+            AND vav.is_deleted = FALSE
+
+        LEFT JOIN attribute_values av 
+            ON vav.attribute_value_id = av.id
+
+        WHERE pa.product_id = :product_id
+        AND pa.is_deleted = FALSE
+
+        ORDER BY pa.sort_order ASC
+    """, params)
 
     # -------------------------
-    # 3. Get Prices
+    # 4. Get Prices (FIXED)
     # -------------------------
     price_rows = await query_all(f"""
-        SELECT id, variant_id, min_qty, max_qty, price
+        SELECT 
+            id,
+            variant_id,
+            min_qty,
+            max_qty,
+            custom_qty,   
+            price,
+            weight,
+            length,
+            breadth,
+            height,
+            is_active
         FROM variant_prices
-        WHERE variant_id IN ({format_ids})
+        WHERE variant_id IN ({placeholders})
         AND is_deleted = FALSE
         ORDER BY min_qty ASC
-    """)
+    """, params)
 
     # -------------------------
-    # 4. Initialize Variant Map
+    # 5. Initialize Variant Map
     # -------------------------
     variant_map = {
         vid: {
@@ -219,59 +244,80 @@ async def get_full_product_details(product_id: str):
     }
 
     # -------------------------
-    # 5. Group Attributes (🔥 FIX)
+    # 6. Group Attributes
     # -------------------------
     grouped_attrs = defaultdict(lambda: defaultdict(lambda: {
         "attribute_id": "",
         "attribute_name": "",
+        "sort_order": 0,
         "values": []
     }))
 
     for row in attribute_rows:
         vid = row["variant_id"]
+
+        if not vid:
+            continue
+
         aid = row["attribute_id"]
 
         group = grouped_attrs[vid][aid]
-
         group["attribute_id"] = aid
         group["attribute_name"] = row["attribute_name"]
+        group["sort_order"] = row["sort_order"]
 
-        group["values"].append({
-            "attribute_value_id": row["attribute_value_id"],
-            "attribute_value_name": row["attribute_value_name"]
-        })
-
-    # Assign grouped attributes
-    for vid, attrs in grouped_attrs.items():
-        variant_map[vid]["attributes"] = list(attrs.values())
+        if row["attribute_value_id"]:
+            group["values"].append({
+                "attribute_value_id": row["attribute_value_id"],
+                "attribute_value_name": row["attribute_value_name"]
+            })
 
     # -------------------------
-    # 6. Map Prices
+    # 7. Assign Attributes
+    # -------------------------
+    for vid, attrs in grouped_attrs.items():
+
+        sorted_attrs = sorted(
+            attrs.values(),
+            key=lambda x: x["sort_order"]
+        )
+
+        for attr in sorted_attrs:
+            attr.pop("sort_order", None)
+
+        variant_map[vid]["attributes"] = sorted_attrs
+
+    # -------------------------
+    # 8. Map Prices 
     # -------------------------
     for row in price_rows:
         variant_map[row["variant_id"]]["prices"].append({
             "id": row["id"],
             "min_qty": row["min_qty"],
             "max_qty": row["max_qty"],
-            "price": float(row["price"])
+            "custom_qty": bool(row.get("custom_qty", False)),  
+            "price": float(row["price"]),
+
+            "weight": float(row.get("weight") or 0),
+            "length": float(row.get("length") or 0),
+            "breadth": float(row.get("breadth") or 0),
+            "height": float(row.get("height") or 0),
+
+            "is_active": bool(row.get("is_active", True))
         })
 
     # -------------------------
-    # 7. Remove Empty Variants (🔥 CLEAN)
+    # 9. Ensure ALL variants returned
     # -------------------------
-    final_variants = [
-        v for v in variant_map.values()
-        if v["attributes"] or v["prices"]
-    ]
+    final_variants = list(variant_map.values())
 
     # -------------------------
-    # 8. Final Response
+    # 10. Final Response
     # -------------------------
     return {
         "product_id": product_id,
         "variants": final_variants
     }
-
 
 def extract_number(value: str):
     """

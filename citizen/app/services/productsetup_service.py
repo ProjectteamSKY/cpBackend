@@ -126,6 +126,41 @@ async def create_productsetup(data: ProductSetup):
 
     return {"status": "success", "product_id": product_id}
 
+
+import json
+
+def normalize_images(images):
+    """Convert DB image string → clean uniform structure"""
+    if not images:
+        return []
+
+    try:
+        parsed = json.loads(images) if isinstance(images, str) else images
+    except Exception:
+        return []
+
+    normalized = []
+
+    for img in parsed:
+        url = (
+            img.get("url") or
+            (img.get("original") or {}).get("url") or
+            (img.get("mobile") or {}).get("url") or
+            (img.get("thumbnail") or {}).get("url")
+        )
+
+        if url:
+            normalized.append({
+                "id": img.get("id"),
+                "url": url,
+                "is_default": img.get("is_default", False)
+            })
+
+    return normalized
+
+
+
+
 async def get_product_by_id(product_id: str):
     """Fetch product with variants, prices, and discounts"""
 
@@ -140,6 +175,10 @@ async def get_product_by_id(product_id: str):
 
     product_dict = dict(product)
 
+    # ✅ FIX: Normalize images here
+    product_dict["images"] = normalize_images(product_dict.get("images"))
+    product_dict["related_images"] = normalize_images(product_dict.get("related_images"))
+
     # 2️⃣ Fetch variants
     variants = await query_all(
         queries["product_variant"]["get_by_product"],
@@ -151,7 +190,7 @@ async def get_product_by_id(product_id: str):
     for v in variants:
         v_dict = dict(v)
 
-        # 3️⃣ Fetch prices for this variant
+        # 3️⃣ Fetch prices
         prices = await query_all(
             queries["product_variant_price"]["get_by_variant"],
             {"variant_id": v_dict["id"]}
@@ -162,7 +201,7 @@ async def get_product_by_id(product_id: str):
         for p in prices:
             p_dict = dict(p)
 
-            # 4️⃣ Fetch discount if exists
+            # 4️⃣ Fetch discount
             discount_id = p_dict.get("discount_id")
 
             if discount_id:

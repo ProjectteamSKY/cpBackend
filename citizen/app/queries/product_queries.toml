@@ -154,7 +154,7 @@ WHERE id = :id
 AND is_deleted = FALSE;
 """
 
-get_by_subcategory = """
+get_by_sub_category = """
 SELECT 
     p.id AS product_id,
     p.name AS product_name,
@@ -166,34 +166,32 @@ SELECT
     p.images,
     p.related_images,
 
-    v.id AS variant_id,
-    v.size_id,
-    v.paper_type_id,
-    v.print_type_id,
-    v.cut_type_id,
-    v.sides,
-    v.orientation,
+    pvc.id AS combination_id,
+    pvc.sku,
+    pvc.is_active AS combination_is_active,
 
-    vp.id AS variant_price_id,
+    vp.id AS price_id,
+    vp.min_qty,
+    vp.max_qty,
     vp.price,
-    vp.min_qty
+    vp.weight
 
 FROM products p
 
-LEFT JOIN product_variants v 
-    ON v.product_id = p.id
+LEFT JOIN product_variant_combinations pvc
+    ON pvc.product_id = p.id
+    AND pvc.is_deleted = FALSE
 
-LEFT JOIN product_variant_prices vp 
-    ON vp.variant_id = v.id
+LEFT JOIN variant_prices vp
+    ON vp.variant_id = pvc.id
+    AND vp.is_deleted = FALSE
 
 WHERE 
     p.subcategory_id = :subcategory_id
     AND p.is_active = TRUE
-    AND p.is_deleted = FALSE
 
 ORDER BY p.created_at DESC;
 """
-
 
 get_by_subcategory_minimal = """
 SELECT 

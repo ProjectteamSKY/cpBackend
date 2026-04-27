@@ -292,7 +292,7 @@ class ShiprocketClient:
     
     # shiprocket_client.py
     def get_couriers_by_address(
-        self, pickup_postcode, delivery_postcode, weight, cod, declared_value, length=10, breadth=10, height=10
+        self, pickup_postcode, delivery_postcode, weight, cod, declared_value, length, breadth, height
     ):
         """
         Fetch available couriers and rates for a shipment using Shiprocket serviceability API.
@@ -326,12 +326,13 @@ class ShiprocketClient:
         try:
             # Corrected headers call
             resp = requests.get(url, headers=self.headers(), params=params)
+            print("service availablity resp!!!!!!!!!!!!!!!!!!!!! - shiprocket_client.py:329",resp.json())
         except requests.RequestException as e:
             raise Exception(f"Shiprocket request failed: {str(e)}")
 
         # Debug logs
-        print("Shiprocket serviceability response status: - shiprocket_client.py:333", resp.status_code)
-        print("Request URL: - shiprocket_client.py:334", resp.url)
+        print("Shiprocket serviceability response status: - shiprocket_client.py:334", resp.status_code)
+        print("Request URL: - shiprocket_client.py:335", resp.url)
 
         try:
             data = resp.json()
@@ -342,3 +343,100 @@ class ShiprocketClient:
             raise Exception(f"Failed to fetch courier list: {data}")
 
         return data
+
+    # def get_couriers_by_address(
+    #     self,
+    #     pickup_postcode,
+    #     delivery_postcode,
+    #     weight,
+    #     cod,
+    #     declared_value,
+    #     length=10,
+    #     breadth=10,
+    #     height=10
+    # ):
+    #     """
+    #     Fetch available couriers using Shiprocket OPEN serviceability API
+    #     (No auth required)
+    #     """
+
+    #     url = "https://serviceability.shiprocket.in/open/courier/serviceability"
+
+    #     params = {
+    #         "pickup_postcode": pickup_postcode,
+    #         "delivery_postcode": delivery_postcode,
+    #         "weight": 1,
+    #         "cod": 1,
+    #         "declared_value": declared_value,
+    #         "length": length,
+    #         "breadth": breadth,
+    #         "height": height
+    #     }
+
+    #     # ✅ IMPORTANT: mimic browser headers
+    #     headers = {
+    #         "accept": "*/*",
+    #         "origin": "https://www.shiprocket.in",
+    #         "referer": "https://www.shiprocket.in/",
+    #         "user-agent": "Mozilla/5.0"
+    #     }
+
+    #     try:
+    #         resp = requests.get(url, headers=headers, params=params, timeout=10)
+    #         print("service availablity resp!!!!!!!!!!!!!!!!!!!!!",resp.json())
+    #     except requests.RequestException as e:
+    #         raise Exception(f"Shiprocket request failed: {str(e)}")
+
+    #     print("Status:", resp.status_code)
+    #     print("URL:", resp.url)
+
+    #     if resp.status_code != 200:
+    #         raise Exception(f"Failed to fetch courier list: {resp.text}")
+
+    #     try:
+    #         data = resp.json()
+    #     except ValueError:
+    #         raise Exception(f"Invalid JSON response: {resp.text}")
+
+    #     return data
+
+    def get_hyperlocal_couriers(
+        self,
+        pickup_postcode,
+        delivery_postcode,
+        lat_from,
+        long_from,
+        lat_to,
+        long_to,
+        cod
+    ):
+        """
+        Fetch hyperlocal courier availability from Shiprocket
+        """
+
+        self.ensure_token()
+
+        url = f"{BASE_URL}/courier/serviceability"
+        print("hyperlocal @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ cod or prepaid - shiprocket_client.py:420",cod)
+        params = {
+            "pickup_postcode": pickup_postcode,
+            "delivery_postcode": delivery_postcode,
+            "cod": cod,
+            "is_new_hyperlocal": 1,   # 🔥 IMPORTANT
+            "lat_from": lat_from,
+            "long_from": long_from,
+            "lat_to": lat_to,
+            "long_to": long_to
+        }
+
+        try:
+            resp = requests.get(url, headers=self.headers(), params=params)
+            print("HYPERLOCAL RESPONSE: - shiprocket_client.py:434", resp)
+            print("HYPERLOCAL RESPONSE: - shiprocket_client.py:435", resp.json())
+        except requests.RequestException as e:
+            raise Exception(f"Shiprocket request failed: {str(e)}")
+
+        if resp.status_code != 200:
+            raise Exception(f"Hyperlocal API failed: {resp.text}")
+
+        return resp.json()

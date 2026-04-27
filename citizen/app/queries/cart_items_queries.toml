@@ -44,11 +44,29 @@ ORDER BY created_at DESC;
 """
 
 get_by_user_id = """
-SELECT ci.*
+SELECT 
+    ci.*,
+
+    vp.id AS variant_price_id,
+    vp.custom_qty,
+    vp.price,
+    vp.weight,
+    vp.length,
+    vp.breadth,
+    vp.height
+
 FROM cart_items ci
-JOIN carts c ON ci.cart_id = c.id
+
+JOIN carts c 
+    ON ci.cart_id = c.id
+
+LEFT JOIN variant_prices vp 
+    ON ci.variant_price_id = vp.id
+    AND vp.is_deleted = FALSE
+
 WHERE c.user_id = :user_id
 AND ci.status = 'active'
+
 ORDER BY ci.created_at DESC;
 """
 
