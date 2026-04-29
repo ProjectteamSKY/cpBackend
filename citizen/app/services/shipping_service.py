@@ -1441,3 +1441,26 @@ async def is_chennai_surrounding(pincode: str):
         "distance_km": round(distance, 2),
         "radius_km": CHENNAI_RADIUS_KM
     }
+
+
+
+async def get_wallet_balance_service():
+    """
+    Fetch Shiprocket wallet balance
+    """
+    try:
+        response = shiprocket.get_wallet_balance()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Shiprocket wallet fetch failed: {str(e)}")
+
+    # ✅ Correct key mapping
+    balance = response.get("data", {}).get("balance_amount")
+
+    if balance is None:
+        raise HTTPException(status_code=500, detail=f"Invalid wallet response: {response}")
+
+    return {
+        "status": "success",
+        "wallet_balance": float(balance),  # optional: convert to float
+        # "raw": response  # remove in production
+    }

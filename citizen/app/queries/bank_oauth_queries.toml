@@ -2,27 +2,58 @@
 
 upsert_tokens = """
 INSERT INTO bank_oauth_tokens (
-    bank_name, access_token, refresh_token, 
-    expires_at, refresh_expires_at
+    user_id,
+    bank_name,
+    access_token,
+    refresh_token,
+    expires_at,
+    refresh_expires_at
 )
 VALUES (
-    :bank_name, :access_token, :refresh_token,
-    :expires_at, :refresh_expires_at
+    :user_id,
+    :bank_name,
+    :access_token,
+    :refresh_token,
+    :expires_at,
+    :refresh_expires_at
 )
 ON DUPLICATE KEY UPDATE
     access_token = VALUES(access_token),
     refresh_token = VALUES(refresh_token),
     expires_at = VALUES(expires_at),
-    refresh_expires_at = VALUES(refresh_expires_at);
+    refresh_expires_at = VALUES(refresh_expires_at),
+    updated_at = CURRENT_TIMESTAMP;
 """
 
 
 get_tokens = """
 SELECT 
+    user_id,
     access_token,
     refresh_token,
     expires_at,
     refresh_expires_at
 FROM bank_oauth_tokens
 WHERE bank_name = :bank_name;
+"""
+
+get_valid_access_token = """
+SELECT access_token
+FROM bank_oauth_tokens
+WHERE bank_name = :bank_name
+AND user_id = :user_id
+AND expires_at > NOW();
+"""
+
+get_refresh_token = """
+SELECT refresh_token
+FROM bank_oauth_tokens
+WHERE bank_name = :bank_name
+AND user_id = :user_id;
+"""
+
+delete_tokens = """
+DELETE FROM bank_oauth_tokens
+WHERE bank_name = :bank_name
+AND user_id = :user_id;
 """

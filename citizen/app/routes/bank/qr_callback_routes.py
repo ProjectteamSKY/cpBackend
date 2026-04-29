@@ -1,28 +1,44 @@
-from fastapi import APIRouter, Request
+# from fastapi import APIRouter, HTTPException, Request
+
+
+# router = APIRouter()
+
+# @router.post("/upi-callback")
+# async def qr_callback(request: Request):
+#     try:
+#         payload = await request.json()
+
+#         result = await process_qr_callback(payload)
+
+#         # ✅ Always send ACK to bank
+#         return {
+#             "Response": result
+#         }
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
+
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import PlainTextResponse
+import json
+from app.services.bank_services.vpa_service import process_qr_callback
+
 
 router = APIRouter()
 
-@router.post("/api/qr-callback")
+@router.post("/upi-callback")   # ⚠️ MUST be POST (not GET)
 async def qr_callback(request: Request):
+    try:
+        body = await request.json()
+        print("RAW CALLBACK: - qr_callback_routes.py:34", body)
 
-    payload = await request.json()
+        # 👉 call service
+        await process_qr_callback(body)
 
-    encryptData = payload.get("Request", {}).get("body", {}).get("encryptData", {})
+        # 👉 NPCI / Bank expects THIS EXACT RESPONSE
+        return PlainTextResponse("200_OK", status_code=200)
 
-    extTransactionId = encryptData.get("extTransactionId")
-    status = encryptData.get("status")
-    amount = encryptData.get("amount")
-    rrn = encryptData.get("rrn")
-    customer_vpa = encryptData.get("customer_vpa")
-
-    # Example: update order payment status in DB
-    print("Transaction ID: - qr_callback_routes.py:19", extTransactionId)
-    print("Status: - qr_callback_routes.py:20", status)
-    print("RRN: - qr_callback_routes.py:21", rrn)
-    print("Amount: - qr_callback_routes.py:22", amount)
-
-    if status == "SUCCESS":
-        # update order as PAID
-        pass
-
-    return {"Response": "200_OK"}
+    except Exception as e:
+        print("Callback Error: - qr_callback_routes.py:43", str(e))
+        raise HTTPException(status_code=400, detail=str(e))

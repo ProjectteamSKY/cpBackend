@@ -97,17 +97,14 @@ router = APIRouter()
 
 
 @router.get("/oauth-callback")
-async def oauth_callback(code: str):
-    try:
-        data = await generate_access_token(code)
+async def oauth_callback(code: str, user_id: str):
 
-        return {
-            "message": "Token generated",
-            "data": data
-        }
+    data = await generate_access_token(code, user_id)
 
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return {
+        "message": "Token generated",
+        "data": data
+    }
 
 
 # ✅ GET TOKEN

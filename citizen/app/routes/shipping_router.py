@@ -12,7 +12,8 @@ from app.services.shipping_service import (
     refund_order_service,
     couriers_service,
     hyperlocal_couriers_service,
-    is_chennai_surrounding
+    is_chennai_surrounding,
+    get_wallet_balance_service
 )
 from app.integrations.shiprocket_client import ShiprocketClient
 
@@ -100,7 +101,7 @@ async def get_available_couriers(
     declared_value: float,
     cod: int,
 ):
-    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:103")
+    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:104")
 
     return await couriers_service(
         pickup_postcode,
@@ -120,7 +121,7 @@ async def get_hyperlocal_couriers(
     delivery_postcode: str,
     cod: int,
 ):
-    print("🔥 HYPERLOCAL SERVICEABILITY API CALLED - shipping_router.py:123")
+    print("🔥 HYPERLOCAL SERVICEABILITY API CALLED - shipping_router.py:124")
 
     return await hyperlocal_couriers_service(
         pickup_postcode=pickup_postcode,
@@ -131,3 +132,7 @@ async def get_hyperlocal_couriers(
 @router.get("/hyperlocal/check")
 async def check_chennai_area(pincode: str):
     return await is_chennai_surrounding(pincode)    
+
+@router.get("/wallet-balance")
+async def get_wallet_balance():
+    return await get_wallet_balance_service()

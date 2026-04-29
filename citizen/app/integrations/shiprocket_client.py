@@ -440,3 +440,28 @@ class ShiprocketClient:
             raise Exception(f"Hyperlocal API failed: {resp.text}")
 
         return resp.json()
+    
+    def get_wallet_balance(self):
+        """
+        Fetch Shiprocket wallet balance
+        """
+        self.ensure_token()
+
+        url = f"{BASE_URL}/account/details/wallet-balance"
+
+        response = requests.get(
+            url,
+            headers={**self.headers(), "Content-Type": "application/json"}
+        )
+
+        try:
+            data = response.json()
+        except Exception:
+            raise Exception(f"Invalid JSON response: {response.text}")
+
+        print("Wallet Balance Response: - shiprocket_client.py:462", data)
+
+        if response.status_code != 200:
+            raise Exception(f"Failed to fetch wallet balance: {data}")
+
+        return data

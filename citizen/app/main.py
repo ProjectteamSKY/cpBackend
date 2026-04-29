@@ -247,7 +247,7 @@ def custom_openapi():
         "/api/wishlist_routes/user/{user_id}",
         "/api/bank/qr-generate",
         "/api/bank/qr-image",
-        "/api/bank/api/qr-callback",
+        "/api/bank/api/upi-callback",
         "/api/review/create",
         "/api/review/{id}",
         "/api/review/{id}",

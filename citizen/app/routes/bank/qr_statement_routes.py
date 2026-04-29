@@ -36,7 +36,7 @@ class QRStatementRequest(BaseModel):
     startDate: Optional[str] = None
     endDate: Optional[str] = None
     pageSize: str = "5"
-    pageNo: str = "1"
+    pageNo: str = "0"
     access_token: str
 
 

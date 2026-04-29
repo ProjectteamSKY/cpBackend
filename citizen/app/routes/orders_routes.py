@@ -16,7 +16,8 @@ from app.services.orders_service import (
     get_orders_summary,
     get_monthly_revenue,
     get_top_products,
-    get_recent_orders
+    get_recent_orders,
+    cancel_order
 )
 from app.core.database import query_all
 
@@ -326,3 +327,9 @@ async def get_user_orders_endpoint(user_id: str):
         raise HTTPException(status_code=400, detail=str(e))
     
 
+@router.put("/{order_id}/cancel")
+async def cancel_order_endpoint(order_id: str):
+    try:
+        return await cancel_order(order_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

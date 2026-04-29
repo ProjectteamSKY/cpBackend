@@ -1014,3 +1014,76 @@ async def generate_order_number():
     number = int(last.split("-")[-1]) + 1
 
     return f"ORD-{year}-{number:04d}"
+
+CANCEL_BLOCKED_STATUSES = [
+    "printing",
+    "packed",
+    "shipment",
+    "delivery"
+]
+
+async def update_order_status(order_id: str, new_status: str):
+    order = await get_order_by_id(order_id)
+
+    if not order:
+        raise Exception("Order not found")
+
+    current_status = order["status"]
+
+    # ❌ Prevent updates if cancelled
+    if current_status == "cancelled":
+        raise Exception("Cancelled orders cannot be updated")
+
+    allowed = ORDER_STATUS_FLOW.get(current_status, [])
+
+    if new_status not in allowed:
+        raise Exception(f"Invalid status transition: {current_status} → {new_status}")
+
+    await execute(
+        "UPDATE orders SET status = :status, updated_at = NOW() WHERE id = :id",
+        {"status": new_status, "id": order_id},
+    )
+
+    return {
+        "order_id": order_id,
+        "old_status": current_status,
+        "new_status": new_status,
+    }
+
+
+async def cancel_order(order_id: str):
+    order = await get_order_by_id(order_id)
+
+    if not order:
+        raise Exception("Order not found")
+
+    current_status = order["status"]
+
+    # ❌ Block cancel after printing starts
+    if current_status in CANCEL_BLOCKED_STATUSES:
+        raise Exception(
+            f"Cannot cancel order after printing started (current: {current_status})"
+        )
+
+    # ✔ Already cancelled check
+    if current_status == "cancelled":
+        return {
+            "order_id": order_id,
+            "status": "already_cancelled"
+        }
+
+    await execute(
+        """
+        UPDATE orders
+        SET status = 'cancelled',
+            updated_at = NOW()
+        WHERE id = :id
+        """,
+        {"id": order_id}
+    )
+
+    return {
+        "order_id": order_id,
+        "old_status": current_status,
+        "new_status": "cancelled"
+    }

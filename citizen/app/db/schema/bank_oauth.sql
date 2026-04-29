@@ -14,4 +14,4 @@ CREATE TABLE bank_oauth_tokens (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     UNIQUE KEY unique_user_bank (user_id, bank_name)
-);
+);  

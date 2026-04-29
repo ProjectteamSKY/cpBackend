@@ -1,0 +1,54 @@
+[transactions]
+
+create = """
+INSERT INTO transactions (
+    order_id,
+    ext_transaction_id,
+    amount,
+    status,
+    qr_string,
+    created_at,
+    updated_at
+)
+VALUES (%s, %s, %s, %s, %s, %s, %s)
+ON DUPLICATE KEY UPDATE
+    qr_string = VALUES(qr_string),
+    status = VALUES(status),
+    amount = VALUES(amount),
+    updated_at = NOW();
+"""
+
+get_all = """
+SELECT *
+FROM transactions
+ORDER BY created_at DESC;
+"""
+
+get_by_ext_id = """
+SELECT *
+FROM transactions
+WHERE ext_transaction_id = %s;
+"""
+
+update = """
+UPDATE transactions
+SET qr_string = %s,
+    updated_at = NOW()
+WHERE ext_transaction_id = %s;
+"""
+
+update_status = """
+UPDATE transactions
+SET status = %s,
+    paid_at = CASE 
+        WHEN %s = 'SUCCESS' THEN NOW()
+        ELSE paid_at
+    END,
+    updated_at = NOW()
+WHERE ext_transaction_id = %s;
+"""
+
+delete = """
+DELETE FROM transactions
+WHERE ext_transaction_id = %s;
+"""
