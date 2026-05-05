@@ -31,6 +31,7 @@ from app.routes import product_attribute_router
 from app.routes import product_variant_combinations_routes
 from app.routes import variant_attribute_value_router
 from app.routes import variant_price_router
+from app.routes import transaction_routes
 
 
 
@@ -58,7 +59,6 @@ from app.routes import review_routes
 from app.routes import faq_router
 from app.routes import design_request_routes
 from app.routes import customer_erp
-
 
 
 
@@ -421,6 +421,7 @@ api_router.include_router(oauth_routes.router, prefix="/bank", tags=["Bank OAuth
 api_router.include_router(review_routes.router, prefix="/review", tags=["review"])
 api_router.include_router(faq_router.router, prefix="/faq", tags=["faq"])
 api_router.include_router(design_request_routes.router, prefix="/design_request", tags=["design_request"])
+api_router.include_router(transaction_routes.router, prefix="/transactions", tags=["Transactions"])
 
 
 # Include ERP customer routes

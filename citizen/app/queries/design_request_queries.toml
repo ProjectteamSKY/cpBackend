@@ -10,6 +10,8 @@ INSERT INTO design_requests (
     logo_images,
     designed_images,
     status, is_approved, design_price,
+    revision_count,
+    rejection_reason,
     created_at, updated_at
 )
 VALUES (
@@ -21,6 +23,8 @@ VALUES (
     :logo_images,
     :designed_images,
     :status, :is_approved, :design_price,
+    :revision_count,
+    :rejection_reason,
     :created_at, :updated_at
 );
 """
@@ -44,8 +48,7 @@ ORDER BY created_at DESC;
 
 update = """
 UPDATE design_requests
-SET {set_clause},
-    updated_at = NOW()
+SET {set_clause}
 WHERE id = :id;
 """
 

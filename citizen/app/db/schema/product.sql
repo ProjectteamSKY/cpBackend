@@ -32,72 +32,6 @@ CREATE TABLE subcategories (
         ON DELETE CASCADE
 );
 
-
--- =========================================================
--- PAPER TYPE
--- =========================================================
-CREATE TABLE paper_types (
-    id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL,
-    gsm FLOAT DEFAULT 300,
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    is_deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
--- =========================================================
--- PRINT TYPE
--- =========================================================
-CREATE TABLE print_types (
-    id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL,
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    is_deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
--- =========================================================
--- CUT TYPE
--- =========================================================
-CREATE TABLE cut_types (
-    id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL,
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    is_deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
-
-
-
--- =========================================================
--- SIZE
--- =========================================================
-CREATE TABLE sizes (
-    id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    width FLOAT NOT NULL,
-    height FLOAT NOT NULL,
-    unit VARCHAR(10) DEFAULT 'mm',
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    is_deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT uq_size_dimensions UNIQUE (width, height)
-);
-
-
 -- =========================================================
 -- PRODUCT
 -- =========================================================
@@ -133,55 +67,6 @@ CREATE TABLE products (
         ON DELETE SET NULL
 );
 
-
--- =========================================================
--- PRODUCT VARIANT
--- =========================================================
-CREATE TABLE product_variants (
-    id VARCHAR(36) PRIMARY KEY,
-
-    product_id VARCHAR(36) NOT NULL,
-    size_id VARCHAR(36) NOT NULL,
-
-    paper_type_id VARCHAR(36),
-    print_type_id VARCHAR(36),
-    cut_type_id VARCHAR(36),
-
-    sides INT,
-    two_side_cut BOOLEAN DEFAULT FALSE,
-    four_side_cut BOOLEAN DEFAULT FALSE,
-
-    orientation VARCHAR(20) DEFAULT 'Portrait',
-
-    is_active BOOLEAN DEFAULT TRUE,
-    is_deleted BOOLEAN DEFAULT FALSE,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_variant_product
-        FOREIGN KEY (product_id)
-        REFERENCES products(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_variant_size
-        FOREIGN KEY (size_id)
-        REFERENCES sizes(id),
-
-    CONSTRAINT fk_variant_paper
-        FOREIGN KEY (paper_type_id)
-        REFERENCES paper_types(id),
-
-    CONSTRAINT fk_variant_print
-        FOREIGN KEY (print_type_id)
-        REFERENCES print_types(id),
-
-    CONSTRAINT fk_variant_cut
-        FOREIGN KEY (cut_type_id)
-        REFERENCES cut_types(id)
-
-);
-
 -- =====================================================
 -- PRODUCT DISCOUNT
 -- =====================================================
@@ -206,18 +91,70 @@ CREATE TABLE product_discounts (
 );  
 
 
--- =========================================================
--- PRODUCT VARIANT PRICES (with optional discount FK)
--- =========================================================
-CREATE TABLE product_variant_prices (
-    id VARCHAR(36) PRIMARY KEY,
 
-    variant_id VARCHAR(36) NOT NULL,
-    discount_id VARCHAR(36) NULL,  -- optional FK to product_discounts
 
-    min_qty INT NOT NULL,
-    
-    price FLOAT NOT NULL,
+CREATE TABLE product_attributes (
+    id CHAR(36) PRIMARY KEY,
+
+    product_id CHAR(36) NOT NULL,
+    attribute_id CHAR(36) NOT NULL,
+
+    is_required BOOLEAN DEFAULT TRUE,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
+
+    sort_order INT DEFAULT 0,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- ✅ Prevent duplicate active mappings
+    UNIQUE(product_id, attribute_id, is_deleted),   
+
+    CONSTRAINT fk_pa_product
+        FOREIGN KEY (product_id)
+        REFERENCES products(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_pa_attribute
+        FOREIGN KEY (attribute_id)
+        REFERENCES attributes(id)
+        ON DELETE CASCADE
+);
+
+-- ✅ Indexes (VERY IMPORTANT)
+CREATE INDEX idx_pa_product ON product_attributes(product_id);
+CREATE INDEX idx_pa_attribute ON product_attributes(attribute_id);
+
+
+CREATE TABLE product_variant_combinations (
+    id CHAR(36) PRIMARY KEY,
+
+    product_id CHAR(36) NOT NULL,
+    sku VARCHAR(100) UNIQUE,
+
+    is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_pvc_product
+        FOREIGN KEY (product_id)
+        REFERENCES products(id)
+        ON DELETE CASCADE
+);
+
+-- ✅ Indexes
+CREATE INDEX idx_pvc_product ON product_variant_combinations(product_id);
+CREATE INDEX idx_pvc_sku ON product_variant_combinations(sku);
+
+CREATE TABLE variant_attribute_values (
+    id CHAR(36) PRIMARY KEY,
+
+    variant_id CHAR(36) NOT NULL,
+    attribute_id CHAR(36) NOT NULL,
+    attribute_value_id CHAR(36) NOT NULL,
 
     is_active BOOLEAN DEFAULT TRUE,
     is_deleted BOOLEAN DEFAULT FALSE,
@@ -225,18 +162,50 @@ CREATE TABLE product_variant_prices (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    -- FK to product_variant
-    CONSTRAINT fk_variantprice_variant
+    -- ✅ IMPORTANT FIX (allow multiple values per attribute)
+    UNIQUE(variant_id, attribute_id, attribute_value_id),
+
+    CONSTRAINT fk_vav_variant
         FOREIGN KEY (variant_id)
-        REFERENCES product_variants(id)
+        REFERENCES product_variant_combinations(id)
         ON DELETE CASCADE,
 
-    -- FK to product_discounts
-    CONSTRAINT fk_variantprice_discount
-        FOREIGN KEY (discount_id)
-        REFERENCES product_discounts(id)
-        ON DELETE SET NULL,
+    CONSTRAINT fk_vav_attr
+        FOREIGN KEY (attribute_id)
+        REFERENCES attributes(id),
 
-    -- Unique constraint for quantity ranges per variant
-    CONSTRAINT uq_variant_qty UNIQUE (variant_id, min_qty)
+    CONSTRAINT fk_vav_value
+        FOREIGN KEY (attribute_value_id)
+        REFERENCES attribute_values(id)
+);
+
+CREATE INDEX idx_vav_variant ON variant_attribute_values(variant_id);
+CREATE INDEX idx_vav_attribute ON variant_attribute_values(attribute_id);
+CREATE INDEX idx_vav_value ON variant_attribute_values(attribute_value_id);
+
+
+CREATE TABLE variant_prices (
+    id VARCHAR(36) PRIMARY KEY,
+
+    variant_id VARCHAR(36) NOT NULL,
+
+    min_qty INT NOT NULL,
+    max_qty INT,
+    custom_qty BOOLEAN DEFAULT FALSE,
+    price DECIMAL(10,2) NOT NULL,
+    weight DECIMAL(10,3) DEFAULT 0.0,
+    length DECIMAL(10,2) DEFAULT 0,
+    breadth DECIMAL(10,2) DEFAULT 0,
+    height DECIMAL(10,2) DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_price_variant
+        FOREIGN KEY (variant_id)
+        REFERENCES product_variant_combinations(id)
+        ON DELETE CASCADE,
+
 );

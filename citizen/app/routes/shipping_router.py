@@ -13,7 +13,10 @@ from app.services.shipping_service import (
     couriers_service,
     hyperlocal_couriers_service,
     is_chennai_surrounding,
-    get_wallet_balance_service
+    get_wallet_balance_service,
+    get_pickup_locations_service,
+    get_manifest_label_service,
+    get_invoice_service
 )
 from app.integrations.shiprocket_client import ShiprocketClient
 
@@ -101,7 +104,7 @@ async def get_available_couriers(
     declared_value: float,
     cod: int,
 ):
-    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:104")
+    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:107")
 
     return await couriers_service(
         pickup_postcode,
@@ -121,7 +124,7 @@ async def get_hyperlocal_couriers(
     delivery_postcode: str,
     cod: int,
 ):
-    print("🔥 HYPERLOCAL SERVICEABILITY API CALLED - shipping_router.py:124")
+    print("🔥 HYPERLOCAL SERVICEABILITY API CALLED - shipping_router.py:127")
 
     return await hyperlocal_couriers_service(
         pickup_postcode=pickup_postcode,
@@ -136,3 +139,18 @@ async def check_chennai_area(pincode: str):
 @router.get("/wallet-balance")
 async def get_wallet_balance():
     return await get_wallet_balance_service()
+
+
+@router.get("/pickup-locations")
+async def get_pickup_locations():
+    return await get_pickup_locations_service()
+
+
+@router.get("/manifest-label")
+async def get_manifest_label(order_id: str):
+    return await get_manifest_label_service(order_id)
+
+
+@router.get("/invoice")
+async def get_invoice(order_id: str):
+    return await get_invoice_service(order_id)

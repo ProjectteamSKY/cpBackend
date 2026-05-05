@@ -18,7 +18,8 @@ CREATE TABLE design_requests (
     design_notes TEXT,
     logo_images JSON,
     designed_images JSON,
-
+    revision_count INT DEFAULT 0,
+    rejection_reason TEXT,
     status VARCHAR(30) DEFAULT 'NEW',
     is_approved BOOLEAN DEFAULT FALSE,
     design_price DECIMAL(10,2),

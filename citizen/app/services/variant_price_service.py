@@ -111,7 +111,34 @@ async def delete_variant_price(id: str):
     )
     return {"id": id}
 
+async def get_variant_price_by_id(variant_price_id: str):
+    """
+    Fetch a single variant price by ID with full validation.
+    """
 
+    row = await query(
+        """
+        SELECT *
+        FROM variant_prices
+        WHERE id = :id
+        AND is_deleted = FALSE
+        """,
+        {"id": variant_price_id}
+    )
+
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Variant price not found: {variant_price_id}"
+        )
+
+    if not row.get("is_active"):
+        raise HTTPException(
+            status_code=400,
+            detail="Variant price is inactive"
+        )
+
+    return row
 # -------------------------
 # CALCULATE PRICE
 # -------------------------

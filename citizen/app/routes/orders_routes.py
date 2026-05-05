@@ -1,6 +1,8 @@
-from typing import Optional, List
+import json
+from typing import Any, Dict, Optional, List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from pydantic import Field     
 
 from app.services.orders_service import (
     checkout,
@@ -39,18 +41,30 @@ class OrderUpdate(BaseModel):
     total_amount: Optional[float] = None
     address_id: Optional[str] = None
     status: Optional[str] = None
+    
+class OrderItemFile(BaseModel):
+    front_side_url: Optional[str] = None
+    back_side_url: Optional[str] = None
+    front_original_name: Optional[str] = None
+    back_original_name: Optional[str] = None
 
 
 class OrderItemResponse(BaseModel):
-    id: str   # ✅ UUID
+    id: str
     product_id: str
+    product_name: Optional[str] = None
     variant_id: str
     quantity: int
     unit_price: float
     total_price: float
 
+    selected_attributes: List[Dict[str, Any]] = Field(default_factory=list)  # ✅
+    files: List[OrderItemFile] = Field(default_factory=list)                # ✅
+
 class AddressResponse(BaseModel):
+    name: Optional[str] = None              # ✅ added
     address: str
+    landmark: Optional[str] = None          # ✅ added
     city: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = None
@@ -60,9 +74,12 @@ class AddressResponse(BaseModel):
 
 class UserResponse(BaseModel):
     id: str
-    username: str
+    username: Optional[str] = None          # ✅ match API (you use name/full_name)
     email: Optional[str] = None
     phone: Optional[str] = None
+
+
+
 
 
 class ShipmentResponse(BaseModel):
@@ -76,15 +93,26 @@ class ShipmentResponse(BaseModel):
     delivered_at: Optional[str] = None
 
 
+
 class OrderTrackingResponse(BaseModel):
     id: str
     status: str
+
+    payment_method: Optional[str] = None
+    payment_status: Optional[str] = None
+    delivery_type: Optional[str] = None
+
     total_amount: float
+    delivery_charge: Optional[float] = 0
+
     created_at: str
     updated_at: str
+
     user: UserResponse
     address: Optional[AddressResponse] = None
-    items: List[OrderItemResponse] = []
+
+    items: List[OrderItemResponse] = Field(default_factory=list)  # ✅
+
     shipment: Optional[ShipmentResponse] = None
 
 
@@ -110,6 +138,60 @@ class CheckoutRequest(BaseModel):
 class OrderStatusUpdate(BaseModel):
     status: str
 
+def normalize_selected_attributes(value):
+    """
+    Always returns List[Dict[str, Any]]
+    Enforces consistent structure
+    """
+    try:
+        if value is None:
+            return []
+
+        # string → JSON
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except:
+                return []
+
+        # dict → convert to list
+        if isinstance(value, dict):
+            return [
+                {
+                    "attribute_name": str(k),
+                    "attribute_value_name": str(v)
+                }
+                for k, v in value.items()
+            ]
+
+        # list → normalize each item
+        if isinstance(value, list):
+            normalized = []
+
+            for item in value:
+                if not isinstance(item, dict):
+                    continue
+
+                # NEW FORMAT (correct)
+                if "attribute_name" in item and "attribute_value_name" in item:
+                    normalized.append({
+                        "attribute_name": str(item.get("attribute_name")),
+                        "attribute_value_name": str(item.get("attribute_value_name"))
+                    })
+
+                # OLD FORMAT (key/value)
+                elif "key" in item and "value" in item:
+                    normalized.append({
+                        "attribute_name": str(item.get("key")),
+                        "attribute_value_name": str(item.get("value"))
+                    })
+
+            return normalized
+
+        return []
+
+    except Exception:
+        return []
 
 # CHECKOUT
 @router.post("/checkout")
@@ -140,43 +222,38 @@ async def track_orders():
     response = []
 
     for o in orders:
-        # Correct JOIN query
-        items_with_files = await query_all("""
-            SELECT 
-                oi.*, 
-                oif.front_side_url, 
-                oif.back_side_url, 
-                oif.front_original_name,
-                oif.back_original_name
-            FROM order_items oi
-            LEFT JOIN order_item_files oif 
-                ON oi.id = oif.order_item_id
-            WHERE oi.order_id = :order_id
-            ORDER BY oi.id
-        """, {"order_id": o["id"]})
-
-        # Group items
+        items_raw = await get_order_items(o["id"])
         items_dict = {}
 
-        for item in items_with_files:
+        for item in items_raw:
             item_id = item["id"]
 
+            # ✅ SAFE NORMALIZATION
+            selected_attributes = normalize_selected_attributes(
+                item.get("selected_attributes")
+            )
+
+            # ✅ GROUP ITEMS
             if item_id not in items_dict:
                 items_dict[item_id] = {
                     "id": item["id"],
                     "product_id": item["product_id"],
+                    "product_name": item.get("product_name"),
                     "variant_id": item["variant_id"],
                     "quantity": item["quantity"],
-
-                    # FIXED COLUMN NAMES
                     "unit_price": float(item["unit_price"]),
                     "total_price": float(item["total_price"]),
-
+                    "selected_attributes": selected_attributes if isinstance(selected_attributes, list) else [],
                     "files": []
                 }
 
-            #  Safe file handling
-            if item.get("front_side_url") or item.get("back_side_url"):
+            # ✅ SAFE FILE HANDLING
+            if any([
+                item.get("front_side_url"),
+                item.get("back_side_url"),
+                item.get("front_original_name"),
+                item.get("back_original_name")
+            ]):
                 items_dict[item_id]["files"].append({
                     "front_side_url": item.get("front_side_url"),
                     "back_side_url": item.get("back_side_url"),
@@ -184,47 +261,54 @@ async def track_orders():
                     "back_original_name": item.get("back_original_name"),
                 })
 
-        items_list = list(items_dict.values())
+        # ✅ GUARANTEE LIST
+        items_list = list(items_dict.values()) if items_dict else []
 
-        # Final response
         response.append({
             "id": o["id"],
             "status": o["status"],
+            "payment_method": o.get("payment_method"),
+            "payment_status": o.get("payment_status"),
+            "delivery_type": o.get("delivery_type"),
+
             "total_amount": float(o["total_amount"]),
+            "delivery_charge": float(o.get("delivery_charge") or 0),
+
             "created_at": str(o["created_at"]),
             "updated_at": str(o["updated_at"]),
 
             "user": {
                 "id": o["user_id"],
-                "username": o.get("username", "N/A"),
+                "username": o.get("full_name"),
                 "email": o.get("email"),
-                "phone": o.get("phone") or o.get("user_phone"),
+                "phone": o.get("user_phone"),
             },
 
             "address": (
                 {
+                    "name": None,
                     "address": o.get("address_line"),
+                    "landmark": o.get("landmark"),
                     "city": o.get("city"),
                     "state": o.get("state"),
                     "country": o.get("country"),
                     "postal_code": o.get("postal_code"),
-                    "phone": o.get("phone") or o.get("address_phone"),
+                    "phone": o.get("address_phone"),
                 }
                 if o.get("address_line")
                 else None
             ),
 
-            "items": items_list,
+            "items": items_list,  # ✅ ALWAYS LIST
 
             "shipment": (
                 {
                     "awb_code": o.get("awb_code"),
-                    "courier_name": o.get("courier_name"),
+                    "courier_name": o.get("shipment_courier"),
                     "freight_charges": float(o["freight_charges"]) if o.get("freight_charges") else None,
                     "tracking_url": o.get("tracking_url"),
-                    "label_url": o.get("label_url"),
-                    "current_status": o.get("current_status"),
                     "pickup_status": o.get("pickup_status"),
+                    "current_status": o.get("current_status"),
                     "delivered_at": str(o["delivered_at"]) if o.get("delivered_at") else None,
                 }
                 if o.get("awb_code")

@@ -1,3 +1,4 @@
+import base64
 from typing import Dict
 
 from fastapi import APIRouter, HTTPException, Query
@@ -11,20 +12,25 @@ async def qr_generate_api(
     amount: str = Query(..., description="Payment amount"),
 ):
     try:
-        print("@@@@@@@@@@@@@@@@@@@@@@@@@ qr api calling correctly - qr_generation_routes.py:14")
-        
-        # Call the QR generation service
         result: Dict = await generate_qr(amount=amount)
-        
+
         qr_image = result.get("qr_image")
-        if not qr_image:
-            raise HTTPException(status_code=500, detail="QR image generation failed")
-        
-        # Return QR image as StreamingResponse
-        return StreamingResponse(qr_image, media_type="image/png")
+        txn_id = result.get("transaction_id")
+
+        if not qr_image or not txn_id:
+            raise HTTPException(status_code=500, detail="QR generation failed")
+
+        # ✅ Convert image → base64
+        qr_base64 = base64.b64encode(qr_image.getvalue()).decode()
+
+        return {
+            "transaction_id": txn_id,
+            "qr_image": qr_base64
+        }
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 from pydantic import BaseModel
 
@@ -53,7 +59,7 @@ async def generate_qr_from_response(data: QRRequest):
             note=note
         )
 
-        print("CLEAN QR STRING: - qr_generation_routes.py:56", qr_string)
+        print("CLEAN QR STRING: - qr_generation_routes.py:62", qr_string)
 
         # ✅ Generate QR image
         buffer = generate_qr_image(qr_string)

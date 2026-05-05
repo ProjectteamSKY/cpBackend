@@ -80,14 +80,13 @@ update_status = """
 UPDATE shipments
 SET current_status = :status,
     updated_at = NOW()
-WHERE awb_code = :awb_code
+WHERE shipment_id = :shipment_id
 """
 
 update_order_status = """
-UPDATE orders o
-JOIN shipments s ON s.order_id = o.id
-SET o.status = :status
-WHERE s.awb_code = :awb_code
+UPDATE orders
+SET status = :status
+WHERE id = :order_id
 """
 
 cancel_order = """
@@ -99,5 +98,11 @@ WHERE id = :order_id
 refund_order = """
 UPDATE orders
 SET status = 'refunded'
+WHERE id = :order_id
+"""
+
+add_freight_to_total = """
+UPDATE orders
+SET total_amount = total_amount + :freight
 WHERE id = :order_id
 """

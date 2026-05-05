@@ -27,7 +27,7 @@ ORDER BY created_at DESC;
 get_by_ext_id = """
 SELECT *
 FROM transactions
-WHERE ext_transaction_id = %s;
+WHERE ext_transaction_id = :ext_transaction_id;
 """
 
 update = """

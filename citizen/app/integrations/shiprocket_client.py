@@ -42,7 +42,7 @@ class ShiprocketClient:
     # -----------------------
     def get_pickup_locations(self):
         self.ensure_token()
-        url = f"{BASE_URL}/settings/company/pickup-location"
+        url = f"{BASE_URL}/settings/company/pickup"
         response = requests.get(url, headers=self.headers())
         if response.status_code != 200:
             raise Exception(f"Failed to fetch pickup locations: {response.text}")
@@ -93,93 +93,41 @@ class ShiprocketClient:
     def assign_courier(self, shipment_id: str, courier_id: int = None):
         """
         Assign a courier for a shipment.
-        Returns a dictionary with AWB info if successful.
+        Never throws exception for business-level failures.
         """
 
         self.ensure_token()
 
         payload = {"shipment_id": shipment_id}
         if courier_id is not None:
-            payload["courier_id"] = courier_id  # include courier_id if provided
+            payload["courier_id"] = courier_id
 
-        response = requests.post(
-            f"{BASE_URL}/courier/assign/awb",
-            headers={**self.headers(), "Content-Type": "application/json"},
-            json=payload
-        )
+        try:
+            response = requests.post(
+                f"{BASE_URL}/courier/assign/awb",
+                headers={**self.headers(), "Content-Type": "application/json"},
+                json=payload,
+                timeout=20
+            )
 
-        data = response.json()
-        # data = {
-        #     "awb_assign_status": 1,
-        #     "response": {
-        #         "data": {
-        #             "courier_company_id": 54,
-        #             "awb_code": "SRSP2269025472",
-        #             "cod": 0,
-        #             "order_id": 1216226902,
-        #             "shipment_id": 1212533805,
-        #             "awb_code_status": 1,
-        #             "assigned_date_time": {
-        #                 "date": "2026-03-05 13:03:42.000000",
-        #                 "timezone_type": 3,
-        #                 "timezone": "Asia/Kolkata"
-        #             },
-        #             "applied_weight": 0.5,
-        #             "company_id": 9421320,
-        #             "courier_name": "Ekart Logistics Surface",
-        #             "child_courier_name": None,
-        #             "freight_charges": 57,
-        #             "routing_code": "", 
-        #             "rto_routing_code": None,
-        #             "invoice_no": "Retail00002",
-        #             "transporter_id": "",
-        #             "transporter_name": "",
-        #             "shipped_by": {
-        #                 "shipper_company_name": "rajesh",
-        #                 "shipper_address_1": "s1, 2nd floor, sai akash apt",
-        #                 "shipper_address_2": "near om sakthi temple",
-        #                 "shipper_city": "Kanchipuram",
-        #                 "shipper_state": "Tamil Nadu",
-        #                 "shipper_country": "India",
-        #                 "shipper_postcode": "600100",
-        #                 "shipper_first_mile_activated": 0,
-        #                 "shipper_phone": "9600296812",
-        #                 "lat": "12.9171412",
-        #                 "long": "80.1940972",
-        #                 "shipper_email": "saravana.kumar@skylimitdigital.com",
-        #                 "extra_info": {
-        #                     "role": "Warehouse Manager",
-        #                     "source": 1,
-        #                     "open_time": "12:00 AM",
-        #                     "close_time": "7:30 PM",
-        #                     "select_days": '["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]',
-        #                     "alternate_name": "harish",
-        #                     "alternate_role": "Warehouse Manager",
-        #                     "alternate_email": "crazykidsri@gmail.com"
-        #                 },
-        #                 "rto_company_name": "rajesh",
-        #                 "rto_address_1": "s1, 2nd floor, sai akash apt",
-        #                 "rto_address_2": "near om sakthi temple",
-        #                 "rto_city": "Kanchipuram",
-        #                 "rto_state": "Tamil Nadu",
-        #                 "rto_country": "India",
-        #                 "rto_postcode": "600100",
-        #                 "rto_phone": "9600296812",
-        #                 "rto_email": "saravana.kumar@skylimitdigital.com"
-        #             }
-        #         }
-        #     },
-        #     "no_pickup_popup": 0,
-        #     "quick_pick": 0
-        # }
-        print("Shiprocket assign courier response: - shiprocket_client.py:175", data)
+            data = response.json()
+            print("Shiprocket assign courier response: - shiprocket_client.py:114", data)
 
-        # Check if AWB was actually assigned
-        awb_status = data.get("awb_assign_status")
-        if awb_status == 1:
-            # Successful assignment
-            awb_data = data.get("response", {}).get("data", {})
+        except Exception as e:
             return {
+                "success": False,
+                "message": f"Request failed: {str(e)}",
+                "awb_code": None
+            }
+
+        # -----------------------------
+        # SUCCESS CASE
+        # -----------------------------
+        if data.get("awb_assign_status") == 1:
+            awb_data = (data.get("response") or {}).get("data") or {}
+
+            return {
+                "success": True,
                 "awb_code": awb_data.get("awb_code"),
                 "courier_name": awb_data.get("courier_name"),
                 "freight_charges": awb_data.get("freight_charges"),
@@ -188,9 +136,19 @@ class ShiprocketClient:
                 "cod": awb_data.get("cod"),
                 "raw_response": data
             }
-        else:
-            # Assignment failed
-            raise Exception(f"Assign courier failed: {data}")
+
+        # -----------------------------
+        # FAILURE CASE (IMPORTANT FIX)
+        # -----------------------------
+        return {
+            "success": False,
+            "message": (
+                data.get("response", {}).get("data")
+                or "Courier not available for AWB assignment"
+            ),
+            "awb_code": None,
+            "raw_response": data
+        }
 
     # Generate shipping label
     def generate_label(self, shipment_id: str):
@@ -234,20 +192,31 @@ class ShiprocketClient:
     # -----------------------
     # CANCEL ORDER
     # -----------------------
-    def cancel_order(self, order_id: str):
+    def cancel_order(self, awb: str):
         """
-        Cancel an order in Shiprocket.
-        Returns the full API response.
+        Cancel shipment using AWB (Shiprocket correct flow)
         """
         self.ensure_token()
-        url = f"{BASE_URL}/orders/cancel"
-        payload = {"ids": [order_id]}
 
-        response = requests.post(url, headers={**self.headers(), "Content-Type": "application/json"}, json=payload)
+        url = f"{BASE_URL}/orders/cancel/shipment/awbs"
+
+        payload = {
+            "awbs": [awb]
+        }
+
+        response = requests.post(
+            url,
+            headers={
+                **self.headers(),
+                "Content-Type": "application/json"
+            },
+            json=payload
+        )
+
         data = response.json()
 
-        if response.status_code != 200 or data.get("status_code") not in [200, 201]:
-            raise Exception(f"Cancel order failed: {data}")
+        if response.status_code not in [200, 201]:
+            raise Exception(f"Cancel shipment failed: {data}")
 
         return data
 
@@ -326,13 +295,13 @@ class ShiprocketClient:
         try:
             # Corrected headers call
             resp = requests.get(url, headers=self.headers(), params=params)
-            print("service availablity resp!!!!!!!!!!!!!!!!!!!!! - shiprocket_client.py:329",resp.json())
+            print("service availablity resp!!!!!!!!!!!!!!!!!!!!! - shiprocket_client.py:298",resp.json())
         except requests.RequestException as e:
             raise Exception(f"Shiprocket request failed: {str(e)}")
 
         # Debug logs
-        print("Shiprocket serviceability response status: - shiprocket_client.py:334", resp.status_code)
-        print("Request URL: - shiprocket_client.py:335", resp.url)
+        print("Shiprocket serviceability response status: - shiprocket_client.py:303", resp.status_code)
+        print("Request URL: - shiprocket_client.py:304", resp.url)
 
         try:
             data = resp.json()
@@ -343,62 +312,6 @@ class ShiprocketClient:
             raise Exception(f"Failed to fetch courier list: {data}")
 
         return data
-
-    # def get_couriers_by_address(
-    #     self,
-    #     pickup_postcode,
-    #     delivery_postcode,
-    #     weight,
-    #     cod,
-    #     declared_value,
-    #     length=10,
-    #     breadth=10,
-    #     height=10
-    # ):
-    #     """
-    #     Fetch available couriers using Shiprocket OPEN serviceability API
-    #     (No auth required)
-    #     """
-
-    #     url = "https://serviceability.shiprocket.in/open/courier/serviceability"
-
-    #     params = {
-    #         "pickup_postcode": pickup_postcode,
-    #         "delivery_postcode": delivery_postcode,
-    #         "weight": 1,
-    #         "cod": 1,
-    #         "declared_value": declared_value,
-    #         "length": length,
-    #         "breadth": breadth,
-    #         "height": height
-    #     }
-
-    #     # ✅ IMPORTANT: mimic browser headers
-    #     headers = {
-    #         "accept": "*/*",
-    #         "origin": "https://www.shiprocket.in",
-    #         "referer": "https://www.shiprocket.in/",
-    #         "user-agent": "Mozilla/5.0"
-    #     }
-
-    #     try:
-    #         resp = requests.get(url, headers=headers, params=params, timeout=10)
-    #         print("service availablity resp!!!!!!!!!!!!!!!!!!!!!",resp.json())
-    #     except requests.RequestException as e:
-    #         raise Exception(f"Shiprocket request failed: {str(e)}")
-
-    #     print("Status:", resp.status_code)
-    #     print("URL:", resp.url)
-
-    #     if resp.status_code != 200:
-    #         raise Exception(f"Failed to fetch courier list: {resp.text}")
-
-    #     try:
-    #         data = resp.json()
-    #     except ValueError:
-    #         raise Exception(f"Invalid JSON response: {resp.text}")
-
-    #     return data
 
     def get_hyperlocal_couriers(
         self,
@@ -417,7 +330,7 @@ class ShiprocketClient:
         self.ensure_token()
 
         url = f"{BASE_URL}/courier/serviceability"
-        print("hyperlocal @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ cod or prepaid - shiprocket_client.py:420",cod)
+        print("hyperlocal @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ cod or prepaid - shiprocket_client.py:333",cod)
         params = {
             "pickup_postcode": pickup_postcode,
             "delivery_postcode": delivery_postcode,
@@ -431,8 +344,8 @@ class ShiprocketClient:
 
         try:
             resp = requests.get(url, headers=self.headers(), params=params)
-            print("HYPERLOCAL RESPONSE: - shiprocket_client.py:434", resp)
-            print("HYPERLOCAL RESPONSE: - shiprocket_client.py:435", resp.json())
+            print("HYPERLOCAL RESPONSE: - shiprocket_client.py:347", resp)
+            print("HYPERLOCAL RESPONSE: - shiprocket_client.py:348", resp.json())
         except requests.RequestException as e:
             raise Exception(f"Shiprocket request failed: {str(e)}")
 
@@ -459,9 +372,69 @@ class ShiprocketClient:
         except Exception:
             raise Exception(f"Invalid JSON response: {response.text}")
 
-        print("Wallet Balance Response: - shiprocket_client.py:462", data)
+        print("Wallet Balance Response: - shiprocket_client.py:375", data)
 
         if response.status_code != 200:
             raise Exception(f"Failed to fetch wallet balance: {data}")
+
+        return data
+    
+    def generate_manifest(self, shipment_ids: list):
+        """
+        Generate manifest for one or multiple shipments.
+        Required before pickup handover in Shiprocket.
+        """
+
+        self.ensure_token()
+
+        url = f"{BASE_URL}/manifests/generate"
+
+        payload = {
+            "shipment_id": shipment_ids
+        }
+
+        response = requests.post(
+            url,
+            headers={**self.headers(), "Content-Type": "application/json"},
+            json=payload
+        )
+
+        try:
+            data = response.json()
+        except Exception:
+            raise Exception(f"Invalid JSON response: {response.text}")
+
+        print("Manifest Response: - shiprocket_client.py:407", data)
+
+        if response.status_code != 200:
+            raise Exception(f"Manifest generation failed: {data}")
+
+        return data
+    
+    def generate_invoice(self, shipment_ids: list):
+
+        self.ensure_token()
+
+        url = f"{BASE_URL}/orders/print/invoice"
+
+        payload = {
+            "ids": [str(i) for i in shipment_ids]
+        }
+
+        response = requests.post(
+            url,
+            headers={**self.headers(), "Content-Type": "application/json"},
+            json=payload
+        )
+
+        try:
+            data = response.json()
+        except Exception:
+            raise Exception(f"Invalid Shiprocket response: {response.text}")
+
+        print("Invoice response: - shiprocket_client.py:435", data)
+
+        if response.status_code != 200:
+            raise Exception(f"Invoice generation failed: {data}")
 
         return data

@@ -638,15 +638,30 @@ async def checkout(
     courier_name: str = None,
     delivery_charge: float = 0
 ):
+
     if not cart_items:
         raise Exception("No cart items provided")
 
     now = datetime.utcnow()
+
+    # ---------------------------------------------------------
+    # VALIDATE CART
+    # ---------------------------------------------------------
+    cart_check = await query("""
+        SELECT status FROM carts WHERE id = :cart_id
+    """, {"cart_id": cart_id})
+
+    if not cart_check:
+        raise Exception("Cart not found")
+
+    if cart_check["status"] != "active":
+        raise Exception("Cart already checked out or inactive")
+
     order_id = str(uuid.uuid4())
     order_number = await generate_order_number()
 
     # ---------------------------------------------------------
-    # LOCK CART ITEMS
+    # LOCK ACTIVE CART ITEMS
     # ---------------------------------------------------------
     cart_item_ids = [item["cart_item_id"] for item in cart_items]
 
@@ -659,13 +674,19 @@ async def checkout(
         FROM cart_items
         WHERE cart_id = :cart_id
         AND id IN ({placeholders})
+        AND status = 'active'
         FOR UPDATE
     """, params)
 
     if len(rows) != len(cart_item_ids):
-        raise Exception("Some cart items not found")
+        raise Exception("Some cart items not found or already processed")
 
     order_total = sum(float(r["total_price"]) for r in rows)
+
+    # ---------------------------------------------------------
+    # PAYMENT STATUS LOGIC
+    # ---------------------------------------------------------
+    payment_status = "paid" if payment_method == "PREPAID" else "pending"
 
     # ---------------------------------------------------------
     # CREATE ORDER
@@ -680,7 +701,7 @@ async def checkout(
         VALUES (
             :id, :order_number, :user_id, :cart_id, :address_id,
             :delivery_charge, :courier_id, :courier_name,
-            :delivery_type, :payment_method, 'pending',
+            :delivery_type, :payment_method, :payment_status,
             'pending', :total_amount, :created_at, :updated_at
         )
     """, {
@@ -694,13 +715,14 @@ async def checkout(
         "courier_name": courier_name,
         "delivery_type": delivery_type,
         "payment_method": payment_method,
+        "payment_status": payment_status,
         "total_amount": order_total,
         "created_at": now,
         "updated_at": now
     })
 
     # ---------------------------------------------------------
-    # 🔥 INSERT ORDER ITEMS (CRITICAL FIX)
+    # CREATE ORDER ITEMS + COPY FILES
     # ---------------------------------------------------------
     for item in rows:
         order_item_id = str(uuid.uuid4())
@@ -737,44 +759,76 @@ async def checkout(
         })
 
         # ---------------------------------------------------------
-        # 🔥 COPY FILES (if exist)
+        # COPY CART ITEM FILES → ORDER ITEM FILES
         # ---------------------------------------------------------
-        files = await query_all(
-            """
-            SELECT * FROM cart_item_files
+        files = await query_all("""
+            SELECT *
+            FROM cart_item_files
             WHERE cart_item_id = :cart_item_id
-            """,
-            {"cart_item_id": item["id"]}
-        )
+        """, {"cart_item_id": item["id"]})
 
-        for f in files:
-            await execute("""
-                INSERT INTO order_item_files (
-                    id, order_item_id,
-                    front_side_url, back_side_url,
-                    front_original_name, back_original_name
-                )
-                VALUES (
-                    :id, :order_item_id,
-                    :front_side_url, :back_side_url,
-                    :front_original_name, :back_original_name
-                )
-            """, {
-                "id": str(uuid.uuid4()),
-                "order_item_id": order_item_id,
-                "front_side_url": f.get("front_side_url"),
-                "back_side_url": f.get("back_side_url"),
-                "front_original_name": f.get("front_original_name"),
-                "back_original_name": f.get("back_original_name"),
-            })
+        if files:
+            for f in files:
+
+                # skip empty rows
+                if not f.get("front_side_url") and not f.get("back_side_url"):
+                    continue
+
+                await execute("""
+                    INSERT INTO order_item_files (
+                        id, order_item_id,
+                        front_side_url, back_side_url,
+                        front_original_name, back_original_name
+                    )
+                    VALUES (
+                        :id, :order_item_id,
+                        :front_side_url, :back_side_url,
+                        :front_original_name, :back_original_name
+                    )
+                """, {
+                    "id": str(uuid.uuid4()),
+                    "order_item_id": order_item_id,
+                    "front_side_url": f.get("front_side_url"),
+                    "back_side_url": f.get("back_side_url"),
+                    "front_original_name": f.get("front_original_name"),
+                    "back_original_name": f.get("back_original_name"),
+                })
 
     # ---------------------------------------------------------
-    # OPTIONAL: CLEAR CART
+    # UPDATE CART ITEMS → ORDERED
     # ---------------------------------------------------------
-    await execute(
-        "DELETE FROM cart_items WHERE cart_id = :cart_id",
-        {"cart_id": cart_id}
-    )
+    await execute("""
+        UPDATE cart_items
+        SET status = 'ordered',
+            updated_at = :now
+        WHERE cart_id = :cart_id
+    """, {
+        "cart_id": cart_id,
+        "now": now
+    })
+
+    # ---------------------------------------------------------
+    # UPDATE CART → ORDERED
+    # ---------------------------------------------------------
+    await execute("""
+        UPDATE carts
+        SET status = 'ordered',
+            updated_at = :now
+        WHERE id = :cart_id
+    """, {
+        "cart_id": cart_id,
+        "now": now
+    })
+
+    # ---------------------------------------------------------
+    # AUTO CONFIRM PREPAID ORDERS
+    # ---------------------------------------------------------
+    if payment_method == "PREPAID":
+        await execute("""
+            UPDATE orders
+            SET status = 'pending'
+            WHERE id = :order_id
+        """, {"order_id": order_id})
 
     # ---------------------------------------------------------
     # FINAL RESPONSE
@@ -783,9 +837,9 @@ async def checkout(
         "status": "success",
         "order_id": order_id,
         "order_number": order_number,
-        "total_amount": order_total
+        "total_amount": order_total,
+        "payment_status": payment_status
     }
-
 # Rest of functions unchanged...
 ORDER_STATUS_FLOW = {
     "pending": ["process"],
@@ -797,7 +851,72 @@ ORDER_STATUS_FLOW = {
 }
 
 async def get_all_orders_tracking():
-    return await query_all("SELECT * FROM orders ORDER BY created_at DESC", {})
+    return await query_all("""
+        SELECT 
+            o.*,
+
+            -- USER
+            u.full_name,
+            u.email,
+            u.contact AS user_phone,
+
+            -- ADDRESS
+            ua.first_name,
+            ua.last_name,
+            ua.address AS address_line,
+            ua.landmark,
+            ua.city,
+            ua.state,
+            ua.country,
+            ua.postal_code,
+            ua.phone AS address_phone,
+
+            -- SHIPMENT
+            s.awb_code,
+            s.courier_name AS shipment_courier,
+            s.freight_charges,
+            s.tracking_url,
+            s.current_status,
+            s.pickup_status,
+            s.delivered_at
+
+        FROM orders o
+
+        LEFT JOIN users u 
+            ON o.user_id = u.id
+
+        LEFT JOIN user_addresses ua 
+            ON o.address_id = ua.id
+
+        LEFT JOIN shipments s 
+            ON o.id = s.order_id
+
+        ORDER BY o.created_at DESC
+    """, {})
+
+async def get_order_items(order_id):
+    return await query_all("""
+        SELECT 
+            oi.*,
+            p.name AS product_name,
+
+            oif.front_side_url,
+            oif.back_side_url,
+            oif.front_original_name,
+            oif.back_original_name
+
+        FROM order_items oi
+
+        LEFT JOIN products p 
+            ON oi.product_id = p.id
+
+        LEFT JOIN order_item_files oif 
+            ON oi.id = oif.order_item_id
+
+        WHERE oi.order_id = :order_id
+        ORDER BY oi.created_at
+    """, {"order_id": order_id})
+
 
 async def get_order_by_id(order_id: str):
     return await query("SELECT * FROM orders WHERE id = :id", {"id": order_id})
@@ -820,11 +939,29 @@ async def delete_order(order_id: str):
     await execute("DELETE FROM orders WHERE id = :id", {"id": order_id})
     return {"id": order_id}
 
-async def get_order_items(order_id: str):
-    return await query_all(
-        "SELECT * FROM order_items WHERE order_id = :order_id",
-        {"order_id": order_id},
-    )
+async def get_order_items(order_id):
+    return await query_all("""
+        SELECT 
+            oi.*,
+            p.name AS product_name,
+
+            oif.id AS file_id,
+            oif.front_side_url,
+            oif.back_side_url,
+            oif.front_original_name,
+            oif.back_original_name
+
+        FROM order_items oi
+
+        LEFT JOIN products p 
+            ON oi.product_id = p.id
+
+        LEFT JOIN order_item_files oif 
+            ON oi.id = oif.order_item_id
+
+        WHERE oi.order_id = :order_id
+        ORDER BY oi.id
+    """, {"order_id": order_id})
 
 async def update_order_status(order_id: str, new_status: str):
     order = await get_order_by_id(order_id)

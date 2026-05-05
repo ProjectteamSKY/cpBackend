@@ -46,9 +46,10 @@ async def get_design_request_by_id(id: str):
 # UPDATE
 # -------------------------
 async def update_design_request(id: str, updates: dict):
+
     if not updates:
         return await get_design_request_by_id(id)
-    print("UPDATES RECEIVED: - design_request_service.py:51", updates)
+
     updates["updated_at"] = datetime.utcnow()
 
     allowed_fields = {
@@ -63,25 +64,36 @@ async def update_design_request(id: str, updates: dict):
         "product_id",
         "product_name",
         "variant_id",
-        "variant_price_id", 
+
+        # ✅ CORRECT COLUMN
+        "variant_price_id",
+
+        "selected_attributes",
         "design_notes",
-        "updated_at"
+        "updated_at",
+        "rejection_reason",
+        "revision_count"
     }
 
-    filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
+    filtered_updates = {
+        k: v for k, v in updates.items()
+        if k in allowed_fields and v is not None
+    }
 
     if not filtered_updates:
         return await get_design_request_by_id(id)
 
-    set_clause = ", ".join([f"{key} = :{key}" for key in filtered_updates.keys()])
+    set_clause = ", ".join([f"{k} = :{k}" for k in filtered_updates.keys()])
+
     sql = f"""
         UPDATE design_requests
         SET {set_clause}
         WHERE id = :id
     """
-    await execute(sql, {"id": id, **filtered_updates})
-    return await get_design_request_by_id(id)
 
+    await execute(sql, {"id": id, **filtered_updates})
+
+    return await get_design_request_by_id(id)
 
 # -------------------------
 # DELETE

@@ -18,8 +18,8 @@ from app.domain.cart_domain import Cart
 from app.services.cart_item_service import create_cart_item
 from app.services.cart_service import create_cart, get_cart_by_user_id
 from app.utils.query_loader import load_queries
-from app.services.product_variant_price_service import get_product_variant_price_by_id
-
+from app.services.variant_price_service import get_variant_price_by_id
+from datetime import datetime, timezone
 router = APIRouter()
 queries = load_queries()
 
@@ -33,7 +33,17 @@ def parse_images(item: dict):
     item["designed_images"] = json.loads(item.get("designed_images") or "[]")
     return item
 
+def get_print_location(selected_attributes):
+    try:
+        attrs = json.loads(selected_attributes or "[]")
+    except:
+        return None
 
+    for attr in attrs:
+        if attr.get("attribute_name") == "print location":
+            return attr.get("attribute_value_name")
+
+    return None
 # --------------------------
 # CREATE
 # --------------------------
@@ -60,29 +70,40 @@ async def create_design_request_endpoint(
     logo_images = upload_images(logo_files, LOGO_UPLOAD_FOLDER)
 
     data = {
-        "user_id": user_id,
-        "name": name,
-        "phone": phone,
-        "email": email,
+    "id": str(uuid.uuid4()),
 
-        "product_id": product_id,
-        "product_name": product_name,
+    "user_id": user_id,
+    "name": name,
+    "phone": phone,
+    "email": email,
 
-        "variant_id": variant_id,
-        "variant_price_id": variant_price_id,
+    "product_id": product_id,
+    "product_name": product_name,
 
-        "selected_attributes": selected_attributes,
+    "variant_id": variant_id,
+    "variant_price_id": variant_price_id,
 
-        "design_notes": design_notes,
-        "design_price": design_price or 0.0,
+    "selected_attributes": selected_attributes,
+    "design_notes": design_notes,
+    "design_price": design_price or 0.0,
 
-        "logo_images": json.dumps(logo_images),
-        "designed_images": json.dumps([])
-    }
+    "logo_images": json.dumps(logo_images),
+    "designed_images": json.dumps([]),
 
-    created = await create_design_request(data)
-    return {"status": "success", "data": parse_images(created)}
+    # 🔥 REQUIRED FIXES
+    "revision_count": 0,
+    "rejection_reason": None,
 
+    "status": "NEW",
+    "is_approved": False,
+
+    "created_at": datetime.now(timezone.utc),
+    "updated_at": datetime.now(timezone.utc),
+}
+
+    await execute(queries["design_request"]["create"], data)
+
+    return await get_design_request_by_id(data["id"])
 
 # --------------------------
 # UPDATE (LOGO + DESIGNED IMAGES + Other Fields)
@@ -90,52 +111,131 @@ async def create_design_request_endpoint(
 @router.post("/{id}/update")
 async def update_design_request_endpoint(
     id: str,
+
     name: Optional[str] = Form(None),
     phone: Optional[str] = Form(None),
     email: Optional[str] = Form(None),
+
     product_id: Optional[str] = Form(None),
     product_name: Optional[str] = Form(None),
+
     variant_id: Optional[str] = Form(None),
     product_variant_price_id: Optional[str] = Form(None),
+
+    selected_attributes: Optional[str] = Form(None),
     design_notes: Optional[str] = Form(None),
     design_price: Optional[float] = Form(None),
+
     logo_files: List[UploadFile] = File([]),
     designed_files: List[UploadFile] = File([])
 ):
-    # Fetch existing request
+
+    # 1️⃣ Fetch existing request
     existing = await get_design_request_by_id(id)
     if not existing:
         raise HTTPException(status_code=404, detail="Design request not found")
 
-    # Merge logo images
-    old_logos = json.loads(existing.get("logo_images") or "[]")
+    # 2️⃣ SAFE PARSE logo_images
+    try:
+        old_logos = json.loads(existing.get("logo_images") or "[]")
+        if not isinstance(old_logos, list):
+            old_logos = []
+    except:
+        old_logos = []
+
+    # 3️⃣ SAFE PARSE designed_images (versioned)
+    try:
+        old_designs = json.loads(existing.get("designed_images") or "[]")
+        if not isinstance(old_designs, list):
+            old_designs = []
+    except:
+        old_designs = []
+
+    # 4️⃣ Parse selected attributes (IMPORTANT FIX)
+    try:
+        parsed_attributes = json.loads(selected_attributes) if selected_attributes else json.loads(existing.get("selected_attributes") or "[]")
+    except:
+        parsed_attributes = []
+
+    # ----------------------------
+    # PRINT LOCATION RULE (same as approve)
+    # ----------------------------
+    print_location = None
+    for attr in parsed_attributes:
+        if attr.get("attribute_name") == "print location":
+            print_location = attr.get("attribute_value_name")
+            break
+
+    # 5️⃣ Upload new files
     new_logos = upload_images(logo_files, LOGO_UPLOAD_FOLDER) if logo_files else []
+    new_designs = upload_images(designed_files, DESIGN_UPLOAD_FOLDER) if designed_files else []
+
+    # 6️⃣ Merge logos (no versioning)
     logo_images = old_logos + new_logos
 
-    # Merge designed images
-    old_designs = json.loads(existing.get("designed_images") or "[]")
-    new_designs = upload_images(designed_files, DESIGN_UPLOAD_FOLDER) if designed_files else []
-    designed_images = old_designs + new_designs
+    # 7️⃣ Versioning for designs
+    if old_designs and isinstance(old_designs[-1], dict) and "version" in old_designs[-1]:
+        next_version = old_designs[-1]["version"] + 1
+    else:
+        next_version = 1
 
-    # Prepare update payload
+    if new_designs:
+        old_designs.append({
+            "version": next_version,
+            "status": "PENDING",
+            "images": new_designs,
+            "created_at": datetime.utcnow().isoformat()
+        })
+
+    # ----------------------------
+    # VALIDATION (same as approve)
+    # ----------------------------
+    latest_version = old_designs[-1] if old_designs else None
+    latest_images = latest_version.get("images", []) if isinstance(latest_version, dict) else []
+
+    if print_location == "back" and len(latest_images) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="Back print requires 2 design images (front + back)"
+        )
+
+    # ----------------------------
+    # FRONT / BACK MAPPING (stored consistency)
+    # ----------------------------
+    front = latest_images[0] if len(latest_images) > 0 else None
+    back = latest_images[1] if len(latest_images) > 1 else None
+
     update_data = {
         "name": name or existing.get("name"),
         "phone": phone or existing.get("phone"),
         "email": email or existing.get("email"),
+
         "product_id": product_id or existing.get("product_id"),
         "product_name": product_name or existing.get("product_name"),
+
         "variant_id": variant_id or existing.get("variant_id"),
-        "variant_price_id": variant_price_id or existing.get("variant_price_id"),
-        "selected_attributes": selected_attributes or existing.get("selected_attributes"),
+        "product_variant_price_id": product_variant_price_id or existing.get("product_variant_price_id"),
+
+        "selected_attributes": json.dumps(parsed_attributes),
         "design_notes": design_notes or existing.get("design_notes"),
         "design_price": design_price if design_price is not None else existing.get("design_price"),
+
         "logo_images": json.dumps(logo_images),
-        "designed_images": json.dumps(designed_images)
+        "designed_images": json.dumps(old_designs),
+
+        # optional but useful for frontend consistency
+        "latest_front_image": front,
+        "latest_back_image": back
     }
 
+    # 8️⃣ UPDATE DB
     updated = await update_design_request(id, update_data)
-    return {"status": "success", "data": parse_images(updated)}
 
+    return {
+        "status": "success",
+        "message": "Design request updated successfully",
+        "data": parse_images(updated)
+    }
 
 # --------------------------
 # UPDATE STATUS
@@ -170,23 +270,26 @@ async def update_design_status(
 @router.put("/designedimage/{id}/approve")
 async def approve_design(id: str):
 
-    # 1️⃣ Get design request
+    # =====================================================
+    # FETCH DESIGN
+    # =====================================================
     design = await get_design_request_by_id(id)
+
+    print("Fetched design request: - design_request_routes.py:278", design)
+
     if not design:
         raise HTTPException(status_code=404, detail="Design request not found")
 
-    # 2️⃣ Validate required fields
-    price_id = design.get("product_variant_price_id")
+    price_id = design.get("variant_price_id")
     if not price_id:
-        raise HTTPException(status_code=400, detail="Missing product_variant_price_id")
+        raise HTTPException(status_code=400, detail="Missing variant_price_id")
 
-    if not design.get("product_id") or not design.get("variant_id"):
-        raise HTTPException(status_code=400, detail="Product or variant missing")
+    # =====================================================
+    # FETCH PRICE ROW
+    # =====================================================
+    price_row = await get_variant_price_by_id(price_id)
 
-    user_id = design["user_id"]
-
-    # 3️⃣ Get price
-    price_row = await get_product_variant_price_by_id(price_id)
+    print("Fetched price row: - design_request_routes.py:292", price_row)
 
     if not price_row:
         raise HTTPException(status_code=400, detail="Invalid price ID")
@@ -194,24 +297,72 @@ async def approve_design(id: str):
     if not price_row.get("is_active"):
         raise HTTPException(status_code=400, detail="Price is inactive")
 
-    quantity = price_row["min_qty"]
-    unit_price = price_row["price"]
+    # =====================================================
+    # PRICE DETAILS
+    # =====================================================
+    min_qty = int(price_row["min_qty"])
+    max_qty = int(price_row["max_qty"]) if price_row.get("max_qty") else None
+    unit_price = float(price_row["price"])
 
-    # 4️⃣ Get or create cart
+    # =====================================================
+    # ✅ FIXED: USE MAX QTY ONLY
+    # =====================================================
+    if max_qty:
+        quantity = max_qty
+    else:
+        quantity = min_qty  # fallback safety
+
+    # =====================================================
+    # CART
+    # =====================================================
+    user_id = design["user_id"]
+
     cart = await get_cart_by_user_id(user_id)
     if not cart:
         cart = await create_cart(Cart(user_id=user_id))
 
     cart_id = cart["id"]
 
-    # 5️⃣ Update design status
-    await update_design_request(
-        id,
-        {"is_approved": True, "status": "APPROVED"}
-    )
+    # =====================================================
+    # ✅ KEEP ORIGINAL ATTRIBUTE FORMAT (LIST)
+    # =====================================================
+    try:
+        selected_attributes = json.loads(design.get("selected_attributes") or "[]")
+    except:
+        selected_attributes = []
 
-    # 6️⃣ Prepare payload
-    # 6️⃣ Prepare payload
+    # =====================================================
+    # IMAGES
+    # =====================================================
+    images_raw = design.get("designed_images") or []
+
+    if isinstance(images_raw, str):
+        try:
+            images_raw = json.loads(images_raw)
+        except:
+            images_raw = []
+
+    latest_images = []
+    if isinstance(images_raw, list) and images_raw:
+        latest_images = (images_raw[-1] or {}).get("images", [])
+
+    latest_images = [i.replace("\\", "/") for i in latest_images]
+
+    # detect print location from attributes
+    print_location = None
+    for attr in selected_attributes:
+        if attr.get("attribute_name") == "print location":
+            print_location = attr.get("attribute_value_name")
+
+    if print_location == "back" and len(latest_images) < 2:
+        raise HTTPException(status_code=400, detail="Back print requires 2 images")
+
+    front = latest_images[0] if len(latest_images) > 0 else None
+    back = latest_images[1] if len(latest_images) > 1 else None
+
+    # =====================================================
+    # PAYLOAD
+    # =====================================================
     class Payload:
         pass
 
@@ -219,60 +370,21 @@ async def approve_design(id: str):
     payload.cart_id = cart_id
     payload.product_id = design["product_id"]
     payload.variant_id = design["variant_id"]
+    payload.variant_price_id = price_id
     payload.quantity = quantity
-    payload.product_variant_price_id = price_id
-    payload.customize_qty = quantity
+    payload.selected_attributes = selected_attributes  # ✅ FIXED
 
-    # ✅ FIXED LINE
-    payload.selected_options = json.loads(design.get("selected_attributes") or "{}")
-
-    payload.front_file = None
-    payload.back_file = None
-
-    # 7️⃣ Create cart item
+    # =====================================================
+    # CREATE CART ITEM
+    # =====================================================
     try:
         cart_item = await create_cart_item(payload)
     except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cart item creation failed: {str(e)}"
-        )
+        raise HTTPException(status_code=400, detail=str(e))
 
-    # 8️⃣ Handle designed images (🔥 FIXED FULLY)
-    images_raw = design.get("designed_images") or []
-
-    # Convert to list if needed
-    if isinstance(images_raw, str):
-        try:
-            images = json.loads(images_raw)
-        except Exception:
-            images = []
-    elif isinstance(images_raw, list):
-        images = images_raw
-    else:
-        images = []
-
-    # Extract front/back safely
-    front = None
-    back = None
-
-    if len(images) == 1:
-        front = images[0]
-    elif len(images) >= 2:
-        front = images[0]
-        back = images[1]
-
-    # Normalize file paths (Windows → URL safe)
-    if front:
-        front = front.replace("\\", "/")
-    if back:
-        back = back.replace("\\", "/")
-
-    # Debug (optional)
-    print("FINAL FRONT: - design_request_routes.py:272", front)
-    print("FINAL BACK: - design_request_routes.py:273", back)
-
-    # 9️⃣ Insert cart item files
+    # =====================================================
+    # INSERT CART FILES
+    # =====================================================
     if cart_item and "id" in cart_item:
         await execute(
             queries["cart_items"]["insert_cart_files"],
@@ -286,7 +398,17 @@ async def approve_design(id: str):
             }
         )
 
-    # 🔟 Final response
+    # =====================================================
+    # UPDATE DESIGN STATUS
+    # =====================================================
+    await update_design_request(
+        id,
+        {"is_approved": True, "status": "APPROVED"}
+    )
+
+    # =====================================================
+    # RESPONSE
+    # =====================================================
     return {
         "status": "success",
         "message": "Design approved & added to cart",
@@ -294,23 +416,50 @@ async def approve_design(id: str):
             "quantity": quantity,
             "unit_price": unit_price,
             "total": quantity * unit_price,
-            "cart_item": cart_item,
-            "images_used": {
-                "front": front,
-                "back": back
-            }
+            "min_qty": min_qty,
+            "max_qty": max_qty
         }
     }
 
-
 @router.put("/designedimage/{id}/reject")
-async def reject_design(id: str):
-    updated = await update_design_request(id, {"is_approved": False, "status": "REJECTED"})
-    if not updated:
+async def reject_design(
+    id: str,
+    rejection_reason: Optional[str] = Form(None)
+):
+    design = await get_design_request_by_id(id)
+    if not design:
         raise HTTPException(status_code=404, detail="Design request not found")
-    return {"status": "success", "message": "Design rejected", "data": parse_images(updated)}
 
-    
+    # 1️⃣ Parse versions safely
+    try:
+        designs = json.loads(design.get("designed_images") or "[]")
+    except:
+        designs = []
+
+    if not designs:
+        raise HTTPException(status_code=400, detail="No design versions found")
+
+    # 2️⃣ Update latest version
+    latest = designs[-1]
+    latest["status"] = "REJECTED"
+    latest["rejection_reason"] = rejection_reason or ""
+
+    # 3️⃣ Decide GLOBAL status correctly
+    global_status = "REJECTED"
+
+    # 4️⃣ Save
+    updated = await update_design_request(id, {
+        "designed_images": json.dumps(designs),
+        "status": global_status,
+        "is_approved": False,
+        "revision_count": (design.get("revision_count") or 0) + 1
+    })
+
+    return {
+        "status": "success",
+        "message": "Design rejected",
+        "data": parse_images(updated)
+    }
 # --------------------------
 # GET LIST / GET BY ID / GET BY USER
 # --------------------------

@@ -14,7 +14,7 @@ CREATE TABLE shipments (
     freight_charges DECIMAL(10,2),
 
     tracking_url TEXT,
-
+    manifest_url TEXT,
     pickup_status VARCHAR(100),
 
     current_status VARCHAR(100) DEFAULT 'CREATED',

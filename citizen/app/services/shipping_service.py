@@ -1,6 +1,6 @@
 from datetime import datetime
 import uuid
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 
 from app.core.database import execute, query, query_all
 from app.utils.query_loader import load_queries
@@ -531,7 +531,7 @@ def build_shiprocket_payload(order: dict, order_items: list):
 #         queries["shipping"]["get_order_details"],
 #         {"id": order_id}
 #     )
-#     print("Order details fetched: - shipping_service.py:386", order)
+#     print("Order details fetched: - shipping_service.py:534", order)
 #     if not order:
 #         raise HTTPException(404, "Order not found")
     
@@ -540,56 +540,56 @@ def build_shiprocket_payload(order: dict, order_items: list):
 #         {"order_id": order_id}
 #     )
 
-#     print("Order items fetched: - shipping_service.py:395", order_items)
+#     print("Order items fetched: - shipping_service.py:543", order_items)
 
     
-    # payload = build_shiprocket_payload(order , order_items)
-    # print("Built Shiprocket Payload: - shipping_service.py:399", payload)
-    # try:
-    #     print("PAYLOAD: - shipping_service.py:401", payload)
-    #     response = shiprocket.create_order(payload)
-    #     print("SHIPROCKET RESPONSE: - shipping_service.py:403", response)
-    # except Exception as e:
-    #     print("SHIPROCKET ERROR: - shipping_service.py:405", str(e))
-    #     raise HTTPException(500, f"Shiprocket API call failed: {str(e)}")
+#     payload = build_shiprocket_payload(order , order_items)
+#     print("Built Shiprocket Payload: - shipping_service.py:547", payload)
+#     try:
+#         print("PAYLOAD: - shipping_service.py:549", payload)
+#         response = shiprocket.create_order(payload)
+#         print("SHIPROCKET RESPONSE: - shipping_service.py:551", response)
+#     except Exception as e:
+#         print("SHIPROCKET ERROR: - shipping_service.py:553", str(e))
+#         raise HTTPException(500, f"Shiprocket API call failed: {str(e)}")
 
-    # shipment_id = response.get("shipment_id")
+#     shipment_id = response.get("shipment_id")
 
-    # if not shipment_id:
-    #     raise HTTPException(
-    #         500,
-    #         f"Shiprocket did not return shipment_id. Response: {response}"
-    #     )
+#     if not shipment_id:
+#         raise HTTPException(
+#             500,
+#             f"Shiprocket did not return shipment_id. Response: {response}"
+#         )
 
-    #  FIX HERE
-    # awb_code = response.get("awb_code") or None
-    # courier_name = response.get("courier_name") or None
+#      FIX HERE
+#     awb_code = response.get("awb_code") or None
+#     courier_name = response.get("courier_name") or None
 
-    # shipment_uuid = str(uuid.uuid4())
+#     shipment_uuid = str(uuid.uuid4())
 
-    # await execute(
-    #     queries["shipping"]["create_shipment"],
-    #     {
-    #         "id": shipment_uuid,
-    #         "order_id": order_id,
-    #         "shiprocket_order_id": response.get("order_id"),
-    #         "shipment_id": shipment_id,
-    #         "awb_code": awb_code,          # ✅ now NULL instead of ''
-    #         "courier_name": courier_name,  # ✅ now NULL instead of ''
-    #         "tracking_url": None,
-    #         "current_status": response.get("status"),
-    #         "created_at": datetime.utcnow(),
-    #         "updated_at": datetime.utcnow()
-    #     }
-    # )
+#     await execute(
+#         queries["shipping"]["create_shipment"],
+#         {
+#             "id": shipment_uuid,
+#             "order_id": order_id,
+#             "shiprocket_order_id": response.get("order_id"),
+#             "shipment_id": shipment_id,
+#             "awb_code": awb_code,          # ✅ now NULL instead of ''
+#             "courier_name": courier_name,  # ✅ now NULL instead of ''
+#             "tracking_url": None,
+#             "current_status": response.get("status"),
+#             "created_at": datetime.utcnow(),
+#             "updated_at": datetime.utcnow()
+#         }
+#     )
 
-    # return {
-    #     "status": "success",
-    #     # "shipment_id": shipment_id,
-    #     # "shiprocket_order_id": response.get("order_id"),
-    #     # "awb_code": awb_code,
-    #     # "courier_name": courier_name
-    # }
+#     return {
+#         "status": "success",
+#         # "shipment_id": shipment_id,
+#         # "shiprocket_order_id": response.get("order_id"),
+#         # "awb_code": awb_code,
+#         # "courier_name": courier_name
+#     }
 
 async def create_order_service(order_id: str):
 
@@ -615,7 +615,7 @@ async def create_order_service(order_id: str):
     )
 
     # ---------------------------------------------------------
-    # 3. BUILD SHIPROCKET PAYLOAD
+    # 3. BUILD PAYLOAD
     # ---------------------------------------------------------
     payload = build_shiprocket_payload(order, order_items)
 
@@ -628,12 +628,42 @@ async def create_order_service(order_id: str):
         raise HTTPException(500, f"Shiprocket create order failed: {str(e)}")
 
     shipment_id = response.get("shipment_id")
+    shiprocket_order_id = response.get("order_id")
 
-    if not shipment_id:
-        raise HTTPException(500, f"No shipment_id returned: {response}")
+    if not shipment_id or not shiprocket_order_id:
+        raise HTTPException(500, f"Invalid Shiprocket response: {response}")
 
     # ---------------------------------------------------------
-    # 5. CREATE SHIPMENT RECORD
+    # 5. COURIER ASSIGNMENT (SAFE)
+    # ---------------------------------------------------------
+    courier_id = order.get("courier_id")
+    courier_name = order.get("courier_name")
+
+    awb_code = None
+    freight_charges = float(order.get("delivery_charge") or 0)
+
+    assign_response = {}
+
+    if courier_id:
+        try:
+            assign_response = shiprocket.assign_courier(
+                shipment_id,
+                int(courier_id)
+            )
+
+            if assign_response:
+                awb_code = assign_response.get("awb_code") or None
+                courier_name = assign_response.get("courier_name") or courier_name
+
+                freight_raw = assign_response.get("freight_charges")
+                if freight_raw not in [None, "", "null"]:
+                    freight_charges = float(freight_raw)
+
+        except Exception as e:
+            print(f"Courier assign failed (NONBLOCKING): {str(e)} - shipping_service.py:663")
+
+    # ---------------------------------------------------------
+    # 6. CREATE SHIPMENT RECORD
     # ---------------------------------------------------------
     shipment_uuid = str(uuid.uuid4())
 
@@ -642,122 +672,61 @@ async def create_order_service(order_id: str):
         {
             "id": shipment_uuid,
             "order_id": order_id,
-            "shiprocket_order_id": response.get("order_id"),
+            "shiprocket_order_id": shiprocket_order_id,
             "shipment_id": shipment_id,
-            "awb_code": None,
-            "courier_name": None,
+            "awb_code": awb_code,
+            "courier_name": courier_name,
             "tracking_url": None,
-            "current_status": response.get("status"),
+            "current_status": "processing" if delivery_type == "hyperlocal" else "shipment",
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
     )
 
-    courier_id = order.get("courier_id")
-
-    if not courier_id:
-        raise HTTPException(400, "Courier ID missing in order")
-
-    # =========================================================
-    # 🚀 6. HYPERLOCAL FLOW
-    # =========================================================
-    if delivery_type == "hyperlocal":
-
-        try:
-            assign_response = shiprocket.assign_courier(
-                shipment_id,
-                int(courier_id)
-            )
-        except Exception as e:
-            raise HTTPException(500, f"Hyperlocal courier assign failed: {str(e)}")
-
-        if not assign_response.get("success"):
-            raise HTTPException(500, f"Hyperlocal assign failed: {assign_response}")
-
-        data = assign_response.get("response", {}).get("data", {})
-
+    # ---------------------------------------------------------
+    # 7. SAVE COURIER DETAILS (SAFE)
+    # ---------------------------------------------------------
+    if courier_id:
         await execute(
             queries["shipping"]["assign_courier"],
             {
-                "courier_id": courier_id,
-                "courier_name": data.get("courier_name") or order.get("courier_name"),
-                "awb_code": None,  # hyperlocal AWB delayed
-                "freight_charges": float(data.get("freight_charges") or order.get("delivery_charge") or 0),
+                "courier_id": int(courier_id),
+                "courier_name": courier_name,
+                "awb_code": awb_code,
+                "freight_charges": freight_charges,
                 "shipment_id": shipment_id
             }
         )
 
-        # update order status
-        await execute(
-            queries["shipping"]["update_order_status"],
-            {
-                "order_id": order_id,
-                "status": "processing"
-            }
-        )
-
-        return {
-            "status": "processing",
-            "message": "Hyperlocal order is being processed",
-            "shipment_id": shipment_id
-        }
-
-    # =========================================================
-    # 🚀 7. NORMAL FLOW (AWB IMMEDIATE)
-    # =========================================================
-    try:
-        assign_response = shiprocket.assign_courier(
-            shipment_id,
-            int(courier_id)
-        )
-    except Exception as e:
-        raise HTTPException(500, f"Courier assignment failed: {str(e)}")
-
-    data = assign_response.get("response", {}).get("data", {})
-
-    awb_code = data.get("awb_code")
-    courier_name = data.get("courier_name")
-    freight_charges = float(data.get("freight_charges") or 0)
-
-    if not awb_code:
-        raise HTTPException(500, f"AWB not generated: {assign_response}")
-
-    # save courier assignment
-    await execute(
-        queries["shipping"]["assign_courier"],
-        {
-            "courier_id": courier_id,
-            "courier_name": courier_name,
-            "awb_code": awb_code,
-            "freight_charges": freight_charges,
-            "shipment_id": shipment_id
-        }
-    )
-
-    # update order status
+    # ---------------------------------------------------------
+    # 8. UPDATE ORDER STATUS
+    # ---------------------------------------------------------
     await execute(
         queries["shipping"]["update_order_status"],
         {
             "order_id": order_id,
-            "status": "shipment"
+            "status": "processing" if delivery_type == "hyperlocal" else "shipment"
         }
     )
 
-    # update freight
-    await execute(
-        queries["shipping"]["add_freight_to_total"],
-        {
-            "order_id": order_id,
-            "freight": freight_charges
-        }
-    )
+    # ---------------------------------------------------------
+    # 9. ADD FREIGHT (ONLY NORMAL)
+    # ---------------------------------------------------------
+    if delivery_type != "hyperlocal":
+        await execute(
+            queries["shipping"]["add_freight_to_total"],
+            {
+                "order_id": order_id,
+                "freight": freight_charges
+            }
+        )
 
     # ---------------------------------------------------------
     # FINAL RESPONSE
     # ---------------------------------------------------------
     return {
         "status": "success",
-        "message": "Order created and courier assigned",
+        "message": "Order created successfully",
         "shipment_id": shipment_id,
         "awb_code": awb_code,
         "courier_name": courier_name,
@@ -837,7 +806,7 @@ async def get_available_couriers_service(order_id: str):
         raise HTTPException(400, "No suitable courier found")
 
 
-    print("best courier @@@@@@@@@@@@@@@@@@@@@@@@@@@@ - shipping_service.py:840",best_courier)
+    print("best courier @@@@@@@@@@@@@@@@@@@@@@@@@@@@ - shipping_service.py:809",best_courier)
     # ---------------------------------------------------------
     # Assign courier (AWB)
     # ---------------------------------------------------------
@@ -966,7 +935,116 @@ async def download_label_service(order_id: str):
         "label_url": label_url
     }
 
+async def get_manifest_label_service(order_id: str):
 
+    # 1. Fetch shipment
+    shipment = await query(
+        queries["shipping"]["get_shipment_by_order"],
+        {"order_id": order_id}
+    )
+
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+
+    shipment_id = shipment["shipment_id"]
+
+    # 2. Check DB cache
+    manifest_url = shipment.get("manifest_url")
+
+    # 3. If not exists → generate from Shiprocket
+    if not manifest_url:
+        manifest_response = shiprocket.generate_manifest([shipment_id])
+
+        print("Manifest response: - shipping_service.py:958", manifest_response)
+
+        manifest_url = (
+            manifest_response.get("manifest_url")
+            or manifest_response.get("data", {}).get("manifest_url")
+        )
+
+        if not manifest_url:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Manifest generation failed: {manifest_response}"
+            )
+
+        # Save to DB (cache it)
+        await execute(
+            queries["shipping"]["update_manifest"],
+            {
+                "shipment_id": shipment_id,
+                "manifest_url": manifest_url
+            }
+        )
+
+    # 4. DOWNLOAD FILE (IMPORTANT PART)
+    file_response = requests.get(manifest_url)
+
+    if file_response.status_code != 200:
+        raise HTTPException(status_code=400, detail="Failed to download manifest")
+
+    # 5. Return file directly to browser (Chrome download)
+    return Response(
+        content=file_response.content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="manifest_{shipment_id}.pdf"'
+        }
+    )
+
+
+async def get_invoice_service(order_id: str):
+
+    # 1. Fetch shipment
+    shipment = await query(
+        queries["shipping"]["get_shipment_by_order"],
+        {"order_id": order_id}
+    )
+
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # 🔥 IMPORTANT: use Shiprocket ORDER ID (not shipment_id)
+    shiprocket_order_id = shipment.get("shiprocket_order_id")
+
+    if not shiprocket_order_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Shiprocket order id not found in shipment"
+        )
+
+    # 2. Call Shiprocket Invoice API
+    invoice_response = shiprocket.generate_invoice([shiprocket_order_id])
+
+    print("Invoice response: - shipping_service.py:1019", invoice_response)
+
+    # 3. Extract URL (if returned)
+    invoice_url = (
+        invoice_response.get("invoice_url")
+        or invoice_response.get("data", {}).get("invoice_url")
+        or invoice_response.get("file_url")
+    )
+
+    if not invoice_url:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invoice generation failed: {invoice_response}"
+        )
+
+    # 4. Download PDF
+    file_resp = requests.get(invoice_url)
+
+    if file_resp.status_code != 200:
+        raise HTTPException(status_code=400, detail="Failed to download invoice")
+
+    # 5. Return PDF to browser
+    return Response(
+        content=file_resp.content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="invoice_{shiprocket_order_id}.pdf"'
+        }
+    )
 # ---------------------------------------------------------
 # Webhook Status Update
 # ---------------------------------------------------------
@@ -1033,7 +1111,12 @@ async def cancel_order_service(order_id: str):
     if not shipment:
         raise HTTPException(404, "Shipment not found")
 
-    response = shiprocket.cancel_order(shipment["shiprocket_order_id"])
+    awb = shipment.get("awb_code")
+
+    if not awb:
+        raise HTTPException(400, "AWB not found for this shipment")
+
+    response = shiprocket.cancel_order(awb)
 
     await execute(
         queries["shipping"]["cancel_order"],
@@ -1042,7 +1125,8 @@ async def cancel_order_service(order_id: str):
 
     return {
         "status": "success",
-        "message": "Order cancelled",
+        "message": "Shipment cancelled",
+        "awb": awb,
         "shiprocket_response": response
     }
 
@@ -1305,7 +1389,7 @@ async def hyperlocal_couriers_service(
 
     if not lat_from or not lat_to:
         return {"error": "Invalid pincode or location not found"}
-    print("hyperlocal @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ cod or prepaid - shipping_service.py:1308",cod)
+    print("hyperlocal @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ cod or prepaid - shipping_service.py:1392",cod)
     response = shiprocket.get_hyperlocal_couriers(
         pickup_postcode=pickup_postcode,
         delivery_postcode=delivery_postcode,
@@ -1463,4 +1547,31 @@ async def get_wallet_balance_service():
         "status": "success",
         "wallet_balance": float(balance),  # optional: convert to float
         # "raw": response  # remove in production
+    }
+
+
+async def get_pickup_locations_service():
+    """
+    Fetch Shiprocket pickup locations
+    """
+    try:
+        response = shiprocket.get_pickup_locations()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Shiprocket pickup locations fetch failed: {str(e)}"
+        )
+
+    # ✅ Correct key mapping (Shiprocket returns "data")
+    locations = response.get("data")
+
+    if not locations:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid pickup location response: {response}"
+        )
+
+    return {
+        "status": "success",
+        "pickup_locations": locations
     }

@@ -162,65 +162,29 @@ def normalize_images(images):
 
 
 async def get_product_by_id(product_id: str):
-    """Fetch product with variants, prices, and discounts"""
+    """Fetch product without variants"""
 
-    # 1️⃣ Fetch product
-    product = await query(
-        queries["product"]["get_by_id"],
-        {"id": product_id}
-    )
-
-    if not product:
-        return None
-
-    product_dict = dict(product)
-
-    # ✅ FIX: Normalize images here
-    product_dict["images"] = normalize_images(product_dict.get("images"))
-    product_dict["related_images"] = normalize_images(product_dict.get("related_images"))
-
-    # 2️⃣ Fetch variants
-    variants = await query_all(
-        queries["product_variant"]["get_by_product"],
-        {"product_id": product_id}
-    )
-
-    variant_list = []
-
-    for v in variants:
-        v_dict = dict(v)
-
-        # 3️⃣ Fetch prices
-        prices = await query_all(
-            queries["product_variant_price"]["get_by_variant"],
-            {"variant_id": v_dict["id"]}
+    try:
+        # 1️⃣ Fetch product
+        product = await query(
+            queries["product"]["get_by_id"],
+            {"id": product_id}
         )
 
-        price_list = []
+        if not product:
+            return None
 
-        for p in prices:
-            p_dict = dict(p)
+        product_dict = dict(product)
 
-            # 4️⃣ Fetch discount
-            discount_id = p_dict.get("discount_id")
+        # ✅ Normalize images safely
+        product_dict["images"] = normalize_images(product_dict.get("images"))
+        product_dict["related_images"] = normalize_images(product_dict.get("related_images"))
 
-            if discount_id:
-                discount = await query(
-                    queries["product_discount"]["get_by_id"],
-                    {"id": discount_id}
-                )
-                p_dict["discount"] = dict(discount) if discount else None
-            else:
-                p_dict["discount"] = None
+        return product_dict
 
-            price_list.append(p_dict)
-
-        v_dict["prices"] = price_list
-        variant_list.append(v_dict)
-
-    product_dict["variants"] = variant_list
-
-    return product_dict
+    except Exception as e:
+        print("ERROR in get_product_by_id: - productsetup_service.py:186", str(e))
+        raise
 
 async def get_all_products_with_details():
     """

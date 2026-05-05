@@ -58,6 +58,7 @@ CREATE TABLE carts (
 --     CONSTRAINT uq_cart_variant_price 
 --         UNIQUE(cart_id, variant_id, product_variant_price_id)
 -- );
+
 CREATE TABLE cart_items (
     id CHAR(36) PRIMARY KEY,
 
