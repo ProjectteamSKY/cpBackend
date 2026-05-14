@@ -74,6 +74,77 @@ async def get_all_subcategories():
     return [attach_images(d) for d in data]
 
 
+async def list_subcategory_base_products():
+    data = await query_all(
+        queries["subcategory"]["get_all_with_products"]
+    )
+
+    return [
+        attach_images(dict(row))
+        for row in data
+    ]
+
+# -------------------------
+# GET ALL (MINIMAL)
+# -------------------------
+async def get_all_subcategories_minimal():
+    data = await query_all(
+        queries["subcategory"]["get_all_minimal"]
+    )
+
+    subcategories = []
+
+    # return only first 8 VALID subcategories
+    for sc in data:
+
+        # attach image objects
+        sc = attach_images(sc)
+
+        images = sc.get("images", [])
+
+        cleaned_images = []
+
+        # validate images safely
+        if isinstance(images, list):
+
+            for img in images:
+
+                if not isinstance(img, dict):
+                    continue
+
+                url = img.get("url")
+
+                # skip empty/null urls
+                if not url:
+                    continue
+
+                cleaned_images.append({
+                    "id": img.get("id"),
+                    "url": url,
+                    "is_default": bool(
+                        img.get("is_default", False)
+                    )
+                })
+
+        # SKIP subcategory if no images
+        if not cleaned_images:
+            continue
+
+        subcategories.append({
+            "id": sc.get("id"),
+            "name": sc.get("name"),
+            "category_id": sc.get("category_id"),
+            "category_name": sc.get("category_name"),
+            "description": sc.get("description"),
+            "is_active": bool(sc.get("is_active")),
+            "images": cleaned_images[:8]
+        })
+        print(f"Processed subcategory {sc.get('id')} with {len(cleaned_images)} valid images - subcategory_service.py:142")
+        # stop after 8 valid records
+        if len(subcategories) >= 8:
+            break
+
+    return subcategories
 # -------------------------
 # GET BY ID
 # -------------------------

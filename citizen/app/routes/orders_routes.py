@@ -19,7 +19,14 @@ from app.services.orders_service import (
     get_monthly_revenue,
     get_top_products,
     get_recent_orders,
-    cancel_order
+    cancel_order,
+    get_sales_summary,
+    get_sales_report,
+    get_sales_by_status,
+    get_monthly_sales_report,
+    get_daily_sales,
+    get_top_selling_products
+
 )
 from app.core.database import query_all
 
@@ -415,5 +422,78 @@ async def get_user_orders_endpoint(user_id: str):
 async def cancel_order_endpoint(order_id: str):
     try:
         return await cancel_order(order_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)) 
+
+# =========================================================
+# SALES SUMMARY
+# =========================================================
+@router.get("/sales/summary")
+async def sales_summary():
+    try:
+        return await get_sales_summary()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# =========================================================
+# SALES REPORT
+# =========================================================
+@router.get("/sales/report")
+async def sales_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    status: Optional[str] = None
+):
+    try:
+        return await get_sales_report(
+            start_date=start_date,
+            end_date=end_date,
+            status=status
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# =========================================================
+# SALES BY STATUS
+# =========================================================
+@router.get("/sales/status")
+async def sales_by_status():
+    try:
+        return await get_sales_by_status()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# =========================================================
+# DAILY SALES
+# =========================================================
+@router.get("/sales/daily")
+async def daily_sales():
+    try:
+        return await get_daily_sales()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# =========================================================
+# MONTHLY SALES
+# =========================================================
+@router.get("/sales/monthly")
+async def monthly_sales():
+    try:
+        return await get_monthly_sales_report()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# =========================================================
+# TOP SELLING PRODUCTS
+# =========================================================
+@router.get("/sales/top-products")
+async def top_selling_products():
+    try:
+        return await get_top_selling_products()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

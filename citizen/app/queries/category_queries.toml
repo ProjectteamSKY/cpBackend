@@ -14,7 +14,37 @@ get_all = """
 SELECT *
 FROM categories
 WHERE is_deleted = FALSE
+AND is_active = TRUE
 ORDER BY created_at DESC;
+"""
+
+category_with_subcategories = """
+SELECT DISTINCT
+    c.id,
+    c.name,
+    c.description,
+    c.is_active,
+    c.created_at,
+    c.updated_at
+FROM categories c
+
+INNER JOIN subcategories s
+    ON s.category_id = c.id
+
+INNER JOIN products p
+    ON p.subcategory_id = s.id
+
+WHERE
+    c.is_deleted = FALSE
+    AND c.is_active = TRUE
+
+    AND s.is_deleted = FALSE
+    AND s.is_active = TRUE
+
+    AND p.is_deleted = FALSE
+    AND p.is_active = TRUE
+
+ORDER BY c.name ASC;
 """
 
 get_by_id = """

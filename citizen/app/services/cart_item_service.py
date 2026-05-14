@@ -70,8 +70,45 @@ async def recalculate_cart(cart_id: str):
 # =========================================================
 async def create_cart_item(payload: Any):
 
-    price = await get_variant_price(payload.variant_id, payload.quantity)
+    # =====================================================
+    # FETCH PRICE
+    # =====================================================
+    price = await get_variant_price(
+        payload.variant_id,
+        payload.quantity
+    )
 
+    # =====================================================
+    # SAFE OPTIONAL VALUES
+    # =====================================================
+    design_request_id = getattr(
+        payload,
+        "design_request_id",
+        None
+    )
+
+    design_price = getattr(
+        payload,
+        "design_price",
+        None
+    )
+
+    # =====================================================
+    # TOTALS
+    # =====================================================
+    product_total = (
+        float(price["price"]) * payload.quantity
+    )
+
+    final_total = product_total + (
+        float(design_price)
+        if design_price is not None
+        else 0
+    )
+
+    # =====================================================
+    # CHECK EXISTING
+    # =====================================================
     existing = await query(
         queries["cart_items"]["find_existing_item"],
         {
@@ -80,58 +117,114 @@ async def create_cart_item(payload: Any):
         },
     )
 
-    # -------------------------
-    # MERGE
-    # -------------------------
+    # =====================================================
+    # MERGE EXISTING
+    # =====================================================
     if existing:
-        new_qty = existing["quantity"] + payload.quantity
 
-        new_price = await get_variant_price(payload.variant_id, new_qty)
+        new_qty = (
+            existing["quantity"] + payload.quantity
+        )
+
+        new_price = await get_variant_price(
+            payload.variant_id,
+            new_qty
+        )
+
+        merged_product_total = (
+            float(new_price["price"]) * new_qty
+        )
+
+        merged_total = merged_product_total + (
+            float(design_price)
+            if design_price is not None
+            else 0
+        )
 
         await execute(
             queries["cart_items"]["merge_update"],
             {
                 "id": existing["id"],
+
                 "quantity": new_qty,
+
                 "unit_price": new_price["price"],
-                "total_price": new_price["price"] * new_qty,
-                "discount_id": new_price.get("discount_id"),
+
+                "total_price": merged_total,
+
+                "design_request_id": design_request_id,
+
+                "design_price": design_price,
+
+                "discount_id": new_price.get(
+                    "discount_id"
+                ),
+
                 "updated_at": datetime.utcnow()
             },
         )
 
         await recalculate_cart(payload.cart_id)
 
-        return {"status": "success", "message": "Item merged", "id": existing["id"]}
+        return {
+            "status": "success",
+            "message": "Item merged",
+            "id": existing["id"]
+        }
 
-    # -------------------------
-    # CREATE
-    # -------------------------
+    # =====================================================
+    # CREATE NEW ITEM
+    # =====================================================
     item_id = str(uuid.uuid4())
 
     await execute(
         queries["cart_items"]["create"],
         {
             "id": item_id,
+
             "cart_id": payload.cart_id,
+
             "product_id": payload.product_id,
+
             "variant_id": payload.variant_id,
+
             "variant_price_id": price["id"],
+
+            "design_request_id": design_request_id,
+
             "quantity": payload.quantity,
+
             "unit_price": price["price"],
-            "total_price": price["price"] * payload.quantity,
-            "discount_id": price.get("discount_id"),
-            "selected_attributes": json.dumps(
-                getattr(payload, "selected_attributes", {})
+
+            "total_price": final_total,
+
+            "design_price": design_price,
+
+            "discount_id": price.get(
+                "discount_id"
             ),
+
+            "selected_attributes": json.dumps(
+                getattr(
+                    payload,
+                    "selected_attributes",
+                    {}
+                )
+            ),
+
             "created_at": datetime.utcnow(),
+
             "updated_at": datetime.utcnow(),
         },
     )
 
     await recalculate_cart(payload.cart_id)
 
-    return {"status": "success", "message": "Item added", "id": item_id}
+    return {
+        "status": "success",
+        "message": "Item added",
+        "id": item_id
+    }
 
 
 # =========================================================

@@ -39,6 +39,10 @@ async def get_all_categories():
     return await query_all(queries["category"]["get_all"])
 
 
+async def subcategory_base_categories():
+    return await query_all(
+        queries["category"]["category_with_subcategories"]
+    )
 # -------------------------
 # GET BY ID
 # -------------------------

@@ -278,39 +278,55 @@ async def approve_design(id: str):
     print("Fetched design request: - design_request_routes.py:278", design)
 
     if not design:
-        raise HTTPException(status_code=404, detail="Design request not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Design request not found"
+        )
 
     price_id = design.get("variant_price_id")
+
     if not price_id:
-        raise HTTPException(status_code=400, detail="Missing variant_price_id")
+        raise HTTPException(
+            status_code=400,
+            detail="Missing variant_price_id"
+        )
 
     # =====================================================
     # FETCH PRICE ROW
     # =====================================================
     price_row = await get_variant_price_by_id(price_id)
 
-    print("Fetched price row: - design_request_routes.py:292", price_row)
+    print("Fetched price row: - design_request_routes.py:299", price_row)
 
     if not price_row:
-        raise HTTPException(status_code=400, detail="Invalid price ID")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid price ID"
+        )
 
     if not price_row.get("is_active"):
-        raise HTTPException(status_code=400, detail="Price is inactive")
+        raise HTTPException(
+            status_code=400,
+            detail="Price is inactive"
+        )
 
     # =====================================================
     # PRICE DETAILS
     # =====================================================
     min_qty = int(price_row["min_qty"])
-    max_qty = int(price_row["max_qty"]) if price_row.get("max_qty") else None
+
+    max_qty = (
+        int(price_row["max_qty"])
+        if price_row.get("max_qty")
+        else None
+    )
+
     unit_price = float(price_row["price"])
 
     # =====================================================
-    # ✅ FIXED: USE MAX QTY ONLY
+    # USE MAX QTY
     # =====================================================
-    if max_qty:
-        quantity = max_qty
-    else:
-        quantity = min_qty  # fallback safety
+    quantity = max_qty if max_qty else min_qty
 
     # =====================================================
     # CART
@@ -318,16 +334,21 @@ async def approve_design(id: str):
     user_id = design["user_id"]
 
     cart = await get_cart_by_user_id(user_id)
+
     if not cart:
-        cart = await create_cart(Cart(user_id=user_id))
+        cart = await create_cart(
+            Cart(user_id=user_id)
+        )
 
     cart_id = cart["id"]
 
     # =====================================================
-    # ✅ KEEP ORIGINAL ATTRIBUTE FORMAT (LIST)
+    # ATTRIBUTES
     # =====================================================
     try:
-        selected_attributes = json.loads(design.get("selected_attributes") or "[]")
+        selected_attributes = json.loads(
+            design.get("selected_attributes") or "[]"
+        )
     except:
         selected_attributes = []
 
@@ -343,22 +364,48 @@ async def approve_design(id: str):
             images_raw = []
 
     latest_images = []
+
     if isinstance(images_raw, list) and images_raw:
-        latest_images = (images_raw[-1] or {}).get("images", [])
+        latest_images = (
+            images_raw[-1] or {}
+        ).get("images", [])
 
-    latest_images = [i.replace("\\", "/") for i in latest_images]
+    latest_images = [
+        i.replace("\\", "/")
+        for i in latest_images
+    ]
 
-    # detect print location from attributes
+    # =====================================================
+    # PRINT LOCATION CHECK
+    # =====================================================
     print_location = None
+
     for attr in selected_attributes:
         if attr.get("attribute_name") == "print location":
-            print_location = attr.get("attribute_value_name")
+            print_location = attr.get(
+                "attribute_value_name"
+            )
 
-    if print_location == "back" and len(latest_images) < 2:
-        raise HTTPException(status_code=400, detail="Back print requires 2 images")
+    if (
+        print_location == "back"
+        and len(latest_images) < 2
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Back print requires 2 images"
+        )
 
-    front = latest_images[0] if len(latest_images) > 0 else None
-    back = latest_images[1] if len(latest_images) > 1 else None
+    front = (
+        latest_images[0]
+        if len(latest_images) > 0
+        else None
+    )
+
+    back = (
+        latest_images[1]
+        if len(latest_images) > 1
+        else None
+    )
 
     # =====================================================
     # PAYLOAD
@@ -367,32 +414,51 @@ async def approve_design(id: str):
         pass
 
     payload = Payload()
+
     payload.cart_id = cart_id
     payload.product_id = design["product_id"]
     payload.variant_id = design["variant_id"]
     payload.variant_price_id = price_id
     payload.quantity = quantity
-    payload.selected_attributes = selected_attributes  # ✅ FIXED
+
+    # OPTIONAL VALUES
+    payload.design_request_id = design.get("id")
+
+    payload.design_price = (
+        float(design.get("design_price"))
+        if design.get("design_price") is not None
+        else None
+    )
+
+    payload.selected_attributes = selected_attributes
 
     # =====================================================
     # CREATE CART ITEM
     # =====================================================
     try:
         cart_item = await create_cart_item(payload)
+
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
 
     # =====================================================
     # INSERT CART FILES
     # =====================================================
     if cart_item and "id" in cart_item:
+
         await execute(
             queries["cart_items"]["insert_cart_files"],
             {
                 "id": str(uuid.uuid4()),
+
                 "cart_item_id": cart_item["id"],
+
                 "front_side_url": front,
                 "back_side_url": back,
+
                 "front_original_name": "design_front",
                 "back_original_name": "design_back",
             }
@@ -403,19 +469,32 @@ async def approve_design(id: str):
     # =====================================================
     await update_design_request(
         id,
-        {"is_approved": True, "status": "APPROVED"}
+        {
+            "is_approved": True,
+            "status": "APPROVED"
+        }
     )
 
     # =====================================================
     # RESPONSE
     # =====================================================
+    product_total = quantity * unit_price
+
+    final_total = product_total + (
+        payload.design_price
+        if payload.design_price is not None
+        else 0
+    )
+
     return {
         "status": "success",
         "message": "Design approved & added to cart",
         "data": {
             "quantity": quantity,
             "unit_price": unit_price,
-            "total": quantity * unit_price,
+            "product_total": product_total,
+            "design_price": payload.design_price,
+            "total": final_total,
             "min_qty": min_qty,
             "max_qty": max_qty
         }

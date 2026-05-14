@@ -16,6 +16,8 @@ CREATE TABLE shipments (
     tracking_url TEXT,
     manifest_url TEXT,
     pickup_status VARCHAR(100),
+    pickup_token_number VARCHAR(255),
+    pickup_scheduled_date DATETIME NULL,
 
     current_status VARCHAR(100) DEFAULT 'CREATED',
 

@@ -76,6 +76,12 @@ SET label_url = :label_url
 WHERE shipment_id = :shipment_id
 """
 
+update_manifest = """
+UPDATE shipments
+SET manifest_url = :manifest_url
+WHERE shipment_id = :shipment_id
+"""
+
 update_status = """
 UPDATE shipments
 SET current_status = :status,
@@ -105,4 +111,22 @@ add_freight_to_total = """
 UPDATE orders
 SET total_amount = total_amount + :freight
 WHERE id = :order_id
+"""
+
+update_pickup = """
+UPDATE shipments
+SET
+    pickup_status = :pickup_status,
+    pickup_token_number = :pickup_token_number,
+    pickup_scheduled_date = :pickup_scheduled_date,
+    updated_at = NOW()
+WHERE shipment_id = :shipment_id
+"""
+
+update_status_by_shipment = """
+UPDATE shipments
+SET
+    current_status = :status,
+    updated_at = NOW()
+WHERE shipment_id = :shipment_id
 """

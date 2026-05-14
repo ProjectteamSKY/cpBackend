@@ -107,11 +107,12 @@ SQL_FILES_ORDER = [
     "user_order_file.sql",
     "wish_list.sql",
     "reviews.sql",
+    "contact_requests.sql",
 ]
 
 
 async def init_db():
-    print("🚀 Initializing database... - init_db.py:114")
+    print("🚀 Initializing database... - init_db.py:115")
 
     async with engine.begin() as conn:  # ✅ Correct way
         for file in SQL_FILES_ORDER:
@@ -119,10 +120,10 @@ async def init_db():
             path = os.path.join(SCHEMA_PATH, file)
 
             if not os.path.exists(path):
-                print(f"⚠️ File not found: {file} - init_db.py:122")
+                print(f"⚠️ File not found: {file} - init_db.py:123")
                 continue
 
-            print(f"📄 Applying schema: {file} - init_db.py:125")
+            print(f"📄 Applying schema: {file} - init_db.py:126")
 
             with open(path, "r", encoding="utf-8") as f:
                 sql = f.read()
@@ -133,7 +134,7 @@ async def init_db():
             for stmt in statements:
                 await conn.execute(text(stmt))
 
-    print("✅ All tables created successfully. - init_db.py:136")
+    print("✅ All tables created successfully. - init_db.py:137")
 
 
 if __name__ == "__main__":

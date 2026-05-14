@@ -58,6 +58,8 @@ from app.routes.bank import oauth_routes
 from app.routes import review_routes
 from app.routes import faq_router
 from app.routes import design_request_routes
+from app.routes import contact_request_routes
+
 from app.routes import customer_erp
 
 
@@ -422,6 +424,9 @@ api_router.include_router(review_routes.router, prefix="/review", tags=["review"
 api_router.include_router(faq_router.router, prefix="/faq", tags=["faq"])
 api_router.include_router(design_request_routes.router, prefix="/design_request", tags=["design_request"])
 api_router.include_router(transaction_routes.router, prefix="/transactions", tags=["Transactions"])
+api_router.include_router(contact_request_routes.router, prefix="/contact_requests", tags=["Contact Requests"])
+
+
 
 
 # Include ERP customer routes

@@ -1,0 +1,46 @@
+[contact_requests]
+
+create = """
+INSERT INTO contact_requests (
+    id,
+    full_name,
+    phone_number,
+    email_address,
+    subject,
+    message,
+    status
+)
+VALUES (
+    :id,
+    :full_name,
+    :phone_number,
+    :email_address,
+    :subject,
+    :message,
+    :status
+)
+"""
+
+get_all = """
+SELECT *
+FROM contact_requests
+ORDER BY created_at DESC;
+"""
+
+get_by_id = """
+SELECT *
+FROM contact_requests
+WHERE id = :id;
+"""
+
+update = """
+UPDATE contact_requests
+SET {set_clause},
+    updated_at = NOW()
+WHERE id = :id;
+"""
+
+delete = """
+DELETE FROM contact_requests
+WHERE id = :id;
+"""

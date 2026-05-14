@@ -107,6 +107,17 @@ SELECT
 FROM orders;
 """
 
+
+get_sales_summary = """
+SELECT
+    COUNT(*) AS total_orders,
+    COALESCE(SUM(total_amount), 0) AS total_sales,
+    COALESCE(AVG(total_amount), 0) AS average_order_value,
+    COALESCE(SUM(delivery_charge), 0) AS total_delivery_charge
+FROM orders
+WHERE status != 'cancelled';
+"""
+
 get_monthly_revenue = """
 SELECT
     DATE_FORMAT(created_at, '%b') AS month,
@@ -163,9 +174,31 @@ VALUES (
 """
 
 get_all_by_order = """
-SELECT *
-FROM order_items
-WHERE order_id = :order_id;
+SELECT
+    oi.id,
+    oi.order_id,
+    oi.product_id,
+    oi.variant_id,
+    oi.quantity,
+    oi.unit_price,
+    oi.total_price,
+    oi.selected_attributes,
+    oi.status,
+    oi.created_at,
+
+    -- PRODUCT DETAILS
+    p.name AS product_name,
+    p.description AS product_description,
+    p.images AS product_images
+
+FROM order_items oi
+
+LEFT JOIN products p
+    ON p.id = oi.product_id
+
+WHERE oi.order_id = :order_id
+
+ORDER BY oi.created_at DESC;
 """
 
 

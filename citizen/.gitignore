@@ -62,3 +62,11 @@ Thumbs.db
 
 # Migrations
 migrations/
+
+venv.zip
+requirements.zip
+media.zip
+citizen/venv.zip
+citizen/requirements.zip
+citizen/media.zip
+citizen/app.zip

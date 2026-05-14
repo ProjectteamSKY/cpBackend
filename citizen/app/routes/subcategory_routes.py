@@ -14,7 +14,9 @@ from app.services.subcategory_service import (
     update_subcategory,
     delete_subcategory,
     activate_subcategory,
-    deactivate_subcategory
+    deactivate_subcategory,
+    get_all_subcategories_minimal,
+    list_subcategory_base_products
 )
 
 router = APIRouter()
@@ -131,7 +133,19 @@ async def list_subcategories(category_id: Optional[str] = None):
 
     return {"subcategories": data}
 
+@router.get("/subcategory_list")
+async def subcategory_base_products():
 
+    data = await list_subcategory_base_products()
+
+    return {"subcategories": data}
+
+
+
+@router.get("/minimal/list")
+async def list_subcategories():
+    data = await get_all_subcategories_minimal()
+    return {"subcategories": data}
 # ----------------------------
 # GET BY ID
 # ----------------------------

@@ -32,6 +32,21 @@ WHERE sc.is_deleted = FALSE
 ORDER BY sc.created_at DESC;
 """
 
+get_all_minimal = """
+SELECT
+    sc.id,
+    sc.name,
+    sc.category_id,
+    c.name AS category_name,
+    sc.description,
+    sc.images,
+    sc.is_active
+FROM subcategories sc
+JOIN categories c
+    ON c.id = sc.category_id
+WHERE sc.is_deleted = FALSE
+ORDER BY sc.created_at DESC;
+"""
 
 get_by_id = """
 SELECT sc.*, c.name AS category_name
@@ -85,4 +100,37 @@ SELECT id FROM products
 WHERE subcategory_id = :id
 AND is_deleted = FALSE
 LIMIT 1;
+"""
+
+get_all_with_products = """
+SELECT DISTINCT
+    sc.id,
+    sc.category_id,
+    sc.name,
+    sc.description,
+    sc.images,
+    sc.is_active,
+    sc.is_deleted,
+    sc.created_at,
+    sc.updated_at,
+    c.name AS category_name
+FROM subcategories sc
+
+INNER JOIN categories c
+    ON c.id = sc.category_id
+
+INNER JOIN products p
+    ON p.subcategory_id = sc.id
+
+WHERE
+    sc.is_deleted = FALSE
+    AND sc.is_active = TRUE
+
+    AND c.is_deleted = FALSE
+    AND c.is_active = TRUE
+
+    AND p.is_deleted = FALSE
+    AND p.is_active = TRUE
+
+ORDER BY sc.created_at DESC;
 """

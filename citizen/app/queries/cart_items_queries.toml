@@ -7,22 +7,38 @@ INSERT INTO cart_items (
     product_id,
     variant_id,
     variant_price_id,
+
+    -- OPTIONAL DESIGN FLOW
+    design_request_id,
+
     quantity,
     unit_price,
     total_price,
+
+    -- OPTIONAL DESIGN PRICE
+    design_price,
+
     selected_attributes,
     discount_id,
     created_at,
     updated_at
+
 ) VALUES (
+
     :id,
     :cart_id,
     :product_id,
     :variant_id,
     :variant_price_id,
+
+    :design_request_id,
+
     :quantity,
     :unit_price,
     :total_price,
+
+    :design_price,
+
     :selected_attributes,
     :discount_id,
     :created_at,
@@ -32,9 +48,11 @@ INSERT INTO cart_items (
 
 
 get_by_id = """
-SELECT * FROM cart_items
+SELECT *
+FROM cart_items
 WHERE id = :id;
 """
+
 
 get_by_cart_id = """
 SELECT *
@@ -42,6 +60,7 @@ FROM cart_items
 WHERE cart_id = :cart_id
 ORDER BY created_at DESC;
 """
+
 
 get_by_user_id = """
 SELECT 
@@ -70,26 +89,40 @@ AND ci.status = 'active'
 ORDER BY ci.created_at DESC;
 """
 
+
 delete = """
 DELETE FROM cart_items
 WHERE id = :id;
 """
 
-# ------------------------------------------------
+
+# =====================================================
+# VARIANT PRICE LOOKUP
+# =====================================================
 
 variant_price_lookup = """
 SELECT *
 FROM variant_prices
+
 WHERE variant_id = :variant_id
 AND is_active = 1
 AND is_deleted = 0
+
 AND :quantity >= min_qty
-AND (max_qty IS NULL OR :quantity <= max_qty)
+
+AND (
+    max_qty IS NULL
+    OR :quantity <= max_qty
+)
+
 ORDER BY min_qty DESC
 LIMIT 1
 """
 
-# ------------------------------------------------
+
+# =====================================================
+# CART TOTAL
+# =====================================================
 
 cart_total = """
 SELECT COALESCE(SUM(total_price),0) AS total
@@ -98,47 +131,86 @@ WHERE cart_id = :cart_id
 """
 
 
-# ------------------------------------------------
+# =====================================================
+# FIND EXISTING
+# =====================================================
 
 find_existing_item = """
 SELECT *
 FROM cart_items
+
 WHERE cart_id = :cart_id
 AND variant_id = :variant_id
+
 LIMIT 1
 """
 
+
+# =====================================================
+# MERGE UPDATE
+# =====================================================
+
 merge_update = """
 UPDATE cart_items
-SET quantity = :quantity,
+
+SET
+
+quantity = :quantity,
+
 unit_price = :unit_price,
+
 total_price = :total_price,
+
+-- OPTIONAL DESIGN FLOW
+design_request_id = :design_request_id,
+
+design_price = :design_price,
+
 discount_id = :discount_id,
+
 updated_at = NOW()
+
 WHERE id = :id
 """
 
-# ------------------------------------------------
+
+# =====================================================
+# INSERT CART FILES
+# =====================================================
 
 insert_cart_files = """
 INSERT INTO cart_item_files (
+
     id,
     cart_item_id,
+
     front_side_url,
     back_side_url,
+
     front_original_name,
     back_original_name,
+
     created_at
+
 ) VALUES (
+
     :id,
     :cart_item_id,
+
     :front_side_url,
     :back_side_url,
+
     :front_original_name,
     :back_original_name,
+
     NOW()
 )
 """
+
+
+# =====================================================
+# FILES
+# =====================================================
 
 get_files_by_cart_item_id = """
 SELECT *
@@ -147,37 +219,67 @@ WHERE cart_item_id = :cart_item_id
 """
 
 
-lock_items = """
-SELECT *
-FROM cart_items
-WHERE cart_id = :cart_id
-AND id IN :cart_item_ids
-FOR UPDATE;
-"""
-
 get_files = """
 SELECT *
 FROM cart_item_files
 WHERE cart_item_id = :cart_item_id;
 """
 
+
+# =====================================================
+# LOCK ITEMS
+# =====================================================
+
+lock_items = """
+SELECT *
+FROM cart_items
+
+WHERE cart_id = :cart_id
+AND id IN :cart_item_ids
+
+FOR UPDATE;
+"""
+
+
+# =====================================================
+# PURCHASE
+# =====================================================
+
 mark_purchased = """
 UPDATE cart_items
-SET status = 'purchased',
+
+SET
+    status = 'purchased',
     updated_at = :updated_at
+
 WHERE id IN :cart_item_ids;
 """
 
+
+# =====================================================
+# GET CART TOTAL
+# =====================================================
+
 get_cart_total = """
 SELECT COALESCE(SUM(total_price), 0) AS total
+
 FROM cart_items
+
 WHERE cart_id = :cart_id
 AND status = 'active';
 """
 
+
+# =====================================================
+# UPDATE CART TOTAL
+# =====================================================
+
 update_cart_total = """
 UPDATE carts
-SET total_amount = :total,
+
+SET
+    total_amount = :total,
     updated_at = :updated_at
+
 WHERE id = :cart_id;
 """

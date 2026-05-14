@@ -16,7 +16,8 @@ from app.services.shipping_service import (
     get_wallet_balance_service,
     get_pickup_locations_service,
     get_manifest_label_service,
-    get_invoice_service
+    get_invoice_service,
+    generate_pickup_service
 )
 from app.integrations.shiprocket_client import ShiprocketClient
 
@@ -104,7 +105,7 @@ async def get_available_couriers(
     declared_value: float,
     cod: int,
 ):
-    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:107")
+    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:108")
 
     return await couriers_service(
         pickup_postcode,
@@ -124,7 +125,7 @@ async def get_hyperlocal_couriers(
     delivery_postcode: str,
     cod: int,
 ):
-    print("🔥 HYPERLOCAL SERVICEABILITY API CALLED - shipping_router.py:127")
+    print("🔥 HYPERLOCAL SERVICEABILITY API CALLED - shipping_router.py:128")
 
     return await hyperlocal_couriers_service(
         pickup_postcode=pickup_postcode,
@@ -154,3 +155,10 @@ async def get_manifest_label(order_id: str):
 @router.get("/invoice")
 async def get_invoice(order_id: str):
     return await get_invoice_service(order_id)
+
+# ---------------------------------------------------------
+# Generate Pickup
+# ---------------------------------------------------------
+@router.post("/generate-pickup/{order_id}")
+async def generate_pickup(order_id: str):
+    return await generate_pickup_service(order_id)

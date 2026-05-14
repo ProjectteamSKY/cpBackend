@@ -11,7 +11,8 @@ from app.services.category_service import (
     update_category,
     delete_category,
     activate_category,
-    deactivate_category
+    deactivate_category,
+    subcategory_base_categories
 )
 
 router = APIRouter()
@@ -52,7 +53,10 @@ async def list_categories():
     categories = await get_all_categories()
     return {"status": "success", "categories": categories}
 
-
+@router.get("/category_list")
+async def list_subcategory_base_categories():
+    categories = await subcategory_base_categories()
+    return {"status": "success", "categories": categories}
 # --------------------------
 # GET BY ID
 # --------------------------

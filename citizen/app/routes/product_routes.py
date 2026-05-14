@@ -17,7 +17,8 @@ from app.services.product_service import (
     get_product_list_minimal,
     get_products_by_subcategory,
     get_products_by_subcategory_minimal,
-    search_products_service
+    search_products_service,
+    products_minimal_service
 )
 from app.utils.sku_generator import generate_sku
 
@@ -292,3 +293,16 @@ async def list_products_by_subcategory(subcategory_id: str):
 @router.get("/subcategory/{subcategory_id}/minimal")
 async def minimal_products_by_subcategory(subcategory_id: str):
     return {"products": await get_products_by_subcategory_minimal(subcategory_id)}
+
+
+# ------------------------
+# MINIMAL SEARCH
+# ------------------------
+# ------------------------
+# FOOTER MINIMAL PRODUCTS
+# ------------------------
+@router.get("/footer/minimal")
+async def footer_minimal_products():
+    return {
+        "products": await products_minimal_service()
+    }

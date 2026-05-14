@@ -203,38 +203,81 @@ async def deactivate_product(product_id: str):
 async def get_product_list_minimal():
     products = await query_all(queries["product"]["get_all_active"])
 
+    print("RAW PRODUCTS: - product_service.py:206", products)
+
     result = []
 
-    for p in products:
+    # return only 10 products
+    for p in products[:9]:
+
+        raw_images = p.get("images")
+
+        # skip products without images
+        if not raw_images:
+            continue
+
         images = []
 
-        if p.get("images"):
-            try:
-                images = json.loads(p["images"])
-            except:
-                images = []
+        # SAFE JSON PARSE
+        try:
+            images = json.loads(raw_images)
+
+            # handle double encoded JSON
+            while isinstance(images, str):
+                images = json.loads(images)
+
+        except Exception:
+            continue
+
+        # skip empty image arrays
+        if not images or not isinstance(images, list):
+            continue
 
         main_image = None
 
+        # FIND DEFAULT IMAGE
         for img in images:
-            #  CASE 1: dict format
+
+            # dict image format
             if isinstance(img, dict):
-                if img.get("is_default"):
-                    main_image = img.get("url")
+
+                image_url = (
+                    img.get("thumbnail", {}).get("url")
+                    or img.get("mobile", {}).get("url")
+                    or img.get("original", {}).get("url")
+                    or img.get("url")
+                )
+
+                if img.get("is_default") and image_url:
+                    main_image = image_url
                     break
 
-            #  CASE 2: string format
+            # string image format
             elif isinstance(img, str):
-                main_image = img
-                break
 
-        #  fallback
-        if not main_image and images:
+                if img:
+                    main_image = img
+                    break
+
+        # fallback first image
+        if not main_image:
+
             first = images[0]
+
             if isinstance(first, dict):
-                main_image = first.get("url")
+                main_image = (
+                    first.get("thumbnail", {}).get("url")
+                    or first.get("mobile", {}).get("url")
+                    or first.get("original", {}).get("url")
+                    or first.get("url")
+                )
+
             elif isinstance(first, str):
                 main_image = first
+
+        # skip if image null
+        if not main_image:
+            continue
 
         result.append({
             "id": p["id"],
@@ -244,13 +287,12 @@ async def get_product_list_minimal():
 
     return result
 
-
 def safe_json(value):
     if not value:
         return []
     if isinstance(value, str):
         try:
-            return json.loads(value)
+            return json.loads(value)    
         except:
             return []
     return value
@@ -359,7 +401,7 @@ async def search_products_service(query_str: str) -> List[Dict]:
         return []
 
     words = query_str.split()
-    print(f"Searching products with query: {query_str} > words: {words} - product_service.py:362")
+    print(f"Searching products with query: {query_str} > words: {words} - product_service.py:404")
 
     # Base SQL with JOINs to category and subcategory
     sql = """
@@ -391,7 +433,7 @@ async def search_products_service(query_str: str) -> List[Dict]:
 
     # Execute query
     rows = await query_all(sql, params)
-    print(f"Found {len(rows)} products matching query: {query_str} - product_service.py:394")
+    print(f"Found {len(rows)} products matching query: {query_str} - product_service.py:436")
 
     # Build response
     products = []
@@ -429,3 +471,69 @@ async def search_products_service(query_str: str) -> List[Dict]:
         })
 
     return products
+
+
+
+# ===================================
+# MINIMAL SEARCH API
+# ===================================
+async def products_minimal_service() -> List[Dict]:
+    """
+    Footer minimal products
+
+    Returns:
+    - id
+    - name
+    - category
+    - subcategory
+
+    Limited to latest 5 products
+    """
+
+    sql = """
+    SELECT
+        p.id,
+        p.name,
+
+        p.category_id,
+        c.name AS category_name,
+
+        p.subcategory_id,
+        s.name AS subcategory_name
+
+    FROM products p
+
+    LEFT JOIN categories c
+        ON p.category_id = c.id
+
+    LEFT JOIN subcategories s
+        ON p.subcategory_id = s.id
+
+    WHERE
+        p.is_deleted = FALSE
+        AND p.is_active = TRUE
+
+    ORDER BY p.created_at DESC
+
+    LIMIT 5;
+    """
+
+    rows = await query_all(sql)
+
+    return [
+        {
+            "id": row["id"],
+            "name": row["name"],
+
+            "category": {
+                "id": row["category_id"],
+                "name": row["category_name"]
+            } if row.get("category_id") else None,
+
+            "subcategory": {
+                "id": row["subcategory_id"],
+                "name": row["subcategory_name"]
+            } if row.get("subcategory_id") else None,
+        }
+        for row in rows
+    ]

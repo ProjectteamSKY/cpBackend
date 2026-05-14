@@ -38,17 +38,18 @@ CREATE TABLE refresh_tokens (
 -- =====================================================
 CREATE TABLE user_profiles (
     user_id VARCHAR(36) PRIMARY KEY,
+
     profile_picture VARCHAR(500),
     phone_number VARCHAR(30),
+
     gender VARCHAR(20) DEFAULT 'Not Specified',
-    address TEXT,
-    city VARCHAR(100),
-    state VARCHAR(100),
-    country VARCHAR(100),
-    postal_code VARCHAR(20),
-    date_of_birth DATETIME,
+
+    date_of_birth DATE,
+
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_user_profiles_user
     FOREIGN KEY (user_id)

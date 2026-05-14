@@ -544,13 +544,16 @@ async def login(
         """),
         {"token": bearer_token, "id": user["id"]}
     )
+
     await session.commit()
 
     return {
         "message": "Login successful",
         "user_id": user["id"],
+        "fullname": user["full_name"],  # ✅ Include fullname
+        "email": user["email"],
         "bearer_token": bearer_token,
-        "roles": role_names   # ✅ Include roles here
+        "roles": role_names
     }
 
 # ===================== GOOGLE LOGIN =====================
