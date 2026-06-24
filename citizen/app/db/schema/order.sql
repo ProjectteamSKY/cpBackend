@@ -35,7 +35,7 @@ CREATE TABLE orders (
     courier_id VARCHAR(50),
     courier_name VARCHAR(100),
     estimated_delivery_date DATE,
-
+    order_number varchar(20) UNIQUE,
     delivery_type ENUM('hyperlocal', 'normal') NOT NULL DEFAULT 'normal',
 
     payment_method ENUM('COD','PREPAID') NOT NULL,

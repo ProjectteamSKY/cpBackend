@@ -130,3 +130,46 @@ SET
     updated_at = NOW()
 WHERE shipment_id = :shipment_id
 """
+
+get_shipment_by_awb = """
+SELECT
+    id,
+    order_id,
+    awb_code
+FROM shipments
+WHERE awb_code = :awb_code
+LIMIT 1
+"""
+
+insert_webhook_log = """
+INSERT INTO shipment_webhook_logs (
+
+    id,
+    shipment_id,
+    awb_code,
+    event_status,
+    payload
+
+) VALUES (
+
+    :id,
+    :shipment_id,
+    :awb_code,
+    :event_status,
+    :payload
+)
+"""
+
+update_status_by_awb = """
+UPDATE shipments
+SET
+    current_status = :status,
+    delivered_at = COALESCE(
+        :delivered_at,
+        delivered_at
+    ),
+    updated_at = NOW()
+WHERE awb_code = :awb_code
+"""
+
+

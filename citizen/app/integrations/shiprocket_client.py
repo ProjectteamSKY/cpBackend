@@ -179,17 +179,43 @@ class ShiprocketClient:
         }
     
 
-    def hyper_local_assign_courier(self, shipment_id: int, courier_id=None):
+    def hyper_local_assign_courier(
+        self,
+        shipment_id: int,
+        courier_id=None,
+        future_pickup_scheduled=None,
+        vehicle_type=2
+    ):
+        """
+        Hyperlocal courier assignment
+
+        Params:
+            shipment_id (int)                : Shiprocket shipment ID
+            courier_id (int | optional)     : Optional courier ID
+            future_pickup_scheduled (str)   : Format => YYYY-MM-DD HH:MM:SS
+            vehicle_type (int | str)        : 2 = Bike (default)
+                                            3 = 3/4 Wheeler
+        """
 
         self.ensure_token()
 
+        # -----------------------------------
+        # Base Payload
+        # -----------------------------------
         payload = {
-            "shipment_id": int(shipment_id)
+            "shipment_id": int(shipment_id),
+            "vehicle_type": str(vehicle_type)
         }
 
-        # -----------------------------
-        # courier_id is OPTIONAL in hyperlocal
-        # -----------------------------
+        # -----------------------------------
+        # Optional future pickup scheduling
+        # -----------------------------------
+        if future_pickup_scheduled not in [None, ""]:
+            payload["future_pickup_scheduled"] = future_pickup_scheduled
+
+        # -----------------------------------
+        # Optional courier_id
+        # -----------------------------------
         if courier_id not in [None, "", 0, "0"]:
             try:
                 payload["courier_id"] = int(courier_id)
@@ -204,13 +230,26 @@ class ShiprocketClient:
         try:
             response = requests.post(
                 f"{BASE_URL}/courier/assign/awb",
-                headers={**self.headers(), "Content-Type": "application/json"},
+                headers={
+                    **self.headers(),
+                    "Content-Type": "application/json"
+                },
                 json=payload,
                 timeout=20
             )
 
-            data = response.json()
-            print("Hyperlocal assign response: - shiprocket_client.py:213", data)
+            try:
+                data = response.json()
+                print("Hyperlocal assign response: - shiprocket_client.py:243", data)
+            except Exception:
+                data = {
+                    "message": response.text
+                }
+
+            print(
+                "Hyperlocal assign response: - shiprocket_client.py",
+                data
+            )
 
         except Exception as e:
             return {
@@ -220,11 +259,13 @@ class ShiprocketClient:
                 "awb_code": None
             }
 
-        # -----------------------------
-        # CASE 1: IMMEDIATE AWB (RARE)
-        # -----------------------------
+        # -----------------------------------
+        # CASE 1: IMMEDIATE AWB GENERATED
+        # -----------------------------------
         if data.get("awb_assign_status") == 1:
-            awb_data = (data.get("response") or {}).get("data") or {}
+
+            response_data = data.get("response") or {}
+            awb_data = response_data.get("data") or {}
 
             return {
                 "success": True,
@@ -232,21 +273,23 @@ class ShiprocketClient:
                 "processing": False,
                 "awb_code": awb_data.get("awb_code"),
                 "courier_name": awb_data.get("courier_name"),
+                "shipment_id": shipment_id,
                 "raw_response": data
             }
 
-        # -----------------------------
-        # CASE 2: HYPERLOCAL PROCESSING / QUEUED
-        # -----------------------------
+        # -----------------------------------
+        # CASE 2: PROCESSING / QUEUED
+        # -----------------------------------
         message = (
             data.get("message")
-            or (data.get("response") or {}).get("data")
-            or ""
+            or ((data.get("response") or {}).get("message"))
+            or str((data.get("response") or {}).get("data") or "")
         )
 
         if (
             "processing" in message.lower()
             or "try later" in message.lower()
+            or "queued" in message.lower()
             or data.get("awb_assign_status") == 0
         ):
             return {
@@ -256,17 +299,20 @@ class ShiprocketClient:
                 "message": message,
                 "awb_code": None,
                 "courier_name": None,
+                "shipment_id": shipment_id,
                 "raw_response": data
             }
 
-        # -----------------------------
-        # CASE 3: ACTUAL FAILURE
-        # -----------------------------
+        # -----------------------------------
+        # CASE 3: FAILURE
+        # -----------------------------------
         return {
             "success": False,
             "status": "failed",
+            "processing": False,
             "message": message or "Hyperlocal courier assignment failed",
             "awb_code": None,
+            "shipment_id": shipment_id,
             "raw_response": data
         }
 
@@ -416,13 +462,13 @@ class ShiprocketClient:
         try:
             # Corrected headers call
             resp = requests.get(url, headers=self.headers(), params=params)
-            print("service availablity resp!!!!!!!!!!!!!!!!!!!!! - shiprocket_client.py:419",resp.json())
+            print("service availablity resp!!!!!!!!!!!!!!!!!!!!! - shiprocket_client.py:465",resp.json())
         except requests.RequestException as e:
             raise Exception(f"Shiprocket request failed: {str(e)}")
 
         # Debug logs
-        print("Shiprocket serviceability response status: - shiprocket_client.py:424", resp.status_code)
-        print("Request URL: - shiprocket_client.py:425", resp.url)
+        print("Shiprocket serviceability response status: - shiprocket_client.py:470", resp.status_code)
+        print("Request URL: - shiprocket_client.py:471", resp.url)
 
         try:
             data = resp.json()
@@ -434,44 +480,66 @@ class ShiprocketClient:
 
         return data
 
-    def get_hyperlocal_couriers(
-        self,
-        pickup_postcode,
-        delivery_postcode,
-        lat_from,
-        long_from,
-        lat_to,
-        long_to,
-        cod
-    ):
+    def get_hyperlocal_couriers(self, pickup_postcode, delivery_postcode, cod , lat_from, long_from, lat_to, long_to):
         """
         Fetch hyperlocal courier availability from Shiprocket
+        using static payload
         """
 
         self.ensure_token()
 
         url = f"{BASE_URL}/courier/serviceability"
-        print("hyperlocal @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ cod or prepaid - shiprocket_client.py:454",cod)
+
         params = {
-            "pickup_postcode": pickup_postcode,
             "delivery_postcode": delivery_postcode,
+            "pickup_postcode": pickup_postcode,
             "cod": cod,
-            "is_new_hyperlocal": 1,   # 🔥 IMPORTANT
+
             "lat_from": lat_from,
             "long_from": long_from,
+
             "lat_to": lat_to,
-            "long_to": long_to
+            "long_to": long_to,
+
+            "is_ondc": 1,
+
+            "cod": 0,
+
+            "is_new_hyperlocal": 1,
+
+            "product_category": "Others",
+
+            "is_web": 1,
+
+            "is_hyperlocal": 1
         }
 
         try:
-            resp = requests.get(url, headers=self.headers(), params=params)
-            print("HYPERLOCAL RESPONSE: - shiprocket_client.py:468", resp)
-            print("HYPERLOCAL RESPONSE: - shiprocket_client.py:469", resp.json())
+
+            resp = requests.get(
+                url,
+                headers={
+                    **self.headers(),
+                    "Content-Type": "application/json"
+                },
+                params=params
+            )
+
+            print("FINAL URL: - shiprocket_client.py:528", resp.url)
+            print("STATUS CODE: - shiprocket_client.py:529", resp.status_code)
+            print("RESPONSE: - shiprocket_client.py:530", resp.json())
+
         except requests.RequestException as e:
-            raise Exception(f"Shiprocket request failed: {str(e)}")
+
+            raise Exception(
+                f"Shiprocket request failed: {str(e)}"
+            )
 
         if resp.status_code != 200:
-            raise Exception(f"Hyperlocal API failed: {resp.text}")
+
+            raise Exception(
+                f"Hyperlocal API failed: {resp.text}"
+            )
 
         return resp.json()
     
@@ -493,7 +561,7 @@ class ShiprocketClient:
         except Exception:
             raise Exception(f"Invalid JSON response: {response.text}")
 
-        print("Wallet Balance Response: - shiprocket_client.py:496", data)
+        print("Wallet Balance Response: - shiprocket_client.py:564", data)
 
         if response.status_code != 200:
             raise Exception(f"Failed to fetch wallet balance: {data}")
@@ -525,7 +593,7 @@ class ShiprocketClient:
         except Exception:
             raise Exception(f"Invalid JSON response: {response.text}")
 
-        print("Manifest Response: - shiprocket_client.py:528", data)
+        print("Manifest Response: - shiprocket_client.py:596", data)
 
         if response.status_code != 200:
             raise Exception(f"Manifest generation failed: {data}")
@@ -553,7 +621,7 @@ class ShiprocketClient:
         except Exception:
             raise Exception(f"Invalid Shiprocket response: {response.text}")
 
-        print("Invoice response: - shiprocket_client.py:556", data)
+        print("Invoice response: - shiprocket_client.py:624", data)
 
         if response.status_code != 200:
             raise Exception(f"Invoice generation failed: {data}")
@@ -582,7 +650,7 @@ class ShiprocketClient:
 
         data = response.json()
 
-        print("Generate pickup response: - shiprocket_client.py:585", data)
+        print("Generate pickup response: - shiprocket_client.py:653", data)
 
         if response.status_code != 200:
             raise Exception(

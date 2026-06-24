@@ -37,3 +37,25 @@ CREATE INDEX idx_shipments_awb ON shipments(awb_code);
 CREATE INDEX idx_shipments_order_id ON shipments(order_id);
 CREATE INDEX idx_shipments_status ON shipments(current_status);
 
+
+CREATE TABLE shipment_webhook_logs (
+
+    id VARCHAR(36) PRIMARY KEY,
+
+    shipment_id VARCHAR(36) NOT NULL,
+
+    awb_code VARCHAR(100) NOT NULL,
+
+    event_status VARCHAR(100),
+
+    payload JSON NOT NULL,
+
+    created_at TIMESTAMP NOT NULL
+    DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_shipment_webhook_logs_shipment
+        FOREIGN KEY (shipment_id)
+        REFERENCES shipments(id)
+        ON DELETE CASCADE
+);
+

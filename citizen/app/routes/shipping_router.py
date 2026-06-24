@@ -61,11 +61,21 @@ async def download_label(
     return await download_label_service(order_id)
 
 
-@router.post("/webhook/shiprocket")
-async def shiprocket_webhook(
-    payload: dict,
-):
-    return await update_webhook_status_service(payload)
+@router.post("/webhook/live-tracking", status_code=200)
+async def shiprocket_webhook(payload: dict):
+
+    print(
+        "Webhook received at /webhook/live-tracking",
+        payload
+    )
+
+    await update_webhook_status_service(payload)
+
+    # Shiprocket requires HTTP 200
+    return {
+        "success": True,
+        "message": "Webhook received successfully"
+    }
 
 
 @router.post("/cancel-order/{order_id}")
@@ -105,7 +115,7 @@ async def get_available_couriers(
     declared_value: float,
     cod: int,
 ):
-    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:108")
+    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@serviceavailability - shipping_router.py:118")
 
     return await couriers_service(
         pickup_postcode,
@@ -118,21 +128,34 @@ async def get_available_couriers(
         height
     )
 
+class PickupAddress(BaseModel):
+    address: str
+    latitude: str | None = None
+    longitude: str | None = None
+    postal_code: str
 
-@router.get("/hyperlocal/serviceability")
-async def get_hyperlocal_couriers(
-    pickup_postcode: str,
-    delivery_postcode: str,
-    cod: int,
-):
-    print("🔥 HYPERLOCAL SERVICEABILITY API CALLED - shipping_router.py:128")
+
+class DeliveryAddress(BaseModel):
+    address: str
+    postal_code: str
+
+
+class HyperlocalRequest(BaseModel):
+    cod: int
+    pickup: PickupAddress
+    delivery: DeliveryAddress
+
+
+@router.post("/hyperlocal/serviceability")
+async def get_hyperlocal_couriers(payload: HyperlocalRequest):
 
     return await hyperlocal_couriers_service(
-        pickup_postcode=pickup_postcode,
-        delivery_postcode=delivery_postcode,
-        cod=cod
+        pickup=payload.pickup,
+        delivery=payload.delivery,
+        cod=payload.cod
     )
 
+    
 @router.get("/hyperlocal/check")
 async def check_chennai_area(pincode: str):
     return await is_chennai_surrounding(pincode)    

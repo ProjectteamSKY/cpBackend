@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import uuid
 from fastapi import HTTPException, Response
 
@@ -7,6 +8,7 @@ from app.utils.query_loader import load_queries
 from app.integrations.shiprocket_client import ShiprocketClient
 import requests
 import math
+from urllib.parse import quote
 
 queries = load_queries()
 shiprocket = ShiprocketClient()
@@ -248,7 +250,7 @@ def build_shiprocket_payload(order: dict, order_items: list):
     return {
         "order_id": order.get("order_number") or order.get("id"),
         "order_date": str(order.get("created_at").strftime("%Y-%m-%d %H:%M")),
-        "pickup_location": "Home",
+        "pickup_location": "Home-1",
 
         # BILLING
         "billing_customer_name": full_name,
@@ -300,60 +302,97 @@ async def create_hyperlocal_order_service(order_id: str):
     # 3. BUILD PAYLOAD
     payload = await build_hyperlocal_payload(order, order_items)
 
-    print("Hyperlocal payload: - shipping_service.py:303", payload)
-
-    # 4. CREATE ORDER
+    # 4. CREATE SHIPROCKET ORDER
     try:
-        response = shiprocket.create_order(payload)
-    except Exception as e:
-        raise HTTPException(500, f"Hyperlocal create failed: {str(e)}")
 
+        response = shiprocket.create_hyperlocal_order(payload)
+
+        print(
+            "Shiprocket create order response:",
+            response
+        )
+
+    except Exception as e:
+
+        raise HTTPException(
+            500,
+            f"Hyperlocal create failed: {str(e)}"
+        )
+
+    # 5. EXTRACT RESPONSE
     order_id_sr = response.get("order_id")
     shipment_id = response.get("shipment_id")
 
     if not shipment_id:
-        raise HTTPException(500, "Shipment ID not returned from Shiprocket")
+        raise HTTPException(
+            500,
+            "Shipment ID not returned from Shiprocket"
+        )
 
-    # 5. HYPERLOCAL COURIER ASSIGN (FIXED LOGIC)
+    # 6. ASSIGN COURIER
     assign_response = None
     awb_code = None
     courier_name = None
+    tracking_url = None
 
-    courier_id = order.get("courier_id")
+    try:
 
-    if courier_id not in [None, "", 0]:
+        # -----------------------------------
+        # AUTO ASSIGN COURIER
+        # -----------------------------------
+        assign_response = shiprocket.hyper_local_assign_courier(
+            shipment_id
+        )
 
-        try:
-            assign_response = shiprocket.hyper_local_assign_courier(
-                shipment_id,
-                int(courier_id)
-            )
+        print(
+            "Assign response:",
+            assign_response
+        )
 
-            print("Assign response: - shipping_service.py:332", assign_response)
+        # -----------------------------------
+        # AWB GENERATED
+        # -----------------------------------
+        if assign_response:
 
-            # -----------------------------
-            # 🔥 FIXED LOGIC FOR HYPERLOCAL
-            # -----------------------------
+            if assign_response.get("awb_assign_status") == 1:
 
-            if assign_response:
+                awb_code = assign_response.get("awb_code")
+                courier_name = assign_response.get("courier_name")
+                tracking_url = assign_response.get("tracking_url")
 
-                # CASE 1: REAL AWB GENERATED
-                if assign_response.get("awb_assign_status") == 1:
-                    awb_code = assign_response.get("awb_code")
-                    courier_name = assign_response.get("courier_name")
+                print(
+                    "AWB Generated Successfully:",
+                    awb_code
+                )
 
-                # CASE 2: HYPERLOCAL PROCESSING (VALID SUCCESS)
-                elif assign_response.get("success") is True:
-                    print("Hyperlocal processing started: - shipping_service.py:347", assign_response.get("message"))
+            # -----------------------------------
+            # HYPERLOCAL PROCESSING
+            # -----------------------------------
+            elif assign_response.get("success") is True:
 
-                # CASE 3: FAILURE
-                else:
-                    print("Courier assignment failed: - shipping_service.py:351", assign_response)
+                print(
+                    "Hyperlocal processing started:",
+                    assign_response.get("message")
+                )
 
-        except Exception as e:
-            print("Hyperlocal courier assign error: - shipping_service.py:354", str(e))
+            # -----------------------------------
+            # FAILED
+            # -----------------------------------
+            else:
 
-    # 6. SAVE SHIPMENT
+                print(
+                    "Courier assignment failed:",
+                    assign_response
+                )
+
+    except Exception as e:
+
+        print(
+            "Hyperlocal courier assign error:",
+            str(e)
+        )
+
+    # 7. SAVE SHIPMENT
     shipment_uuid = str(uuid.uuid4())
 
     await execute(
@@ -365,14 +404,14 @@ async def create_hyperlocal_order_service(order_id: str):
             "shipment_id": shipment_id,
             "awb_code": awb_code,
             "courier_name": courier_name,
-            "tracking_url": None,
+            "tracking_url": tracking_url,
             "current_status": "processing",
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
     )
 
-    # 7. UPDATE ORDER STATUS
+    # 8. UPDATE ORDER STATUS
     await execute(
         queries["shipping"]["update_order_status"],
         {
@@ -381,7 +420,7 @@ async def create_hyperlocal_order_service(order_id: str):
         }
     )
 
-    # 8. RESPONSE
+    # 9. RESPONSE
     return {
         "status": "success",
         "type": "hyperlocal",
@@ -389,7 +428,9 @@ async def create_hyperlocal_order_service(order_id: str):
         "shipment_id": shipment_id,
         "awb_code": awb_code,
         "courier_name": courier_name,
-        "processing": awb_code is None   # 🔥 important flag
+        "tracking_url": tracking_url,
+        "processing": awb_code is None,
+        "assign_response": assign_response
     }
 
 
@@ -404,75 +445,173 @@ async def create_order_service(order_id: str):
     )
 
     if not order:
-        raise HTTPException(404, "Order not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found"
+        )
 
-    delivery_type = (order.get("delivery_type") or "normal").lower()
+    delivery_type = (
+        order.get("delivery_type") or "normal"
+    ).lower()
 
     # ---------------------------------------------------------
-    # ✅ HYPERLOCAL VALIDATION (NEW - EARLY EXIT)
+    # 2. HYPERLOCAL FLOW
     # ---------------------------------------------------------
     if delivery_type == "hyperlocal":
-        # 🚨 Do NOT allow normal flow for hyperlocal
         return await create_hyperlocal_order_service(order_id)
 
     # ---------------------------------------------------------
-    # 2. FETCH ORDER ITEMS
+    # 3. FETCH ORDER ITEMS
     # ---------------------------------------------------------
     order_items = await query_all(
         queries["order_item"]["get_all_order_item"],
         {"order_id": order_id}
     )
 
-    # ---------------------------------------------------------
-    # 3. BUILD PAYLOAD
-    # ---------------------------------------------------------
-    payload = build_shiprocket_payload(order, order_items)
+    if not order_items:
+        raise HTTPException(
+            status_code=400,
+            detail="Order items not found"
+        )
 
     # ---------------------------------------------------------
-    # 4. CREATE ORDER IN SHIPROCKET
+    # 4. BUILD PAYLOAD
+    # ---------------------------------------------------------
+    payload = build_shiprocket_payload(
+        order,
+        order_items
+    )
+
+    # ---------------------------------------------------------
+    # 5. CREATE ORDER IN SHIPROCKET
     # ---------------------------------------------------------
     try:
         response = shiprocket.create_order(payload)
+
     except Exception as e:
-        raise HTTPException(500, f"Shiprocket create order failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Shiprocket create order failed: {str(e)}"
+        )
+
+    print(
+        "Shiprocket create order response - shipping_service.py:",
+        response
+    )
 
     shipment_id = response.get("shipment_id")
     shiprocket_order_id = response.get("order_id")
 
     if not shipment_id or not shiprocket_order_id:
-        raise HTTPException(500, f"Invalid Shiprocket response: {response}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid Shiprocket response: {response}"
+        )
 
     # ---------------------------------------------------------
-    # 5. COURIER ASSIGNMENT (SAFE)
+    # 6. DEFAULT VALUES
     # ---------------------------------------------------------
     courier_id = order.get("courier_id")
     courier_name = order.get("courier_name")
 
     awb_code = None
-    freight_charges = float(order.get("delivery_charge") or 0)
+
+    freight_charges = float(
+        order.get("delivery_charge") or 0
+    )
 
     assign_response = {}
 
+    pickup_status = None
+    pickup_token_number = None
+    pickup_scheduled_date = None
+
+    shipment_status = "shipment"
+    order_status = "shipment"
+
+    # ---------------------------------------------------------
+    # 7. ASSIGN COURIER
+    # ---------------------------------------------------------
     if courier_id:
+
         try:
             assign_response = shiprocket.assign_courier(
                 shipment_id,
                 int(courier_id)
             )
 
-            if assign_response:
-                awb_code = assign_response.get("awb_code") or None
-                courier_name = assign_response.get("courier_name") or courier_name
+            print(
+                "Shiprocket assign courier response - shipping_service.py:",
+                assign_response
+            )
 
-                freight_raw = assign_response.get("freight_charges")
-                if freight_raw not in [None, "", "null"]:
+            if assign_response:
+
+                # ---------------------------------------------------------
+                # AWB
+                # ---------------------------------------------------------
+                awb_code = (
+                    assign_response.get("awb_code")
+                    or None
+                )
+
+                # ---------------------------------------------------------
+                # COURIER NAME
+                # ---------------------------------------------------------
+                courier_name = (
+                    assign_response.get("courier_name")
+                    or courier_name
+                )
+
+                # ---------------------------------------------------------
+                # FREIGHT
+                # ---------------------------------------------------------
+                freight_raw = assign_response.get(
+                    "freight_charges"
+                )
+
+                if freight_raw not in [
+                    None,
+                    "",
+                    "null"
+                ]:
                     freight_charges = float(freight_raw)
 
+                # ---------------------------------------------------------
+                # AUTO PICKUP DETECTION
+                # ---------------------------------------------------------
+                pickup_scheduled_date = (
+                    assign_response.get("raw_response", {})
+                    .get("response", {})
+                    .get("data", {})
+                    .get("pickup_scheduled_date")
+                )
+
+                print(
+                    "pickup_scheduled_date:",
+                    pickup_scheduled_date
+                )
+
+                # ---------------------------------------------------------
+                # SOME COURIERS AUTO SCHEDULE PICKUP
+                # ---------------------------------------------------------
+                if pickup_scheduled_date:
+
+                    pickup_status = "scheduled"
+
+                    shipment_status = "pickup_scheduled"
+
+                    order_status = "pickup_scheduled"
+
         except Exception as e:
-            print(f"Courier assign failed (NONBLOCKING): {str(e)} - shipping_service.py:472")
+
+            print(
+                f"Courier assign failed (NONBLOCKING): {str(e)} "
+                f"- shipping_service.py"
+            )
 
     # ---------------------------------------------------------
-    # 6. CREATE SHIPMENT RECORD
+    # 8. CREATE SHIPMENT RECORD
     # ---------------------------------------------------------
     shipment_uuid = str(uuid.uuid4())
 
@@ -486,16 +625,32 @@ async def create_order_service(order_id: str):
             "awb_code": awb_code,
             "courier_name": courier_name,
             "tracking_url": None,
-            "current_status": "shipment",  # ✅ always normal here now
+
+            # ---------------------------------------------------------
+            # STATUS
+            # ---------------------------------------------------------
+            "current_status": shipment_status,
+
+            # ---------------------------------------------------------
+            # PICKUP
+            # ---------------------------------------------------------
+            "pickup_status": pickup_status,
+            "pickup_token_number": pickup_token_number,
+            "pickup_scheduled_date": pickup_scheduled_date,
+
+            # ---------------------------------------------------------
+            # TIMESTAMP
+            # ---------------------------------------------------------
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
     )
 
     # ---------------------------------------------------------
-    # 7. SAVE COURIER DETAILS (SAFE)
+    # 9. SAVE COURIER DETAILS
     # ---------------------------------------------------------
     if courier_id:
+
         await execute(
             queries["shipping"]["assign_courier"],
             {
@@ -508,18 +663,18 @@ async def create_order_service(order_id: str):
         )
 
     # ---------------------------------------------------------
-    # 8. UPDATE ORDER STATUS
+    # 10. UPDATE ORDER STATUS
     # ---------------------------------------------------------
     await execute(
         queries["shipping"]["update_order_status"],
         {
             "order_id": order_id,
-            "status": "shipment"   # ✅ always normal here now
+            "status": order_status
         }
     )
 
     # ---------------------------------------------------------
-    # 9. ADD FREIGHT (ONLY NORMAL)
+    # 11. ADD FREIGHT TO ORDER
     # ---------------------------------------------------------
     await execute(
         queries["shipping"]["add_freight_to_total"],
@@ -530,18 +685,36 @@ async def create_order_service(order_id: str):
     )
 
     # ---------------------------------------------------------
-    # FINAL RESPONSE
+    # 12. FINAL RESPONSE
     # ---------------------------------------------------------
     return {
         "status": "success",
-        "message": "Order created successfully",
+        "message": (
+            "Order created and pickup auto scheduled"
+            if pickup_status == "scheduled"
+            else "Order created successfully"
+        ),
+
+        "order_id": order_id,
+
         "shipment_id": shipment_id,
+
+        "shiprocket_order_id": shiprocket_order_id,
+
         "awb_code": awb_code,
+
+        "courier_id": courier_id,
+
         "courier_name": courier_name,
-        "freight": freight_charges
+
+        "freight": freight_charges,
+
+        "pickup_status": pickup_status,
+
+        "pickup_scheduled_date": pickup_scheduled_date,
+
+        "current_status": shipment_status
     }
-
-
 
 # ---------------------------------------------------------
 # Get Available Couriers
@@ -617,7 +790,7 @@ async def get_available_couriers_service(order_id: str):
         raise HTTPException(400, "No suitable courier found")
 
 
-    print("best courier @@@@@@@@@@@@@@@@@@@@@@@@@@@@ - shipping_service.py:620",best_courier)
+    print("best courier @@@@@@@@@@@@@@@@@@@@@@@@@@@@ - shipping_service.py:793",best_courier)
     # ---------------------------------------------------------
     # Assign courier (AWB)
     # ---------------------------------------------------------
@@ -766,7 +939,7 @@ async def get_manifest_label_service(order_id: str):
     if not manifest_url:
         manifest_response = shiprocket.generate_manifest([shipment_id])
 
-        print("Manifest response: - shipping_service.py:769", manifest_response)
+        print("Manifest response: - shipping_service.py:942", manifest_response)
 
         manifest_url = (
             manifest_response.get("manifest_url")
@@ -827,7 +1000,7 @@ async def get_invoice_service(order_id: str):
     # 2. Call Shiprocket Invoice API
     invoice_response = shiprocket.generate_invoice([shiprocket_order_id])
 
-    print("Invoice response: - shipping_service.py:830", invoice_response)
+    print("Invoice response: - shipping_service.py:1003", invoice_response)
 
     # 3. Extract URL (if returned)
     invoice_url = (
@@ -998,53 +1171,161 @@ async def generate_pickup_service(order_id: str):
 # ---------------------------------------------------------
 async def update_webhook_status_service(payload: dict):
 
-    awb_code = payload.get("awb")
+    try:
 
-    order_status = (
-        payload.get("current_status")
-        or payload.get("shipment_status")
-        or payload.get("status")
-    )
+        print(
+            "Webhook payload received - shipping_service.py",
+            payload
+        )
 
-    if not awb_code or not order_status:
-        raise HTTPException(400, "Invalid webhook payload")
+        # ------------------------------------------------
+        # VALIDATION
+        # ------------------------------------------------
+        awb_code = str(
+            payload.get("awb", "")
+        ).strip()
 
-    status_map = {
-        "picked up": "shipped",
-        "in transit": "shipped",
-        "out for delivery": "shipped",
-        "delivered": "delivered",
-        "delivered to consignee": "delivered",
-        "cancelled": "cancelled",
-        "rto initiated": "rto"
-    }
+        order_status = (
+            payload.get("current_status")
+            or payload.get("shipment_status")
+            or payload.get("status")
+            or ""
+        )
 
-    status_clean = order_status.strip().lower()
-    final_status = status_map.get(status_clean, status_clean)
+        if not awb_code:
+            print("Missing AWB code - shipping_service.py:1196")
+            return
 
-    delivered_at = datetime.utcnow() if final_status == "delivered" else None
+        if not order_status:
+            print("Missing order status - shipping_service.py:1200")
+            return
 
-    await execute(
-        queries["shipping"]["update_status"],
-        {
-            "status": final_status,
-            "awb_code": awb_code
+        # ------------------------------------------------
+        # GET SHIPMENT USING AWB
+        # ------------------------------------------------
+        shipment = await query(
+            queries["shipping"]["get_shipment_by_awb"],
+            {
+                "awb_code": awb_code
+            }
+        )
+        print("Shipment Query Result: - shipping_service.py:1212", shipment)
+
+        if not shipment:
+
+            print(
+                f"Shipment not found for AWB: {awb_code}"
+            )
+
+            return
+
+        shipment_id = shipment["id"]
+        order_id = shipment["order_id"]
+
+        # ------------------------------------------------
+        # NORMALIZE STATUS
+        # ------------------------------------------------
+        status_clean = order_status.strip().lower()
+
+        status_map = {
+
+            # NORMAL DELIVERY
+            "picked up": "shipped",
+            "shipment picked up": "shipped",
+
+            "in transit": "shipped",
+
+            "out for delivery": "out_for_delivery",
+            "shipment out for delivery": "out_for_delivery",
+
+            "delivered": "delivered",
+            "shipment delivered": "delivered",
+            "delivered to consignee": "delivered",
+
+            "cancelled": "cancelled",
+
+            "rto initiated": "rto",
+
+            # HYPERLOCAL
+            "rider assigned": "rider_assigned",
+            "rider reached pickup": "pickup_arrived",
+            "picked": "picked",
+            "on the way": "in_transit",
+            "reached drop": "reached_drop",
+            "completed": "delivered",
         }
-    )
 
-    await execute(
-        queries["shipping"]["update_order_status"],
-        {
-            "status": final_status,
-            "awb_code": awb_code
-        }
-    )
+        final_status = status_map.get(
+            status_clean,
+            status_clean
+        )
 
-    return {
-        "status": "success",
-        "message": f"Webhook processed: {final_status}"
-    }
+        # ------------------------------------------------
+        # DELIVERED DATE
+        # ------------------------------------------------
+        delivered_at = None
 
+        if final_status == "delivered":
+            delivered_at = datetime.utcnow()
+
+        # ------------------------------------------------
+        # SAVE WEBHOOK LOG
+        # ------------------------------------------------
+        await execute(
+            queries["shipping"]["insert_webhook_log"],
+            {
+                "id": str(uuid.uuid4()),
+
+                "shipment_id": shipment_id,
+
+                "awb_code": awb_code,
+
+                "event_status": final_status,
+
+                "payload": json.dumps(payload)
+            }
+        )
+
+        # ------------------------------------------------
+        # UPDATE SHIPMENT STATUS
+        # ------------------------------------------------
+        await execute(
+            queries["shipping"]["update_status_by_awb"],
+            {
+                "awb_code": awb_code,
+                "status": final_status,
+                "delivered_at": delivered_at
+            }
+        )
+
+        # ------------------------------------------------
+        # UPDATE ORDER STATUS
+        # ------------------------------------------------
+        await execute(
+            queries["shipping"]["update_order_status"],
+            {
+                "order_id": order_id,
+                "status": final_status
+            }
+        )
+
+        print(
+            f"Webhook processed successfully "
+            f"AWB={awb_code} "
+            f"STATUS={final_status}"
+        )
+
+    except Exception as e:
+
+        print(
+            "Webhook processing failed:",
+            str(e)
+        )
+
+        # IMPORTANT:
+        # NEVER FAIL WEBHOOK
+        # Shiprocket retries if not HTTP 200
+        return
 
 # ---------------------------------------------------------
 # Cancel Order
@@ -1326,25 +1607,145 @@ async def get_lat_long_from_pincode(pincode: str):
 
     return float(data[0]["lat"]), float(data[0]["lon"])
 
+import re
+
+async def get_lat_long_from_address(address: str, postal_code: str = None):
+
+    try:
+
+        base = re.sub(r"\s+", " ", address.replace("\xa0", " ")).strip()
+
+        if "India" not in base:
+            base += ", India"
+
+        # ================================
+        # AUTO REDUCTION (NO HARD CODE)
+        # ================================
+        queries = []
+
+        # full
+        queries.append(base)
+
+        # remove house/flat number
+        queries.append(re.sub(r"^\s*\d+\s*,?\s*", "", base))
+
+        # keep only middle locality parts
+        parts = [p.strip() for p in base.split(",") if p.strip()]
+        if len(parts) > 2:
+            queries.append(",".join(parts[1:]))
+
+        # remove everything except area + city
+        queries.append("Vadapalani, Chennai, India")
+
+        # pincode fallback (IMPORTANT FOR INDIA)
+        if postal_code:
+            queries.append(f"{postal_code}, Chennai, India")
+
+        headers = {"User-Agent": "hyperlocal-app"}
+
+        best_coords = None
+        best_score = -1
+
+        for q in queries:
+
+            url = (
+                "https://nominatim.openstreetmap.org/search"
+                f"?q={quote(q)}"
+                "&format=json"
+                "&limit=10"
+                "&addressdetails=1"
+                "&countrycodes=in"
+            )
+
+            res = requests.get(url, headers=headers, timeout=15)
+            data = res.json()
+
+            if not data:
+                continue
+
+            query_words = set(re.findall(r"\w+", base.lower()))
+
+            for item in data:
+
+                try:
+                    lat = float(item.get("lat"))
+                    lon = float(item.get("lon"))
+                except:
+                    continue
+
+                if lat == 0 or lon == 0:
+                    continue
+
+                display = item.get("display_name", "").lower()
+                item_words = set(re.findall(r"\w+", display))
+
+                # dynamic scoring ONLY
+                score = len(query_words & item_words)
+                score += float(item.get("importance", 0))
+
+                if score > best_score:
+                    best_score = score
+                    best_coords = (lat, lon)
+
+            # ⭐ STOP EARLY IF WE GOT GOOD RESULT
+            if best_coords:
+                break
+
+        return best_coords if best_coords else (None, None)
+
+    except Exception as e:
+        print("❌ Geocode error: - shipping_service.py:1697", e)
+        return None, None
+
+        
+    
 async def hyperlocal_couriers_service(
-    pickup_postcode: str,
-    delivery_postcode: str,
-    cod: int 
+    pickup,
+    delivery,
+    cod: int
 ):
-    # ✅ Auto fetch lat/long
-    lat_from, long_from = await get_lat_long_from_pincode(pickup_postcode)
-    lat_to, long_to = await get_lat_long_from_pincode(delivery_postcode)
+
+    print("🔥 Hyperlocal Service Called - shipping_service.py:1708" , pickup)
+    print("🔥 Hyperlocal Service Called - shipping_service.py:1709" , delivery)
+
+
+    # ✅ Pickup coordinates
+    if pickup.latitude and pickup.longitude:
+        lat_from = float(pickup.latitude)
+        long_from = float(pickup.longitude)
+    else:
+        lat_from, long_from = await get_lat_long_from_address(
+            pickup.address
+        )
+
+    # ✅ Delivery exact coordinates
+    lat_to, long_to = await get_lat_long_from_address(
+        delivery.address
+    )
+
+    print(
+        "Coordinates:",
+        lat_from,
+        long_from,
+        lat_to,
+        long_to
+    )
 
     if not lat_from or not lat_to:
-        return {"error": "Invalid pincode or location not found"}
-    print("hyperlocal @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ cod or prepaid - shipping_service.py:1340",cod)
+        return {
+            "error": "Unable to fetch accurate coordinates"
+        }
+
     response = shiprocket.get_hyperlocal_couriers(
-        pickup_postcode=pickup_postcode,
-        delivery_postcode=delivery_postcode,
+        pickup_postcode=pickup.postal_code,
+        delivery_postcode=delivery.postal_code,
+
         lat_from=lat_from,
         long_from=long_from,
+
         lat_to=lat_to,
         long_to=long_to,
+
         cod=cod
     )
 
@@ -1357,33 +1758,35 @@ async def hyperlocal_couriers_service(
             "courier_name": c.get("courier_name"),
             "is_hyperlocal": True,
 
-            # 💰 pricing
             "total_cost": float(c.get("rates") or 0),
             "rto_cost": float(c.get("rto_rates") or 0),
 
-            # 🚚 delivery
             "distance_km": c.get("distance"),
             "estimated_delivery_time_hours": c.get("etd_hours"),
             "etd": c.get("etd"),
         })
 
-    # ✅ sort cheapest
-    filtered_couriers.sort(key=lambda x: x["total_cost"])
+    filtered_couriers.sort(
+        key=lambda x: x["total_cost"]
+    )
 
-    best_courier = filtered_couriers[0] if filtered_couriers else None
+    best_courier = (
+        filtered_couriers[0]
+        if filtered_couriers
+        else None
+    )
 
     return {
         "type": "hyperlocal",
 
-        # ✅ ADD THIS BLOCK
         "coordinates": {
             "pickup": {
-                "pincode": pickup_postcode,
+                "address": pickup.address,
                 "lat": lat_from,
                 "long": long_from
             },
             "delivery": {
-                "pincode": delivery_postcode,
+                "address": delivery.address,
                 "lat": lat_to,
                 "long": long_to
             }
